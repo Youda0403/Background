@@ -54,9 +54,8 @@ Korean explaining what it does. Nothing in the panel is unexplained.
 
 **Discretion.** The *Discretion* slider shrinks the headline, thins the motif
 scatter and drops decoration opacity in one move — from "loud and proud" to
-"nobody will know". Combined with the Riso and Paper layouts it produces
-something that reads as an exhibition flyer or a notebook page from arm's
-length.
+"nobody will know". Combined with the Grid or Zine layout it produces something
+that reads as a typographic experiment or an exhibition flyer from arm's length.
 
 **Photos that belong to the artwork.** Upload, drop or paste an image, then tone
 it into the palette:
@@ -147,7 +146,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Two things worth knowing before you edit
+### Four things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
