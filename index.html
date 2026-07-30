@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pairtone — wallpaper maker for two</title>
+<meta name="description" content="Make a matching phone, tablet and desktop wallpaper for you and your favourite pair. Soft riso, halftone and aura looks that still pass in public.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Italiana&family=Inter:wght@300..700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Caveat:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='25' font-size='24'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">✦</span>
+    <span class="wordmark">pairtone</span>
+    <span class="tagline">wallpaper maker for two</span>
+  </div>
+  <div class="topActions">
+    <button type="button" class="btn ghost" id="btnRandom" title="Roll a whole new look">Surprise me</button>
+    <button type="button" class="btn ghost" id="btnCopyLink" title="Copy a link that rebuilds this exact wallpaper">Copy link</button>
+    <button type="button" class="btn primary" id="btnDownload">Download PNG</button>
+  </div>
+</header>
+
+<main class="shell">
+
+  <section class="stage" aria-label="Preview">
+    <div class="stageInner">
+      <div class="deviceWrap" id="deviceWrap">
+        <canvas id="preview" width="600" height="1300" aria-label="Wallpaper preview"></canvas>
+        <div class="dropHint" id="dropHint" hidden>Drop your photo</div>
+      </div>
+      <div class="stageMeta">
+        <span id="sizeLabel">—</span>
+        <span class="dot">·</span>
+        <span id="tierLabel">—</span>
+        <span class="dot">·</span>
+        <label class="inlineCheck"><input type="checkbox" id="guideToggle"> lock-screen guides</label>
+      </div>
+      <p class="stageTip" id="stageTip">Drag on the preview to reframe your photo, scroll to zoom.</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Controls">
+    <div id="panelRoot"></div>
+    <footer class="panelFoot">
+      <p>Nothing leaves your device — the photo is processed in your browser and never uploaded.</p>
+    </footer>
+  </section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/util.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/palettes.js"></script>
+<script src="js/primitives.js"></script>
+<script src="js/type.js"></script>
+<script src="js/frames.js"></script>
+<script src="js/photo.js"></script>
+<script src="js/textstack.js"></script>
+<script src="js/deco.js"></script>
+<script src="js/compose.js"></script>
+<script src="js/layouts/aura.js"></script>
+<script src="js/layouts/paper.js"></script>
+<script src="js/layouts/riso.js"></script>
+<script src="js/layouts/sticker.js"></script>
+<script src="js/state.js"></script>
+<script src="js/render.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
