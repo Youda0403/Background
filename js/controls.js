@@ -11,6 +11,49 @@
     return n;
   }
 
+  /* A "?" chip that reveals a short plain-language note. Jargon is
+     unavoidable in a design tool; hiding the explanation behind a tap
+     keeps the panel calm. */
+  function helpChip(text) {
+    var wrap = el('span', 'helpWrap');
+    var btn = el('button', 'helpBtn', '?');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '설명 보기');
+    btn.setAttribute('aria-expanded', 'false');
+    var pop = el('span', 'helpPop', text);
+    pop.hidden = true;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var open = pop.hidden;
+      /* one at a time */
+      Array.prototype.forEach.call(document.querySelectorAll('.helpPop'), function (o) {
+        o.hidden = true;
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.helpBtn'), function (o) {
+        o.setAttribute('aria-expanded', 'false');
+      });
+      pop.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        pop.classList.remove('flip');
+        var r = pop.getBoundingClientRect();
+        if (r.right > window.innerWidth - 8) pop.classList.add('flip');
+      }
+    });
+    wrap.appendChild(btn);
+    wrap.appendChild(pop);
+    return wrap;
+  }
+
+  /* Wraps a label node so its text and the help chip sit together. */
+  function withHelp(labelNode, item) {
+    if (!item.help) return labelNode;
+    labelNode.appendChild(document.createTextNode(' '));
+    labelNode.appendChild(helpChip(item.help));
+    return labelNode;
+  }
+
   function optionsOf(item, st) {
     return typeof item.options === 'function' ? item.options(st) : item.options;
   }
@@ -44,6 +87,15 @@
       root.appendChild(wrap);
     });
 
+    document.addEventListener('click', function () {
+      Array.prototype.forEach.call(root.querySelectorAll('.helpPop'), function (o) {
+        o.hidden = true;
+      });
+      Array.prototype.forEach.call(root.querySelectorAll('.helpBtn'), function (o) {
+        o.setAttribute('aria-expanded', 'false');
+      });
+    });
+
     function refresh() {
       var st = api.state();
       updaters.forEach(function (u) { u(st); });
@@ -73,7 +125,7 @@
       case 'slider': {
         node = el('div', 'field');
         var row = el('div', 'fieldRow');
-        row.appendChild(el('span', 'fieldLabel', item.label));
+        row.appendChild(withHelp(el('span', 'fieldLabel', item.label), item));
         var val = el('span', 'fieldVal');
         row.appendChild(val);
         node.appendChild(row);
@@ -95,7 +147,7 @@
 
       case 'select': {
         node = el('div', 'field');
-        var lab = el('label', null, item.label);
+        var lab = withHelp(el('label', null, item.label), item);
         var sel = document.createElement('select');
         lab.setAttribute('for', 'c_' + item.key);
         sel.id = 'c_' + item.key;
@@ -138,7 +190,7 @@
       case 'number':
       case 'textarea': {
         node = el('div', 'field');
-        var l2 = el('label', null, item.label);
+        var l2 = withHelp(el('label', null, item.label), item);
         var inp = item.t === 'textarea' ? document.createElement('textarea')
           : document.createElement('input');
         if (item.t === 'number') { inp.type = 'number'; inp.min = item.min; inp.max = item.max; }
@@ -161,12 +213,15 @@
       }
 
       case 'toggle': {
-        node = el('label', 'toggle');
-        node.appendChild(el('span', null, item.label));
+        node = el('div', 'toggleRow');
+        var tlab = el('label', 'toggle');
+        tlab.appendChild(el('span', null, item.label));
+        node.appendChild(tlab);
+        if (item.help) node.appendChild(helpChip(item.help));
         var cb = document.createElement('input');
         cb.type = 'checkbox';
-        node.appendChild(cb);
-        node.appendChild(el('i', 'switch'));
+        tlab.appendChild(cb);
+        tlab.appendChild(el('i', 'switch'));
         cb.addEventListener('change', function () { api.set(item.key, cb.checked); });
         updaters.push(function (st) { cb.checked = !!st[item.key]; });
         break;
@@ -174,7 +229,7 @@
 
       case 'chips': {
         node = el('div', 'field');
-        node.appendChild(el('span', 'fieldLabel', item.label));
+        node.appendChild(withHelp(el('span', 'fieldLabel', item.label), item));
         var chips = el('div', 'chips');
         node.appendChild(chips);
         var btns = [];
@@ -207,7 +262,7 @@
 
       case 'cards': {
         node = el('div', 'field');
-        if (item.label) node.appendChild(el('span', 'fieldLabel', item.label));
+        if (item.label) node.appendChild(withHelp(el('span', 'fieldLabel', item.label), item));
         var grid = el('div', item.grid || 'cardGrid');
         node.appendChild(grid);
         var cardBtns = [];
@@ -255,5 +310,5 @@
     return node;
   }
 
-  W.controls = { build: build, el: el };
+  W.controls = { build: build, el: el, helpChip: helpChip };
 })(window.PT = window.PT || {});

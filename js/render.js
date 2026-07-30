@@ -49,7 +49,7 @@
     };
   }
 
-  function buildEnv(ctx, w, h, st) {
+  function buildEnv(ctx, w, h, st, nominal) {
     var pal = W.palettes.byId[st.palette] || W.palettes.list[0];
     var S = Math.min(w, h);
     var tier = C.tierOf(h / w);
@@ -69,6 +69,10 @@
       decoDensity: U.clamp(st.decoDensity, 0, 3) * U.lerp(1, 0.35, sub),
       hasPhoto: W.photo.has(),
       safe: sa,
+      /* The target's true proportions. Integer canvas sizes mean the
+         preview's own aspect ratio is a hair off the export's, so anything
+         that rounds (grid row counts, for one) must use this instead. */
+      nominalAr: nominal ? nominal.h / nominal.w : h / w,
       /* Watch faces and cover screens cannot carry four lines of type —
          drop the long ones and enlarge what is left. */
       micro: S < 560,
@@ -122,7 +126,9 @@
   function render(canvas, st, opts) {
     opts = opts || {};
     var d = dims(st);
-    var scale = opts.maxSize ? Math.min(1, opts.maxSize / Math.max(d.w, d.h)) : 1;
+    var scale = 1;
+    if (opts.maxSize) scale = Math.min(scale, opts.maxSize / Math.max(d.w, d.h));
+    if (opts.maxPixels) scale = Math.min(scale, Math.sqrt(opts.maxPixels / (d.w * d.h)));
     var w = Math.max(16, Math.round(d.w * scale));
     var h = Math.max(16, Math.round(d.h * scale));
 
@@ -132,12 +138,12 @@
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, w, h);
 
-    var env = buildEnv(ctx, w, h, st);
+    var env = buildEnv(ctx, w, h, st, d);
     var L = layouts()[st.layout] || layouts().aura;
     L.draw(env);
 
     vignette(env);
-    P.applyGrain(ctx, w, h, U.clamp(env.pal.grain * st.grain, 0, 0.6));
+    P.applyGrain(ctx, w, h, U.clamp(env.pal.grain * st.grain, 0, 0.6), env.u(1000) / 1000);
     if (opts.guides && st.showGuides) guides(env);
 
     return { w: w, h: h, scale: scale, full: d, env: env };

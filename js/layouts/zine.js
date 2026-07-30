@@ -1,0 +1,153 @@
+/* ZINE — photocopied record sleeve. Heavy grain, halftone plate, barcode
+   and numeral rails, a struck-through script title and a big rotated
+   date up the right edge.
+   Reference grammar: risograph song sleeves and department-store flyers. */
+(function (W) {
+  'use strict';
+  var U = W.util, P = W.prim, PO = W.poster, T = W.type;
+
+  /* Own rng: the bar widths clamp to whole pixels, so driving this from
+     the shared stream would desync the preview from the export. */
+  function barcode(ctx, x, y, w, h, seedRand, color, alpha) {
+    var rand = U.rng(Math.floor(seedRand() * 1e9));
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    var cx = x;
+    while (cx < x + w - 2) {
+      var bw = Math.max(1, (0.15 + rand() * 0.5) * (w / 18));
+      ctx.fillRect(cx, y, bw, h);
+      cx += bw + Math.max(1, (0.2 + rand() * 0.45) * (w / 18));
+    }
+    ctx.restore();
+  }
+
+  function draw(env) {
+    var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
+    var st = env.st, pal = env.pal, c = env.content, rand = env.rand;
+
+    PO.paper(env, { tint: true });
+    var m = PO.margins(env);
+    var mic = PO.micro(env);
+    var wide = env.tier === 'wide';
+
+    /* ---- headline, struck through like a rubber stamp ---- */
+    var hlBox = { x: m.left, y: m.top + mic * 0.6, w: m.inner * (wide ? 0.52 : 0.94) };
+    var hl = PO.headline(env, hlBox, { align: 'left', style: 'scriptSans', l2Weight: 600 });
+
+    if (st.strike && hl.h) {
+      ctx.save();
+      ctx.globalAlpha = 0.9 * env.decoAlpha;
+      ctx.strokeStyle = pal.text;
+      ctx.lineWidth = Math.max(1, u(2.6));
+      var sy = hl.y + hl.h * 0.24;
+      ctx.beginPath();
+      ctx.moveTo(m.left, sy);
+      ctx.lineTo(m.left + hl.w * 0.98, sy);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ---- left rails: numerals + barcode ---- */
+    var railX = m.left;
+    var plateLeft = m.left + (wide ? 0 : mic * 3.4);
+    if (!wide && !env.micro) {
+      var digits = '0123456789012';
+      var dSize = mic * 1.15;
+      ctx.save();
+      ctx.fillStyle = pal.text;
+      ctx.globalAlpha = 0.8;
+      T.setFont(ctx, 'dmmono', dSize, {});
+      ctx.translate(railX + dSize * 0.9, hl.bottom + u(150));
+      ctx.rotate(Math.PI / 2);
+      T.draw(ctx, digits, 0, 0, { align: 'left', tracking: dSize * 0.5 });
+      ctx.restore();
+      barcode(ctx, railX, hl.bottom + u(40), mic * 2.4, u(90), rand, pal.text, 0.85 * env.decoAlpha);
+    }
+
+    /* ---- halftone plate ---- */
+    var top = hl.bottom + u(46);
+    var footH = mic * 6.4;
+    var plate = { x: plateLeft, y: top, w: w - m.right - plateLeft, h: h - m.bottom - footH - top };
+    var ratio = W.compose.ratioById[st.photoRatio];
+    if (ratio && plate.w / ratio < plate.h) plate.h = plate.w / ratio;
+
+    if (plate.h > u(140)) {
+      if (env.hasPhoto) {
+        env.drawPhoto(plate);
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 0.45 * st.washStrength;
+        ctx.fillStyle = pal.soft[0];
+        ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
+        ctx.restore();
+      }
+      /* bracket corners rather than a full box */
+      ctx.save();
+      ctx.globalAlpha = 0.8 * env.decoAlpha;
+      ctx.strokeStyle = pal.text;
+      ctx.lineWidth = Math.max(1, u(2));
+      var L = u(56);
+      ctx.beginPath();
+      ctx.moveTo(plate.x, plate.y + L); ctx.lineTo(plate.x, plate.y); ctx.lineTo(plate.x + L, plate.y);
+      ctx.moveTo(plate.x + plate.w - L, plate.y + plate.h); ctx.lineTo(plate.x + plate.w, plate.y + plate.h);
+      ctx.lineTo(plate.x + plate.w, plate.y + plate.h - L);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ---- rotated release line up the right edge ---- */
+    if (c.footnote && !env.micro) {
+      var rSize = Math.min(u(58), plate.h * 0.1);
+      ctx.save();
+      ctx.fillStyle = pal.text;
+      ctx.globalAlpha = 0.95;
+      T.setFont(ctx, st.titleFont, rSize, { weight: 600 });
+      ctx.translate(w - m.right - rSize * 0.35, plate.y + plate.h * 0.5);
+      ctx.rotate(Math.PI / 2);
+      T.draw(ctx, c.footnote, 0, 0, { align: 'center', tracking: rSize * 0.01 });
+      ctx.restore();
+    }
+
+    /* ---- outlined bursts over the print ---- */
+    PO.accents(env, plate, {
+      count: 5, rMin: 22, rMax: 62, outline: true,
+      kinds: st.motifs, speckle: st.glitter
+    });
+
+    /* ---- foot: caption block + credits ---- */
+    var footY = h - m.bottom - mic * 2.4;
+    if (c.caption && !env.micro) {
+      PO.block(env, m.left, footY - mic * 1.2, m.inner * (wide ? 0.5 : 0.72), [c.caption], {
+        size: mic * 0.98, lead: 1.45, alpha: 0.85, font: st.bodyFont, upper: false
+      });
+    }
+    ctx.save();
+    ctx.globalAlpha = 0.35 * env.decoAlpha;
+    ctx.strokeStyle = pal.text;
+    ctx.lineWidth = Math.max(1, u(1.4));
+    ctx.beginPath();
+    ctx.moveTo(m.left, h - m.bottom - mic * 1.7);
+    ctx.lineTo(w - m.right, h - m.bottom - mic * 1.7);
+    ctx.stroke();
+    ctx.restore();
+
+    PO.rail(env, h - m.bottom + mic * 0.1, [
+      (c.names || W.textstack.monogram(st)).toLowerCase(), null, 'pairtone'
+    ], { m: m, size: mic * 0.92, alpha: 0.75 });
+    PO.tagRail(env, h - m.bottom + mic * 0.1, { m: m, size: mic * 0.9, alpha: 0.55 });
+  }
+
+  W.layoutRegistry = W.layoutRegistry || [];
+  W.layoutRegistry.push({
+    id: 'zine',
+    label: 'Zine',
+    blurb: '복사기 감성 레코드 슬리브. 망점 + 바코드.',
+    defaults: {
+      photoShape: 'rect', photoRatio: 'portrait45', tone: 'halftone',
+      halftoneCells: 58, feather: 0, headlineStyle: 'scriptSans',
+      strike: true, grain: 1.7, motifs: ['burst', 'burst4'], vignette: 0.08
+    },
+    draw: draw
+  });
+})(window.PT = window.PT || {});

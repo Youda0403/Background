@@ -5,7 +5,12 @@
   var U = W.util, S = W.state, R = W.render, T = W.type, C = W.compose;
 
   var STORE_KEY = 'pairtone.v1';
-  var PREVIEW_MAX = 760;
+  /* The settled preview renders at the real output resolution (within a
+     pixel budget) so that what you see is literally the file you save.
+     While dragging we drop to a cheap size for smoothness. */
+  var PREVIEW_PIXELS = 4.2e6;
+  var PREVIEW_DRAG_MAX = 820;
+  var dragging = false;
 
   var st = null;
   var panel = null;
@@ -67,7 +72,18 @@
   }
 
   function fontOptions() {
-    return T.fonts.map(function (f) { return { v: f.id, l: f.label }; });
+    var groups = [];
+    T.fonts.forEach(function (f) {
+      var g = groups.filter(function (x) { return x.group === f.group; })[0];
+      if (!g) { g = { group: f.group, items: [] }; groups.push(g); }
+      g.items.push({ v: f.id, l: f.label });
+    });
+    return groups;
+  }
+
+  function scriptFontOptions() {
+    return T.fonts.filter(function (f) { return f.group === '필기체'; })
+      .map(function (f) { return { v: f.id, l: f.label }; });
   }
 
   function idLabel(list) {
@@ -76,14 +92,18 @@
 
   /* ---------- render ---------- */
 
-  var draw = U.raf(function () {
+  /* Two-stage preview. Every change paints a cheap version immediately so
+     sliders stay live; once you stop, we repaint at the real output
+     resolution, which makes the settled preview pixel-identical to the
+     file you save. */
+  function paint(opts) {
     var info;
     try {
-      info = R.render(canvas, st, { maxSize: PREVIEW_MAX, guides: true });
+      info = R.render(canvas, st, opts);
     } catch (e) {
       console.error(e);
       toast('그리기에 실패했어요 — 다른 설정으로 시도해 보세요.');
-      return;
+      return null;
     }
     var d = info.full;
     sizeLabel.textContent = d.w + ' × ' + d.h;
@@ -92,8 +112,23 @@
     stageTip.textContent = W.photo.has()
       ? '프리뷰를 드래그하면 사진 위치, 스크롤하면 확대 · 더블클릭하면 초기화'
       : '아래에서 사진을 추가해 보세요. 사진 없이도 완성돼요.';
-    persist();
+    return info;
+  }
+
+  var paintFast = U.raf(function () {
+    paint({ maxSize: PREVIEW_DRAG_MAX, guides: true });
   });
+
+  var paintExact = U.debounce(function () {
+    if (dragging) return;
+    paint({ maxPixels: PREVIEW_PIXELS, guides: true });
+  }, 190);
+
+  function draw() {
+    paintFast();
+    paintExact();
+    persist();
+  }
 
   var persist = U.debounce(function () {
     var payload = S.serialize(st);
@@ -122,17 +157,53 @@
 
   /* ---------- control spec ---------- */
 
+  var HELP = {
+    look: '레이아웃·팔레트·폰트·질감을 한 번에 정해주는 완성된 디자인이에요. 눌러보고 마음에 드는 걸 고르면 끝.',
+    subtlety: '올릴수록 제목이 작아지고 장식이 옅어져요. 최대로 올리면 그냥 전시 포스터처럼 보여서 밖에서 열어도 티가 안 나요.',
+    layout: '사진과 글자를 어떤 구조로 배치할지 정해요. 구조마다 성격이 완전히 달라요.',
+    palette: '이 디자인에 쓰이는 색 조합. 사진 색보정도 여기 색을 따라가요.',
+    headlineStyle: '제목 두 줄을 어떤 조합으로 짤지 정해요. 예를 들어 첫 줄은 필기체, 둘째 줄은 굵은 고딕처럼요.',
+    headlineScale: '제목 글자 크기. 레이아웃이 알아서 여백에 맞춰주니까 크게 키워도 안 넘쳐요.',
+    microScale: '작은 글자(캡션·날짜·태그) 크기를 한 번에 조절해요.',
+    tone: '사진을 팔레트 색으로 다시 인쇄하는 방식이에요.\n· 원본: 그대로\n· 워시: 팔레트 색에 물들이기\n· 듀오톤: 밝고 어두운 부분을 팔레트 두 색으로 바꾸기\n· 흑백\n· 망점: 신문 인쇄처럼 점으로 표현\n듀오톤·망점이 사진을 그림 안에 녹여줘요.',
+    toneAmount: '위에서 고른 톤을 얼마나 세게 적용할지. 0이면 원본, 1이면 완전히 팔레트 색.',
+    halftoneCells: '망점 하나하나의 크기. 숫자가 클수록 점이 작고 촘촘해서 사진이 선명해져요.',
+    photoRatio: '사진 틀의 가로:세로 비율. 「자동」은 레이아웃이 남는 공간에 맞춰 알아서 잡아요.',
+    photoShape: '사진을 어떤 모양으로 오릴지 정해요.',
+    feather: '사진 가장자리를 흐릿하게 번지게 해서 배경에 녹아들게 해요. 0이면 딱 떨어지는 사각형.',
+    blend: '사진과 배경을 섞는 방식. 「곱하기」는 어두운 부분만 남아서 도장 찍은 느낌, 「스크린」은 반대로 밝은 부분만 남아요.',
+    overprint: '리소 인쇄에서 판이 살짝 어긋나 겹쳐 찍힌 느낌. 올리면 사진이 한 겹 더 밀려 찍혀요.',
+    grain: '필름·복사기 같은 거친 입자 질감. 올리면 디지털 느낌이 사라져요.',
+    vignette: '네 가장자리를 살짝 어둡게 해서 시선을 가운데로 모아요.',
+    washStrength: '배경에 깔리는 색 번짐의 진하기.',
+    scrim: '사진 아래쪽을 어둡게(또는 밝게) 덮어서 그 위에 올라가는 글자가 읽히게 해줘요.',
+    bleed: '켜면 사진이 여백 없이 화면을 꽉 채워요. 끄면 종이 여백과 모서리 표시가 생겨요.',
+    motifs: '여백에 흩뿌릴 작은 그림들. 여러 개 골라도 돼요.',
+    decoDensity: '흩뿌린 장식을 몇 개나 놓을지.',
+    glitter: '큰 별 안을 반짝이는 은박 질감으로 채워요.',
+    seed: '장식이 놓이는 자리를 다시 뽑아요. 디자인은 그대로고 위치만 바뀌어요.',
+    safeShift: '잠금화면 시계와 아래 독 버튼이 가리는 영역을 비워두고 배치해요.',
+    tags: '(love) 처럼 괄호에 담겨 아래쪽 줄에 작게 들어가요. 쉼표로 여러 개 넣을 수 있어요.',
+    sep: '두 이름 사이에 들어갈 기호.',
+    titleMode: '가장 큰 글자로 무엇을 넣을지 정해요.',
+    caption: '사진 옆이나 아래에 작게 들어가는 문장. 길면 자동으로 줄바꿈돼요.',
+    footnote: '날짜나 기념일처럼 아주 작게 들어가는 한 줄.',
+    strike: '제목 위로 줄을 하나 그어서 도장 찍은 듯한 인쇄물 느낌을 줘요.',
+    burst: '제목 뒤에 가시 모양 별을 크게 깔아요.',
+    sideLabel: '오른쪽 세로 방향으로 작은 글자를 넣어요.',
+    batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.'
+  };
+
   function spec() {
     return [
       {
-        title: '무드', hint: '원클릭 프리셋 12종',
+        title: '무드', hint: '완성된 디자인 16종',
         items: [
-          { t: 'cards', key: 'look', options: lookCards, grid: 'lookGrid', cardClass: 'lookCard' },
+          { t: 'cards', key: 'look', options: lookCards, grid: 'lookGrid', cardClass: 'lookCard', help: HELP.look },
           {
-            t: 'slider', key: 'subtlety', label: '일코 농도', min: 0, max: 1, step: 0.01,
+            t: 'slider', key: 'subtlety', label: '일코 농도', min: 0, max: 1, step: 0.01, help: HELP.subtlety,
             fmt: function (v) { return v < 0.25 ? '당당하게' : v < 0.55 ? '적당히' : v < 0.8 ? '은은하게' : '아무도 몰라'; }
-          },
-          { t: 'note', text: '무드를 고르면 레이아웃·팔레트·폰트·질감이 한 번에 바뀌어요. 적어둔 문구, 사진, 기기 사이즈는 그대로 유지됩니다. 일코 농도를 올리면 글씨가 작아지고 장식이 옅어져서 밖에서 열어도 안전한 배경화면이 돼요.' }
+          }
         ]
       },
       {
@@ -146,13 +217,16 @@
             ]
           },
           { t: 'chips', key: 'orientation', label: '방향', options: [{ v: 'portrait', l: '세로' }, { v: 'landscape', l: '가로' }] },
-          { t: 'toggle', key: 'safeShift', label: '잠금화면 시계·독 영역 피하기' },
+          { t: 'toggle', key: 'safeShift', label: '시계·독 영역 피하기', help: HELP.safeShift },
           {
             t: 'custom',
             render: function () {
               var el = W.controls.el;
               var wrap = el('div', 'field');
-              wrap.appendChild(el('span', 'fieldLabel', '여러 기기 한 번에 저장'));
+              var lab = el('span', 'fieldLabel', '여러 기기 한 번에 저장');
+              lab.appendChild(document.createTextNode(' '));
+              lab.appendChild(W.controls.helpChip(HELP.batch));
+              wrap.appendChild(lab);
               var chips = el('div', 'chips');
               var pool = ['ip-15', 'ip-16pm', 'gx-s24', 'gx-ultra', 'pad-pro11', 'pad-11', 'sh-story', 'dt-qhd'];
               pool.forEach(function (id) {
@@ -175,7 +249,6 @@
               btn.style.alignSelf = 'flex-start';
               btn.addEventListener('click', function () { downloadSet(btn); });
               wrap.appendChild(btn);
-              wrap.appendChild(el('p', 'note', '같은 디자인을 기기별 해상도에 맞춰 다시 배치해서 저장해요 — 폰이랑 패드 커플 세트 완성.'));
               return wrap;
             }
           }
@@ -185,26 +258,29 @@
         title: '문구', hint: '영문 추천 · 전부 선택사항',
         items: [
           {
-            t: 'chips', key: 'titleMode', label: '메인 문구', options: [
+            t: 'chips', key: 'titleMode', label: '메인 문구', help: HELP.titleMode, options: [
               { v: 'pair', l: '페어명' }, { v: 'names', l: '두 이름' },
               { v: 'monogram', l: '이니셜' }, { v: 'none', l: '없음' }
             ]
           },
-          { t: 'text', key: 'pairName', label: '페어명', ph: '예: Sunrise Duo', maxlength: 40 },
+          { t: 'text', key: 'pairName', label: '페어명', ph: '예: Spirit of Nature', maxlength: 40 },
+          { t: 'note', text: '페어명에 띄어쓰기가 있으면 첫 단어와 나머지가 두 줄로 나뉘어요 — 「Spirit」 / 「of Nature.」처럼요.' },
           {
             t: 'row', items: [
               { t: 'text', key: 'nameA', label: '이름 A', ph: 'Aki', maxlength: 24 },
               { t: 'text', key: 'nameB', label: '이름 B', ph: 'Ren', maxlength: 24 }
             ]
           },
-          { t: 'chips', key: 'sep', label: '이름 사이 기호', options: idLabel(W.textstack.separators) },
+          { t: 'chips', key: 'sep', label: '이름 사이 기호', help: HELP.sep, options: idLabel(W.textstack.separators) },
           { t: 'toggle', key: 'showNames', label: '이름 줄 표시' },
-          { t: 'textarea', key: 'caption', label: '캡션', ph: 'two halves of the same daydream' },
-          { t: 'note', text: '배경화면에 들어가는 글자라 영문이 제일 예쁘게 나와요. 태그·풋노트 같은 작은 글자는 아래 「세부 조정」에 있어요.' }
+          { t: 'textarea', key: 'caption', label: '캡션', help: HELP.caption, ph: 'two halves of the same daydream' },
+          { t: 'text', key: 'footnote', label: '풋노트', help: HELP.footnote, ph: 'since 2024', maxlength: 32 },
+          { t: 'text', key: 'tags', label: '태그', help: HELP.tags, ph: 'love, always, ours', maxlength: 80 },
+          { t: 'toggle', key: 'showTags', label: '태그 표시' }
         ]
       },
       {
-        title: '사진', hint: '팔레트에 맞게 자동 보정',
+        title: '사진', hint: '팔레트 색으로 자동 보정',
         items: [
           {
             t: 'custom',
@@ -213,7 +289,7 @@
               var wrap = el('div', 'field');
               var zone = el('label', 'dropZone');
               zone.appendChild(el('b', null, '사진 추가하기'));
-              zone.appendChild(el('span', null, '클릭하거나, 프리뷰에 사진을 끌어다 놓아도 돼요'));
+              zone.appendChild(el('span', null, '클릭하거나, 프리뷰에 끌어다 놓아도 돼요'));
               fileInput = document.createElement('input');
               fileInput.type = 'file';
               fileInput.accept = 'image/*';
@@ -251,53 +327,80 @@
               if (on && photoNameEl) photoNameEl.textContent = W.photo.state.name;
             }
           },
-          { t: 'cards', key: 'photoShape', label: '프레임', options: idLabel(W.frames.shapes), grid: 'palGrid', when: W.photo.has },
-          { t: 'chips', key: 'tone', label: '톤 (필터)', options: idLabel(S.tones), when: W.photo.has },
-          { t: 'slider', key: 'toneAmount', label: '톤 강도', min: 0, max: 1, step: 0.01, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
-          { t: 'slider', key: 'halftoneCells', label: '망점 촘촘함', min: 14, max: 130, step: 1, fmt: function (v) { return Math.round(v); }, when: function (s) { return W.photo.has() && s.tone === 'halftone'; } },
+          { t: 'chips', key: 'tone', label: '톤', help: HELP.tone, options: idLabel(S.tones), when: W.photo.has },
+          { t: 'slider', key: 'toneAmount', label: '톤 강도', min: 0, max: 1, step: 0.01, help: HELP.toneAmount, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
+          { t: 'slider', key: 'halftoneCells', label: '망점 촘촘함', min: 14, max: 130, step: 1, fmt: function (v) { return Math.round(v); }, help: HELP.halftoneCells, when: function (s) { return W.photo.has() && s.tone === 'halftone'; } },
+          { t: 'select', key: 'photoRatio', label: '사진 비율', help: HELP.photoRatio, options: C.ratios.map(function (r) { return { v: r.id, l: r.label }; }), when: W.photo.has },
+          { t: 'cards', key: 'photoShape', label: '사진 모양', help: HELP.photoShape, options: idLabel(W.frames.shapes), grid: 'palGrid', when: function (s) { return W.photo.has() && s.layout === 'aura'; } },
           {
             t: 'row', items: [
               { t: 'slider', key: 'zoom', label: '확대', min: 1, max: 3, step: 0.01, when: W.photo.has },
-              { t: 'slider', key: 'photoRotate', label: '기울기', min: -12, max: 12, step: 0.5, when: W.photo.has }
+              { t: 'slider', key: 'feather', label: '가장자리 번짐', min: 0, max: 0.9, step: 0.01, help: HELP.feather, when: function (s) { return W.photo.has() && s.tone !== 'halftone'; } }
             ]
           },
-          {
-            t: 'row', items: [
-              { t: 'slider', key: 'feather', label: '가장자리 페이드', min: 0, max: 0.9, step: 0.01, when: function (s) { return W.photo.has() && s.tone !== 'halftone'; } },
-              { t: 'slider', key: 'opacity', label: '불투명도', min: 0.1, max: 1, step: 0.01, when: W.photo.has }
-            ]
-          },
-          { t: 'note', text: '듀오톤·망점 필터는 사진을 팔레트 잉크로 다시 인쇄해서, 사진이 배경화면 위에 붙은 게 아니라 그림 안에 들어간 것처럼 보이게 해줘요. 밝기·대비 같은 세밀한 보정은 「세부 조정」에 있습니다.', when: W.photo.has }
+          { t: 'note', text: '사진 없이도 디자인은 완성돼요. 넣으면 팔레트 색으로 다시 인쇄돼서 그림 안에 녹아들어요.' }
         ]
       },
       {
-        title: '세부 조정 · 디자인', hint: '레이아웃 · 팔레트 · 장식', open: false,
+        title: '디자인 다듬기', hint: '레이아웃 · 팔레트 · 글자', open: false,
         items: [
-          { t: 'cards', key: 'layout', label: '레이아웃', options: layoutCards },
-          { t: 'cards', key: 'palette', label: '팔레트', options: paletteCards, grid: 'palGrid' },
-          { t: 'chips', key: 'motifs', label: '흩뿌릴 모티프', options: idLabel(S.motifKinds), multi: true },
-          { t: 'slider', key: 'decoDensity', label: '모티프 밀도', min: 0, max: 2, step: 0.01 },
-          { t: 'toggle', key: 'glitter', label: '큰 별에 글리터 채우기' },
-          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } },
-          { t: 'chips', key: 'paperStyle', label: '종이 질감', options: [{ v: 'none', l: '민무늬' }, { v: 'dots', l: '도트' }, { v: 'grid', l: '모눈' }, { v: 'lines', l: '줄노트' }], when: function (s) { return s.layout !== 'riso'; } },
-          { t: 'chips', key: 'cardStyle', label: '글자 뒤 카드', options: [{ v: 'none', l: '없음' }, { v: 'round', l: '둥근' }, { v: 'square', l: '각진' }, { v: 'ellipse', l: '타원' }], when: function (s) { return s.layout === 'paper'; } },
-          { t: 'toggle', key: 'swirl', label: '점 소용돌이', when: function (s) { return s.layout === 'paper'; } },
-          { t: 'toggle', key: 'border', label: '점선 테두리', when: function (s) { return s.layout === 'sticker'; } },
-          { t: 'toggle', key: 'doodleOutline', label: '낙서에 테두리선', when: function (s) { return s.layout === 'sticker'; } },
-          { t: 'slider', key: 'washStrength', label: '컬러 워시', min: 0, max: 1.6, step: 0.01 },
-          { t: 'slider', key: 'grain', label: '그레인 (필름 질감)', min: 0, max: 3, step: 0.01 },
-          { t: 'slider', key: 'vignette', label: '비네트 (가장자리 어둡게)', min: 0, max: 0.5, step: 0.01 },
+          { t: 'cards', key: 'layout', label: '레이아웃', help: HELP.layout, options: layoutCards },
+          { t: 'cards', key: 'palette', label: '팔레트', help: HELP.palette, options: paletteCards, grid: 'palGrid' },
+          { t: 'chips', key: 'headlineStyle', label: '제목 조합', help: HELP.headlineStyle, options: idLabel(S.headlineStyles) },
+          {
+            t: 'row', items: [
+              { t: 'select', key: 'titleFont', label: '제목 폰트', options: fontOptions },
+              { t: 'select', key: 'scriptFont', label: '필기체 폰트', options: scriptFontOptions, when: function (s) { return /script|caps/i.test(s.headlineStyle); } }
+            ]
+          },
+          { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', options: fontOptions },
+          {
+            t: 'row', items: [
+              { t: 'slider', key: 'headlineScale', label: '제목 크기', min: 0.6, max: 1.35, step: 0.01, help: HELP.headlineScale },
+              { t: 'slider', key: 'microScale', label: '작은 글자 크기', min: 0.7, max: 1.6, step: 0.01, help: HELP.microScale }
+            ]
+          },
+          {
+            t: 'chips', key: 'titleCase', label: '제목 대소문자', options: [
+              { v: 'none', l: '그대로' }, { v: 'upper', l: 'UPPER' },
+              { v: 'lower', l: 'lower' }, { v: 'title', l: 'Title' }
+            ]
+          },
+          { t: 'toggle', key: 'bleed', label: '사진 꽉 채우기', help: HELP.bleed, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'slider', key: 'scrim', label: '글자 뒤 어둡게', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'toggle', key: 'burst', label: '제목 뒤 가시별', help: HELP.burst, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
+          { t: 'toggle', key: 'sideLabel', label: '세로 측면 글자', help: HELP.sideLabel, when: function (s) { return s.layout === 'editorial'; } },
+          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } }
+        ]
+      },
+      {
+        title: '질감 · 장식', hint: '그레인 · 모티프', open: false,
+        items: [
+          { t: 'chips', key: 'motifs', label: '모티프', help: HELP.motifs, options: idLabel(S.motifKinds), multi: true },
+          { t: 'slider', key: 'decoDensity', label: '장식 개수', min: 0, max: 2, step: 0.01, help: HELP.decoDensity },
+          { t: 'toggle', key: 'glitter', label: '별에 은박 반짝임', help: HELP.glitter },
+          {
+            t: 'row', items: [
+              { t: 'slider', key: 'grain', label: '거친 입자', min: 0, max: 3, step: 0.01, help: HELP.grain },
+              { t: 'slider', key: 'vignette', label: '가장자리 어둡게', min: 0, max: 0.5, step: 0.01, help: HELP.vignette }
+            ]
+          },
+          { t: 'slider', key: 'washStrength', label: '색 번짐', min: 0, max: 1.6, step: 0.01, help: HELP.washStrength },
           {
             t: 'custom',
             render: function () {
               var el = W.controls.el;
               var wrap = el('div', 'field');
               var row = el('div', 'fieldRow');
-              row.appendChild(el('span', 'fieldLabel', '배치'));
+              var lab = el('span', 'fieldLabel', '장식 자리');
+              lab.appendChild(document.createTextNode(' '));
+              lab.appendChild(W.controls.helpChip(HELP.seed));
+              row.appendChild(lab);
               var v = el('span', 'fieldVal', '');
               row.appendChild(v);
               wrap.appendChild(row);
-              var b = el('button', 'btn sm', '장식 다시 흩뿌리기');
+              var b = el('button', 'btn sm', '다시 흩뿌리기');
               b.type = 'button';
               b.style.alignSelf = 'flex-start';
               b.addEventListener('click', function () {
@@ -313,10 +416,9 @@
         ]
       },
       {
-        title: '세부 조정 · 사진', hint: '보정 · 블렌드', open: false,
+        title: '사진 세부 보정', hint: '밝기 · 블렌드', open: false,
         items: [
           { t: 'note', text: '사진을 추가하면 조절할 수 있어요.', when: function () { return !W.photo.has(); } },
-          { t: 'select', key: 'photoRatio', label: '프레임 비율', options: C.ratios.map(function (r) { return { v: r.id, l: r.label }; }), when: W.photo.has },
           {
             t: 'row', items: [
               { t: 'slider', key: 'brightness', label: '밝기', min: -0.5, max: 0.5, step: 0.01, when: W.photo.has },
@@ -326,53 +428,17 @@
           {
             t: 'row', items: [
               { t: 'slider', key: 'saturation', label: '채도', min: 0, max: 2, step: 0.01, when: W.photo.has },
-              { t: 'slider', key: 'blur', label: '몽글몽글 (블러)', min: 0, max: 1, step: 0.01, when: W.photo.has }
-            ]
-          },
-          { t: 'select', key: 'blend', label: '블렌드 모드', options: S.blends.map(function (b) { return { v: b.id, l: b.label }; }), when: W.photo.has },
-          { t: 'slider', key: 'overprint', label: '리소 겹인쇄', min: 0, max: 1, step: 0.01, when: W.photo.has },
-          { t: 'toggle', key: 'photoRing', label: '프레임에 얇은 라인', when: W.photo.has },
-          { t: 'toggle', key: 'polaroid', label: '폴라로이드 카드', when: function (s) { return W.photo.has() && s.layout === 'sticker'; } }
-        ]
-      },
-      {
-        title: '세부 조정 · 글자', hint: '폰트 · 자간 · 작은 글자', open: false,
-        items: [
-          {
-            t: 'row', items: [
-              { t: 'select', key: 'titleFont', label: '메인 폰트', options: fontOptions },
-              { t: 'select', key: 'bodyFont', label: '보조 폰트', options: fontOptions }
+              { t: 'slider', key: 'blur', label: '흐림', min: 0, max: 1, step: 0.01, when: W.photo.has }
             ]
           },
           {
             t: 'row', items: [
-              { t: 'slider', key: 'titleSize', label: '메인 크기', min: 30, max: 180, step: 1, fmt: function (v) { return Math.round(v); } },
-              { t: 'slider', key: 'titleTrack', label: '메인 자간', min: -20, max: 200, step: 1, fmt: function (v) { return Math.round(v); } }
+              { t: 'slider', key: 'opacity', label: '불투명도', min: 0.1, max: 1, step: 0.01, when: W.photo.has },
+              { t: 'slider', key: 'photoRotate', label: '기울기', min: -12, max: 12, step: 0.5, when: W.photo.has }
             ]
           },
-          {
-            t: 'chips', key: 'titleCase', label: '메인 대소문자', options: [
-              { v: 'none', l: '그대로' }, { v: 'upper', l: 'UPPER' },
-              { v: 'lower', l: 'lower' }, { v: 'title', l: 'Title' }
-            ]
-          },
-          { t: 'toggle', key: 'titleItalic', label: '메인 이탤릭' },
-          {
-            t: 'row', items: [
-              { t: 'slider', key: 'bodySize', label: '보조 크기', min: 14, max: 70, step: 1, fmt: function (v) { return Math.round(v); } },
-              { t: 'slider', key: 'bodyTrack', label: '보조 자간', min: 0, max: 300, step: 1, fmt: function (v) { return Math.round(v); } }
-            ]
-          },
-          {
-            t: 'chips', key: 'bodyCase', label: '보조 대소문자', options: [
-              { v: 'none', l: '그대로' }, { v: 'upper', l: 'UPPER' }, { v: 'lower', l: 'lower' }
-            ]
-          },
-          { t: 'toggle', key: 'captionRule', label: '캡션에 밑줄' },
-          { t: 'text', key: 'footnote', label: '풋노트 (작은 글자)', ph: 'since 2024', maxlength: 32 },
-          { t: 'text', key: 'tags', label: '흩뿌림 태그 (쉼표로 구분)', ph: 'love, always, ours', maxlength: 80 },
-          { t: 'toggle', key: 'showTags', label: '태그 흩뿌리기' },
-          { t: 'note', text: '태그는 (love) 처럼 괄호에 담겨 여백에 작게 흩어져요 — 둘만 알아보는 문장을 숨기기 좋아요.' }
+          { t: 'select', key: 'blend', label: '블렌드 모드', help: HELP.blend, options: S.blends.map(function (b) { return { v: b.id, l: b.label }; }), when: W.photo.has },
+          { t: 'slider', key: 'overprint', label: '겹쳐 인쇄', min: 0, max: 1, step: 0.01, help: HELP.overprint, when: W.photo.has }
         ]
       }
     ];
@@ -424,7 +490,7 @@
   }
 
   function wireCanvasGestures() {
-    var dragging = false, lastX = 0, lastY = 0;
+    var lastX = 0, lastY = 0;
 
     canvas.addEventListener('pointerdown', function (e) {
       if (!W.photo.has()) return;
@@ -447,6 +513,7 @@
         dragging = false;
         canvas.classList.remove('dragging');
         panel.refresh();
+        draw();
       });
     });
     canvas.addEventListener('wheel', function (e) {

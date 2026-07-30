@@ -117,81 +117,174 @@
     ctx.closePath();
   }
 
+  /* Four-leaf clover: teardrop lobes on beziers, not four circles. */
   function clover(ctx, cx, cy, r) {
     ctx.beginPath();
     for (var i = 0; i < 4; i++) {
       var a = (i / 4) * TAU + Math.PI / 4;
-      var lx = cx + Math.cos(a) * r * 0.52, ly = cy + Math.sin(a) * r * 0.52;
-      ctx.moveTo(cx, cy);
-      ctx.arc(lx, ly, r * 0.5, 0, TAU);
+      var ca = Math.cos(a), sa = Math.sin(a);
+      var px = cx + ca * r * 0.62, py = cy + sa * r * 0.62;
+      var nx = -sa, ny = ca;
+      ctx.moveTo(cx + ca * r * 0.06, cy + sa * r * 0.06);
+      ctx.bezierCurveTo(
+        px + nx * r * 0.5 - ca * r * 0.1, py + ny * r * 0.5 - sa * r * 0.1,
+        px + nx * r * 0.34 + ca * r * 0.42, py + ny * r * 0.34 + sa * r * 0.42,
+        cx + ca * r * 0.96, cy + sa * r * 0.96);
+      ctx.bezierCurveTo(
+        px - nx * r * 0.34 + ca * r * 0.42, py - ny * r * 0.34 + sa * r * 0.42,
+        px - nx * r * 0.5 - ca * r * 0.1, py - ny * r * 0.5 - sa * r * 0.1,
+        cx + ca * r * 0.06, cy + sa * r * 0.06);
     }
     ctx.closePath();
   }
 
+  /* Single continuous cloud outline. */
   function cloud(ctx, cx, cy, r) {
+    var x = cx - r, y = cy + r * 0.46, w = r * 2;
     ctx.beginPath();
-    ctx.arc(cx - r * 0.7, cy + r * 0.15, r * 0.5, 0, TAU);
-    ctx.arc(cx - r * 0.1, cy - r * 0.22, r * 0.62, 0, TAU);
-    ctx.arc(cx + r * 0.65, cy + r * 0.05, r * 0.48, 0, TAU);
-    ctx.arc(cx + r * 0.1, cy + r * 0.32, r * 0.46, 0, TAU);
+    ctx.moveTo(x + w * 0.08, y);
+    ctx.bezierCurveTo(x - w * 0.06, y, x - w * 0.06, y - r * 0.52, x + w * 0.12, y - r * 0.56);
+    ctx.bezierCurveTo(x + w * 0.14, y - r * 1.16, x + w * 0.46, y - r * 1.28, x + w * 0.56, y - r * 0.86);
+    ctx.bezierCurveTo(x + w * 0.68, y - r * 1.34, x + w * 1.02, y - r * 1.1, x + w * 0.94, y - r * 0.54);
+    ctx.bezierCurveTo(x + w * 1.08, y - r * 0.46, x + w * 1.06, y, x + w * 0.9, y);
     ctx.closePath();
   }
 
-  function bow(ctx, cx, cy, r) {
-    ctx.beginPath();
-    /* left loop */
-    ctx.moveTo(cx, cy);
-    ctx.bezierCurveTo(cx - r * 0.5, cy - r * 0.85, cx - r * 1.25, cy - r * 0.4, cx - r * 0.95, cy + r * 0.12);
-    ctx.bezierCurveTo(cx - r * 0.72, cy + r * 0.6, cx - r * 0.22, cy + r * 0.3, cx, cy);
-    /* right loop */
-    ctx.moveTo(cx, cy);
-    ctx.bezierCurveTo(cx + r * 0.5, cy - r * 0.85, cx + r * 1.25, cy - r * 0.4, cx + r * 0.95, cy + r * 0.12);
-    ctx.bezierCurveTo(cx + r * 0.72, cy + r * 0.6, cx + r * 0.22, cy + r * 0.3, cx, cy);
-    /* tails */
-    ctx.moveTo(cx - r * 0.12, cy + r * 0.1);
-    ctx.bezierCurveTo(cx - r * 0.5, cy + r * 0.8, cx - r * 0.6, cy + r * 1.2, cx - r * 0.3, cy + r * 1.5);
-    ctx.moveTo(cx + r * 0.12, cy + r * 0.1);
-    ctx.bezierCurveTo(cx + r * 0.5, cy + r * 0.8, cx + r * 0.6, cy + r * 1.2, cx + r * 0.3, cy + r * 1.5);
-  }
-
+  /* Five petals with a soft notch — reads as a flower, not a daisy chain. */
   function flower(ctx, cx, cy, r) {
     ctx.beginPath();
     for (var i = 0; i < 5; i++) {
       var a = (i / 5) * TAU - Math.PI / 2;
-      var px = cx + Math.cos(a) * r * 0.55, py = cy + Math.sin(a) * r * 0.55;
-      ctx.moveTo(cx, cy);
-      ctx.arc(px, py, r * 0.46, 0, TAU);
+      var ca = Math.cos(a), sa = Math.sin(a);
+      var nx = -sa, ny = ca;
+      var tipX = cx + ca * r, tipY = cy + sa * r;
+      ctx.moveTo(cx + ca * r * 0.12, cy + sa * r * 0.12);
+      ctx.bezierCurveTo(
+        cx + ca * r * 0.4 + nx * r * 0.44, cy + sa * r * 0.4 + ny * r * 0.44,
+        tipX + nx * r * 0.3, tipY + ny * r * 0.3,
+        tipX, tipY);
+      ctx.bezierCurveTo(
+        tipX - nx * r * 0.3, tipY - ny * r * 0.3,
+        cx + ca * r * 0.4 - nx * r * 0.44, cy + sa * r * 0.4 - ny * r * 0.44,
+        cx + ca * r * 0.12, cy + sa * r * 0.12);
     }
     ctx.closePath();
   }
 
+  /* Crescent from two arcs, so the inner edge is a true curve. */
   function moon(ctx, cx, cy, r) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r, Math.PI * 0.35, Math.PI * 1.65);
-    ctx.quadraticCurveTo(cx - r * 0.15, cy, cx + Math.cos(Math.PI * 0.35) * r, cy + Math.sin(Math.PI * 0.35) * r);
+    ctx.arc(cx, cy, r, Math.PI * 0.42, Math.PI * 1.58, false);
+    ctx.arc(cx - r * 0.42, cy, r * 0.92, Math.PI * 1.5, Math.PI * 0.5, true);
     ctx.closePath();
   }
 
-  /* Heart padlock + key — from the "reality dissolves" board. */
+  /* Heart padlock, one outline: shackle, body, keyhole. */
   function lock(ctx, cx, cy, r) {
-    heart(ctx, cx, cy + r * 0.18, r * 0.9);
-    ctx.moveTo(cx - r * 0.34, cy - r * 0.42);
-    ctx.arc(cx, cy - r * 0.52, r * 0.34, Math.PI, 0);
-    ctx.moveTo(cx - r * 0.09, cy + r * 0.12);
-    ctx.rect(cx - r * 0.09, cy + r * 0.12, r * 0.18, r * 0.3);
+    var bw = r * 1.5, bh = r * 1.36;
+    var bx = cx - bw / 2, by = cy - bh * 0.18;
+    ctx.beginPath();
+    /* shackle */
+    ctx.moveTo(cx - r * 0.44, by + bh * 0.12);
+    ctx.bezierCurveTo(cx - r * 0.44, cy - r * 1.1, cx + r * 0.44, cy - r * 1.1, cx + r * 0.44, by + bh * 0.12);
+    /* body as a heart */
+    var hr = r * 0.86, hcy = by + bh * 0.5;
+    ctx.moveTo(cx, hcy + hr * 0.92);
+    ctx.bezierCurveTo(cx - hr * 1.62, hcy - hr * 0.3, cx - hr * 0.66, hcy - hr * 1.2, cx, hcy - hr * 0.5);
+    ctx.bezierCurveTo(cx + hr * 0.66, hcy - hr * 1.2, cx + hr * 1.62, hcy - hr * 0.3, cx, hcy + hr * 0.92);
+    /* keyhole */
+    ctx.moveTo(cx + r * 0.13, hcy + r * 0.02);
+    ctx.arc(cx, hcy + r * 0.02, r * 0.13, 0, TAU);
+    ctx.moveTo(cx - r * 0.06, hcy + r * 0.1);
+    ctx.lineTo(cx - r * 0.09, hcy + r * 0.44);
+    ctx.lineTo(cx + r * 0.09, hcy + r * 0.44);
+    ctx.lineTo(cx + r * 0.06, hcy + r * 0.1);
+    ctx.closePath();
   }
 
+  /* Ornate key: round bow, tapered shank, two cut teeth. */
   function key(ctx, cx, cy, r) {
+    var top = cy - r;
     ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.6, r * 0.38, 0, TAU);
-    ctx.moveTo(cx - r * 0.07, cy - r * 0.25);
-    ctx.lineTo(cx - r * 0.07, cy + r);
-    ctx.lineTo(cx + r * 0.07, cy + r);
-    ctx.lineTo(cx + r * 0.07, cy - r * 0.25);
-    ctx.moveTo(cx + r * 0.07, cy + r * 0.35);
-    ctx.lineTo(cx + r * 0.4, cy + r * 0.35);
-    ctx.moveTo(cx + r * 0.07, cy + r * 0.62);
-    ctx.lineTo(cx + r * 0.32, cy + r * 0.62);
+    /* bow */
+    ctx.arc(cx, top + r * 0.34, r * 0.34, 0, TAU);
+    ctx.moveTo(cx - r * 0.14, top + r * 0.34);
+    ctx.arc(cx, top + r * 0.34, r * 0.14, Math.PI, Math.PI * 3);
+    /* shank + teeth, single outline */
+    ctx.moveTo(cx - r * 0.075, top + r * 0.66);
+    ctx.lineTo(cx - r * 0.075, cy + r * 0.52);
+    ctx.lineTo(cx - r * 0.26, cy + r * 0.52);
+    ctx.lineTo(cx - r * 0.26, cy + r * 0.68);
+    ctx.lineTo(cx - r * 0.075, cy + r * 0.68);
+    ctx.lineTo(cx - r * 0.075, cy + r * 0.82);
+    ctx.lineTo(cx - r * 0.3, cy + r * 0.82);
+    ctx.lineTo(cx - r * 0.3, cy + r * 0.98);
+    ctx.lineTo(cx - r * 0.075, cy + r * 0.98);
+    ctx.lineTo(cx - r * 0.05, cy + r * 1.12);
+    ctx.lineTo(cx + r * 0.05, cy + r * 1.12);
+    ctx.lineTo(cx + r * 0.075, top + r * 0.66);
+    ctx.closePath();
+  }
+
+  /* Ribbon bow: two loops and two tails on continuous curves. */
+  function bow(ctx, cx, cy, r) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.bezierCurveTo(cx - r * 0.46, cy - r * 0.86, cx - r * 1.22, cy - r * 0.46, cx - r * 0.98, cy + r * 0.08);
+    ctx.bezierCurveTo(cx - r * 0.8, cy + r * 0.54, cx - r * 0.26, cy + r * 0.28, cx, cy);
+    ctx.moveTo(cx, cy);
+    ctx.bezierCurveTo(cx + r * 0.46, cy - r * 0.86, cx + r * 1.22, cy - r * 0.46, cx + r * 0.98, cy + r * 0.08);
+    ctx.bezierCurveTo(cx + r * 0.8, cy + r * 0.54, cx + r * 0.26, cy + r * 0.28, cx, cy);
+    /* knot */
+    ctx.moveTo(cx + r * 0.16, cy);
+    ctx.arc(cx, cy, r * 0.16, 0, TAU);
+    /* tails */
+    ctx.moveTo(cx - r * 0.1, cy + r * 0.14);
+    ctx.bezierCurveTo(cx - r * 0.34, cy + r * 0.66, cx - r * 0.5, cy + r * 1.0, cx - r * 0.36, cy + r * 1.42);
+    ctx.bezierCurveTo(cx - r * 0.18, cy + r * 1.06, cx - r * 0.06, cy + r * 0.62, cx, cy + r * 0.2);
+    ctx.bezierCurveTo(cx + r * 0.06, cy + r * 0.62, cx + r * 0.18, cy + r * 1.06, cx + r * 0.36, cy + r * 1.42);
+    ctx.bezierCurveTo(cx + r * 0.5, cy + r * 1.0, cx + r * 0.34, cy + r * 0.66, cx + r * 0.1, cy + r * 0.14);
+    ctx.closePath();
+  }
+
+  /* Thin many-pointed burst — the accent all over the reference posters. */
+  function burst(ctx, cx, cy, r, points, waist) {
+    points = points || 8;
+    waist = waist == null ? 0.07 : waist;
+    ctx.beginPath();
+    for (var i = 0; i < points; i++) {
+      var a = (i / points) * TAU - Math.PI / 2;
+      var half = Math.PI / points;
+      var tipX = cx + Math.cos(a) * r, tipY = cy + Math.sin(a) * r;
+      var i1 = a - half, i2 = a + half;
+      var ir = r * waist;
+      if (i === 0) ctx.moveTo(cx + Math.cos(i1) * ir, cy + Math.sin(i1) * ir);
+      else ctx.lineTo(cx + Math.cos(i1) * ir, cy + Math.sin(i1) * ir);
+      ctx.quadraticCurveTo(cx + Math.cos(a) * r * 0.42, cy + Math.sin(a) * r * 0.42, tipX, tipY);
+      ctx.quadraticCurveTo(cx + Math.cos(a) * r * 0.42, cy + Math.sin(a) * r * 0.42,
+        cx + Math.cos(i2) * ir, cy + Math.sin(i2) * ir);
+    }
+    ctx.closePath();
+  }
+
+  /* Chunky asymmetric flash star, the pink one from the 404 poster. */
+  function flash(ctx, cx, cy, r, rand) {
+    var n = 7;
+    var jitter = [1, 0.62, 0.94, 0.5, 1.06, 0.58, 0.86];
+    ctx.beginPath();
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * TAU - Math.PI / 2;
+      var half = Math.PI / n;
+      var rr = r * jitter[i % jitter.length];
+      var ir = r * 0.3;
+      var p1 = [cx + Math.cos(a - half) * ir, cy + Math.sin(a - half) * ir];
+      var tip = [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr];
+      var p2 = [cx + Math.cos(a + half) * ir, cy + Math.sin(a + half) * ir];
+      if (i === 0) ctx.moveTo(p1[0], p1[1]); else ctx.lineTo(p1[0], p1[1]);
+      ctx.lineTo(tip[0], tip[1]);
+      ctx.lineTo(p2[0], p2[1]);
+    }
+    ctx.closePath();
   }
 
   var MOTIFS = {
@@ -208,6 +301,9 @@
     bow: bow,
     key: key,
     lock: lock,
+    burst: function (c, x, y, r) { burst(c, x, y, r, 8, 0.07); },
+    burst4: function (c, x, y, r) { burst(c, x, y, r, 4, 0.1); },
+    flash: flash,
     blob: function (c, x, y, r, rand) { blob(c, x, y, r, rand || Math.random, 0.2, 7); }
   };
 
@@ -262,32 +358,42 @@
     return c;
   }
 
-  function applyGrain(ctx, w, h, strength, scale) {
+  /* `unit` is the canvas short side / 1000, so the noise keeps the same
+     apparent coarseness in the preview and in the full-resolution file. */
+  function applyGrain(ctx, w, h, strength, unit) {
     if (strength <= 0.001) return;
     var tile = grainTile(128, U.clamp(strength * 1.4, 0, 1));
     var pat = ctx.createPattern(tile, 'repeat');
+    var scale = U.clamp((unit || 1) * 1.15, 0.25, 6);
     ctx.save();
     ctx.globalCompositeOperation = 'overlay';
-    if (scale && scale !== 1) ctx.scale(scale, scale);
+    ctx.scale(scale, scale);
     ctx.fillStyle = pat;
-    ctx.fillRect(0, 0, w / (scale || 1), h / (scale || 1));
+    ctx.fillRect(0, 0, w / scale, h / scale);
     ctx.restore();
   }
 
   /* Silver-glitter fill for star shapes (Apple Silver board). */
-  function speckle(ctx, pathFn, cx, cy, r, base, rand) {
+  function speckle(ctx, pathFn, cx, cy, r, base, rand, unit) {
+    /* Its own rng, drawn from one value of the caller's stream: the
+       particle loop must never advance the shared sequence, or the
+       preview and the export scatter differently. */
+    var local = U.rng(Math.floor((rand ? rand() : Math.random()) * 1e9));
+    /* Count from the shape's size relative to the canvas, not from
+       pixels, so both resolutions get the same number of flecks. */
+    var rel = unit ? r / unit : r / 40;
+    var n = U.clamp(Math.round(rel * rel * 90), 26, 320);
     ctx.save();
-    pathFn(ctx, cx, cy, r, rand);
+    pathFn(ctx, cx, cy, r, local);
     ctx.clip();
     ctx.fillStyle = base;
     ctx.fillRect(cx - r * 1.6, cy - r * 1.6, r * 3.2, r * 3.2);
-    var n = Math.max(24, Math.round(r * r * 0.06));
     for (var i = 0; i < n; i++) {
-      var a = rand() * TAU, d = Math.sqrt(rand()) * r * 1.1;
+      var a = local() * TAU, d = Math.sqrt(local()) * r * 1.1;
       var px = cx + Math.cos(a) * d, py = cy + Math.sin(a) * d;
-      var s = r * (0.02 + rand() * 0.06);
-      ctx.globalAlpha = 0.25 + rand() * 0.6;
-      ctx.fillStyle = rand() > 0.45 ? '#ffffff' : '#6f7684';
+      var s = r * (0.02 + local() * 0.06);
+      ctx.globalAlpha = 0.25 + local() * 0.6;
+      ctx.fillStyle = local() > 0.45 ? '#ffffff' : '#6f7684';
       ctx.beginPath();
       ctx.arc(px, py, s, 0, TAU);
       ctx.fill();
@@ -398,7 +504,7 @@
     roundRect: roundRect, arch: arch, circle: circle, star: star,
     puffStar: puffStar, sparkle: sparkle, heart: heart, blob: blob,
     clover: clover, cloud: cloud, bow: bow, flower: flower, moon: moon,
-    lock: lock, key: key, motifs: MOTIFS,
+    lock: lock, key: key, burst: burst, flash: flash, motifs: MOTIFS,
     glow: glow, wash: wash,
     grainTile: grainTile, applyGrain: applyGrain, speckle: speckle,
     dotPaper: dotPaper, gridPaper: gridPaper, dottedPath: dottedPath,

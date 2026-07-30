@@ -51,7 +51,7 @@
       ctx.globalAlpha = U.range(rand, opts.alphaMin || 0.5, opts.alphaMax || 1) * env.decoAlpha;
 
       if (opts.speckle && isBig && rand() > 0.35) {
-        P.speckle(ctx, fn, p[0], p[1], r, color, rand);
+        P.speckle(ctx, fn, p[0], p[1], r, color, rand, u(1000));
         return;
       }
       var outline = opts.outlineRatio && rand() < opts.outlineRatio;

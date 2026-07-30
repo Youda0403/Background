@@ -1,21 +1,48 @@
-/* Typography helpers. Letter-spacing is applied by hand so the
-   output is identical in every browser, including older Safari. */
+/* Typography. Letter-spacing is applied by hand so the output is
+   identical in every browser, including older Safari. */
 (function (W) {
   'use strict';
   var U = W.util;
 
+  /* Roster picked for poster work: high-contrast display serifs,
+     calligraphic scripts, editorial grotesques, typewriter monos and a
+     couple of deliberately kitsch faces. */
   var FONTS = [
-    { id: 'serif-display', label: 'Instrument Serif', stack: '"Instrument Serif", "Times New Roman", Georgia, serif', case: 'none' },
-    { id: 'serif-fine', label: 'Cormorant', stack: '"Cormorant Garamond", Georgia, "Times New Roman", serif', case: 'none' },
-    { id: 'deco', label: 'Italiana', stack: '"Italiana", "Didot", Georgia, serif', case: 'upper' },
-    { id: 'grotesk', label: 'Inter', stack: '"Inter", -apple-system, "Helvetica Neue", Arial, sans-serif', case: 'none' },
-    { id: 'mono', label: 'DM Mono', stack: '"DM Mono", ui-monospace, "SF Mono", Menlo, monospace', case: 'none' },
-    { id: 'hand', label: 'Caveat', stack: '"Caveat", "Segoe Script", cursive', case: 'none' }
+    { id: 'didone', label: 'Bodoni Moda', group: '디스플레이 세리프', stack: '"Bodoni Moda", "Didot", Georgia, serif', big: 1.0 },
+    { id: 'playfair', label: 'Playfair Display', group: '디스플레이 세리프', stack: '"Playfair Display", Georgia, serif', big: 1.0 },
+    { id: 'instrument', label: 'Instrument Serif', group: '디스플레이 세리프', stack: '"Instrument Serif", Georgia, serif', big: 1.05 },
+    { id: 'cormorant', label: 'Cormorant', group: '디스플레이 세리프', stack: '"Cormorant Garamond", Georgia, serif', big: 1.12 },
+    { id: 'fraunces', label: 'Fraunces', group: '디스플레이 세리프', stack: '"Fraunces", Georgia, serif', big: 0.98 },
+
+    { id: 'pinyon', label: 'Pinyon Script', group: '필기체', stack: '"Pinyon Script", "Snell Roundhand", cursive', big: 1.5, scriptish: true },
+    { id: 'italianno', label: 'Italianno', group: '필기체', stack: '"Italianno", "Snell Roundhand", cursive', big: 1.75, scriptish: true },
+
+    { id: 'bricolage', label: 'Bricolage Grotesque', group: '산세리프', stack: '"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif', big: 0.92 },
+    { id: 'archivo', label: 'Archivo', group: '산세리프', stack: '"Archivo", "Helvetica Neue", Arial, sans-serif', big: 0.9 },
+    { id: 'syne', label: 'Syne', group: '산세리프', stack: '"Syne", "Helvetica Neue", Arial, sans-serif', big: 0.92 },
+    { id: 'anton', label: 'Anton', group: '산세리프', stack: '"Anton", "Arial Narrow", Impact, sans-serif', big: 0.88 },
+
+    { id: 'unbounded', label: 'Unbounded', group: '키치', stack: '"Unbounded", "Helvetica Neue", sans-serif', big: 0.86 },
+    { id: 'bagel', label: 'Bagel Fat One', group: '키치', stack: '"Bagel Fat One", "Arial Black", sans-serif', big: 0.88 },
+
+    { id: 'dmmono', label: 'DM Mono', group: '모노', stack: '"DM Mono", ui-monospace, "SF Mono", Menlo, monospace', big: 0.9 },
+    { id: 'spacemono', label: 'Space Mono', group: '모노', stack: '"Space Mono", ui-monospace, Menlo, monospace', big: 0.9 }
   ];
+
   var BY_ID = {};
   FONTS.forEach(function (f) { BY_ID[f.id] = f; });
 
-  function stack(id) { return (BY_ID[id] || FONTS[0]).stack; }
+  /* Old ids from the first release, kept so saved links still open. */
+  var ALIASES = {
+    'serif-display': 'instrument', 'serif-fine': 'cormorant', 'deco': 'didone',
+    'grotesk': 'archivo', 'mono': 'dmmono', 'hand': 'pinyon'
+  };
+
+  function resolve(id) { return BY_ID[id] || BY_ID[ALIASES[id]] || FONTS[0]; }
+  function stack(id) { return resolve(id).stack; }
+  /* Optical size nudge: a script at 100px reads far smaller than Anton. */
+  function optical(id) { return resolve(id).big; }
+  function isScript(id) { return !!resolve(id).scriptish; }
 
   function setFont(ctx, fontId, size, opts) {
     opts = opts || {};
@@ -47,8 +74,19 @@
     return w;
   }
 
-  /* Draws text with manual tracking. `align` is left | center | right.
-     Returns { x, y, w } of the drawn box. */
+  /* True ink box of a string — needed to seat display type tightly
+     against a photo edge instead of guessing from the em box. */
+  function inkBox(ctx, text) {
+    var m = ctx.measureText(text || 'H');
+    return {
+      asc: m.actualBoundingBoxAscent || 0,
+      desc: m.actualBoundingBoxDescent || 0,
+      left: m.actualBoundingBoxLeft || 0,
+      right: m.actualBoundingBoxRight || 0
+    };
+  }
+
+  /* Draws text with manual tracking. Returns the drawn box. */
   function draw(ctx, text, x, y, opts) {
     opts = opts || {};
     var tracking = opts.tracking || 0;
@@ -75,7 +113,6 @@
     return { x: sx, y: y, w: w };
   }
 
-  /* Word-wrap to a pixel width; honours tracking. */
   function wrap(ctx, text, maxWidth, tracking) {
     var words = String(text).split(/\s+/).filter(Boolean);
     var lines = [], cur = '';
@@ -95,16 +132,29 @@
   /* Shrink until the string fits `maxWidth`. Returns the used size. */
   function fit(ctx, text, fontId, size, maxWidth, trackingRatio, opts) {
     var s = size;
-    for (var i = 0; i < 40; i++) {
+    for (var i = 0; i < 60; i++) {
       setFont(ctx, fontId, s, opts);
       if (measure(ctx, text, s * trackingRatio) <= maxWidth) break;
-      s *= 0.94;
+      s *= 0.96;
     }
     setFont(ctx, fontId, s, opts);
     return s;
   }
 
-  /* Thin rule under a text box — the underlined captions in the refs. */
+  /* Grow *and* shrink so display type always fills its measure — the
+     single biggest difference between a poster and a screenshot. */
+  function fill(ctx, text, fontId, maxWidth, trackingRatio, opts, cap) {
+    if (!text) return 0;
+    var lo = 4, hi = cap || 4000;
+    for (var i = 0; i < 26; i++) {
+      var mid = (lo + hi) / 2;
+      setFont(ctx, fontId, mid, opts);
+      if (measure(ctx, text, mid * trackingRatio) <= maxWidth) lo = mid; else hi = mid;
+    }
+    setFont(ctx, fontId, lo, opts);
+    return lo;
+  }
+
   function rule(ctx, box, offset, weight, color, alpha) {
     ctx.save();
     ctx.globalAlpha = alpha == null ? 1 : alpha;
@@ -123,8 +173,9 @@
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     var jobs = [];
     FONTS.forEach(function (f) {
-      ['400 64px ', 'italic 400 64px ', '500 64px '].forEach(function (p) {
-        jobs.push(document.fonts.load(p + f.stack.split(',')[0]).catch(function () {}));
+      var fam = f.stack.split(',')[0];
+      ['400 64px ', 'italic 400 64px ', '700 64px ', '900 64px '].forEach(function (p) {
+        try { jobs.push(document.fonts.load(p + fam).catch(function () {})); } catch (e) { /* ignore */ }
       });
     });
     return Promise.all(jobs).then(function () { return document.fonts.ready; })
@@ -132,8 +183,9 @@
   }
 
   W.type = {
-    fonts: FONTS, byId: BY_ID, stack: stack, setFont: setFont,
-    applyCase: applyCase, measure: measure, draw: draw, wrap: wrap,
-    fit: fit, rule: rule, ready: ready
+    fonts: FONTS, byId: BY_ID, aliases: ALIASES, resolve: resolve,
+    stack: stack, optical: optical, isScript: isScript,
+    setFont: setFont, applyCase: applyCase, measure: measure, inkBox: inkBox,
+    draw: draw, wrap: wrap, fit: fit, fill: fill, rule: rule, ready: ready
   };
 })(window.PT = window.PT || {});
