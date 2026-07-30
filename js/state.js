@@ -93,37 +93,37 @@
   ];
 
   var TONES = [
-    { id: 'natural', label: 'Natural' },
-    { id: 'wash', label: 'Wash' },
-    { id: 'duo', label: 'Duotone' },
-    { id: 'mono', label: 'Mono' },
-    { id: 'halftone', label: 'Halftone' }
+    { id: 'natural', label: '원본' },
+    { id: 'wash', label: '워시' },
+    { id: 'duo', label: '듀오톤' },
+    { id: 'mono', label: '흑백' },
+    { id: 'halftone', label: '망점' }
   ];
 
   var BLENDS = [
-    { id: 'normal', label: 'Normal' },
-    { id: 'multiply', label: 'Multiply' },
-    { id: 'screen', label: 'Screen' },
-    { id: 'overlay', label: 'Overlay' },
-    { id: 'soft-light', label: 'Soft light' },
-    { id: 'luminosity', label: 'Luminosity' }
+    { id: 'normal', label: '기본' },
+    { id: 'multiply', label: '곱하기' },
+    { id: 'screen', label: '스크린' },
+    { id: 'overlay', label: '오버레이' },
+    { id: 'soft-light', label: '소프트 라이트' },
+    { id: 'luminosity', label: '명도만' }
   ];
 
   var MOTIF_KINDS = [
-    { id: 'star', label: 'Star' },
-    { id: 'puff', label: 'Puffy star' },
-    { id: 'six', label: '6-point' },
-    { id: 'sparkle', label: 'Twinkle' },
-    { id: 'heart', label: 'Heart' },
-    { id: 'circle', label: 'Dot' },
-    { id: 'flower', label: 'Flower' },
-    { id: 'clover', label: 'Clover' },
-    { id: 'cloud', label: 'Cloud' },
-    { id: 'moon', label: 'Moon' },
-    { id: 'bow', label: 'Ribbon' },
-    { id: 'key', label: 'Key' },
-    { id: 'lock', label: 'Heart lock' },
-    { id: 'blob', label: 'Blob' }
+    { id: 'star', label: '별' },
+    { id: 'puff', label: '통통별' },
+    { id: 'six', label: '육각별' },
+    { id: 'sparkle', label: '반짝이' },
+    { id: 'heart', label: '하트' },
+    { id: 'circle', label: '점' },
+    { id: 'flower', label: '꽃' },
+    { id: 'clover', label: '클로버' },
+    { id: 'cloud', label: '구름' },
+    { id: 'moon', label: '달' },
+    { id: 'bow', label: '리본' },
+    { id: 'key', label: '열쇠' },
+    { id: 'lock', label: '하트 자물쇠' },
+    { id: 'blob', label: '블롭' }
   ];
 
   function create() {

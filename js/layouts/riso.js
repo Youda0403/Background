@@ -132,7 +132,7 @@
   W.layoutRegistry.push({
     id: 'riso',
     label: 'Riso',
-    blurb: 'Overprinted poster blocks. Graphic, editorial, deniable.',
+    blurb: '리소 인쇄 포스터 무드. 전시 굿즈처럼 보여요.',
     defaults: { photoShape: 'rect', tone: 'duo', feather: 0, paperStyle: 'none', auraShape: 'none', overprint: 0.5 },
     draw: draw
   });

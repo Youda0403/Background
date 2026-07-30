@@ -82,7 +82,7 @@
   W.layoutRegistry.push({
     id: 'sticker',
     label: 'Sticker',
-    blurb: 'Pastel doodle sheet with an instant-photo card.',
+    blurb: '파스텔 낙서 시트 + 폴라로이드 카드.',
     defaults: {
       photoShape: 'card', tone: 'wash', feather: 0, paperStyle: 'dots',
       auraShape: 'none', polaroid: true, photoRotate: -3,

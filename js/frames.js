@@ -6,15 +6,15 @@
   var P = W.prim, U = W.util;
 
   var SHAPES = [
-    { id: 'circle', label: 'Circle' },
-    { id: 'arch', label: 'Arch' },
-    { id: 'rect', label: 'Panel' },
-    { id: 'card', label: 'Rounded' },
-    { id: 'blob', label: 'Blob' },
-    { id: 'heart', label: 'Heart' },
-    { id: 'star', label: 'Star' },
-    { id: 'oval', label: 'Oval' },
-    { id: 'full', label: 'Full bleed' }
+    { id: 'circle', label: '원형' },
+    { id: 'arch', label: '아치' },
+    { id: 'rect', label: '사각' },
+    { id: 'card', label: '둥근 사각' },
+    { id: 'blob', label: '블롭' },
+    { id: 'heart', label: '하트' },
+    { id: 'star', label: '별' },
+    { id: 'oval', label: '타원' },
+    { id: 'full', label: '꽉 채움' }
   ];
 
   function make(kind, seed) {

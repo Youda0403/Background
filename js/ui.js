@@ -20,6 +20,10 @@
   var photoNameEl = null;
   var batchTargets = ['ip-16pm', 'gx-ultra', 'pad-pro11'];
 
+  var TIER_KO = {
+    tall: '폰 (길쭉)', phone: '폰', tablet: '패드', square: '정사각', wide: '와이드'
+  };
+
   /* ---------- helpers ---------- */
 
   var toastTimer;
@@ -39,7 +43,7 @@
         })
       };
     });
-    opts.push({ group: 'Custom', items: [{ v: 'custom', l: 'Custom size…' }] });
+    opts.push({ group: '직접 입력', items: [{ v: 'custom', l: '커스텀 사이즈…' }] });
     return opts;
   }
 
@@ -78,16 +82,16 @@
       info = R.render(canvas, st, { maxSize: PREVIEW_MAX, guides: true });
     } catch (e) {
       console.error(e);
-      toast('Could not draw that — try another setting.');
+      toast('그리기에 실패했어요 — 다른 설정으로 시도해 보세요.');
       return;
     }
     var d = info.full;
     sizeLabel.textContent = d.w + ' × ' + d.h;
-    tierLabel.textContent = C.tierOf(d.h / d.w);
+    tierLabel.textContent = TIER_KO[C.tierOf(d.h / d.w)] || '';
     canvas.classList.toggle('flat', !W.photo.has());
     stageTip.textContent = W.photo.has()
-      ? 'Drag the preview to reframe · scroll to zoom · double-click to reset'
-      : 'Add a photo below, or leave it out — the design works either way.';
+      ? '프리뷰를 드래그하면 사진 위치, 스크롤하면 확대 · 더블클릭하면 초기화'
+      : '아래에서 사진을 추가해 보세요. 사진 없이도 완성돼요.';
     persist();
   });
 
@@ -121,30 +125,34 @@
   function spec() {
     return [
       {
-        title: 'Looks', hint: 'twelve starting points',
+        title: '무드', hint: '원클릭 프리셋 12종',
         items: [
           { t: 'cards', key: 'look', options: lookCards, grid: 'lookGrid', cardClass: 'lookCard' },
-          { t: 'note', text: 'A look sets the layout, palette, fonts and texture at once. Your words, photo and canvas size stay put.' }
+          {
+            t: 'slider', key: 'subtlety', label: '일코 농도', min: 0, max: 1, step: 0.01,
+            fmt: function (v) { return v < 0.25 ? '당당하게' : v < 0.55 ? '적당히' : v < 0.8 ? '은은하게' : '아무도 몰라'; }
+          },
+          { t: 'note', text: '무드를 고르면 레이아웃·팔레트·폰트·질감이 한 번에 바뀌어요. 적어둔 문구, 사진, 기기 사이즈는 그대로 유지됩니다. 일코 농도를 올리면 글씨가 작아지고 장식이 옅어져서 밖에서 열어도 안전한 배경화면이 돼요.' }
         ]
       },
       {
-        title: 'Canvas', hint: 'phones, tablets, desktops',
+        title: '사이즈', hint: '폰 · 패드 · 데스크탑',
         items: [
-          { t: 'select', key: 'presetId', label: 'Device', options: presetOptions },
+          { t: 'select', key: 'presetId', label: '기기', options: presetOptions },
           {
             t: 'row', items: [
-              { t: 'number', key: 'customW', label: 'Width', min: 64, max: 8000, when: function (s) { return s.presetId === 'custom'; } },
-              { t: 'number', key: 'customH', label: 'Height', min: 64, max: 8000, when: function (s) { return s.presetId === 'custom'; } }
+              { t: 'number', key: 'customW', label: '가로 (px)', min: 64, max: 8000, when: function (s) { return s.presetId === 'custom'; } },
+              { t: 'number', key: 'customH', label: '세로 (px)', min: 64, max: 8000, when: function (s) { return s.presetId === 'custom'; } }
             ]
           },
-          { t: 'chips', key: 'orientation', label: 'Orientation', options: [{ v: 'portrait', l: 'Portrait' }, { v: 'landscape', l: 'Landscape' }] },
-          { t: 'toggle', key: 'safeShift', label: 'Keep the clock and dock clear' },
+          { t: 'chips', key: 'orientation', label: '방향', options: [{ v: 'portrait', l: '세로' }, { v: 'landscape', l: '가로' }] },
+          { t: 'toggle', key: 'safeShift', label: '잠금화면 시계·독 영역 피하기' },
           {
             t: 'custom',
             render: function () {
               var el = W.controls.el;
               var wrap = el('div', 'field');
-              wrap.appendChild(el('span', 'fieldLabel', 'Export set'));
+              wrap.appendChild(el('span', 'fieldLabel', '여러 기기 한 번에 저장'));
               var chips = el('div', 'chips');
               var pool = ['ip-15', 'ip-16pm', 'gx-s24', 'gx-ultra', 'pad-pro11', 'pad-11', 'sh-story', 'dt-qhd'];
               pool.forEach(function (id) {
@@ -156,85 +164,47 @@
                   var i = batchTargets.indexOf(id);
                   if (i >= 0) batchTargets.splice(i, 1); else batchTargets.push(id);
                   b.setAttribute('aria-pressed', batchTargets.indexOf(id) >= 0 ? 'true' : 'false');
-                  btn.textContent = 'Download set (' + batchTargets.length + ')';
+                  btn.textContent = '세트 저장 (' + batchTargets.length + ')';
                   btn.disabled = !batchTargets.length;
                 });
                 chips.appendChild(b);
               });
               wrap.appendChild(chips);
-              var btn = el('button', 'btn sm', 'Download set (' + batchTargets.length + ')');
+              var btn = el('button', 'btn sm', '세트 저장 (' + batchTargets.length + ')');
               btn.type = 'button';
               btn.style.alignSelf = 'flex-start';
               btn.addEventListener('click', function () { downloadSet(btn); });
               wrap.appendChild(btn);
-              wrap.appendChild(el('p', 'note', 'Same artwork, recomposed for each size — matching wallpapers across your devices.'));
+              wrap.appendChild(el('p', 'note', '같은 디자인을 기기별 해상도에 맞춰 다시 배치해서 저장해요 — 폰이랑 패드 커플 세트 완성.'));
               return wrap;
             }
           }
         ]
       },
       {
-        title: 'Design', hint: 'layout and palette',
-        items: [
-          { t: 'cards', key: 'layout', label: 'Layout', options: layoutCards },
-          { t: 'cards', key: 'palette', label: 'Palette', options: paletteCards, grid: 'palGrid' }
-        ]
-      },
-      {
-        title: 'Words', hint: 'English-first, all optional',
+        title: '문구', hint: '영문 추천 · 전부 선택사항',
         items: [
           {
-            t: 'chips', key: 'titleMode', label: 'Headline', options: [
-              { v: 'pair', l: 'Pair name' }, { v: 'names', l: 'Both names' },
-              { v: 'monogram', l: 'Initials' }, { v: 'none', l: 'No headline' }
+            t: 'chips', key: 'titleMode', label: '메인 문구', options: [
+              { v: 'pair', l: '페어명' }, { v: 'names', l: '두 이름' },
+              { v: 'monogram', l: '이니셜' }, { v: 'none', l: '없음' }
             ]
           },
-          { t: 'text', key: 'pairName', label: 'Pair name', ph: 'e.g. Sunrise Duo', maxlength: 40 },
+          { t: 'text', key: 'pairName', label: '페어명', ph: '예: Sunrise Duo', maxlength: 40 },
           {
             t: 'row', items: [
-              { t: 'text', key: 'nameA', label: 'Name A', ph: 'Aki', maxlength: 24 },
-              { t: 'text', key: 'nameB', label: 'Name B', ph: 'Ren', maxlength: 24 }
+              { t: 'text', key: 'nameA', label: '이름 A', ph: 'Aki', maxlength: 24 },
+              { t: 'text', key: 'nameB', label: '이름 B', ph: 'Ren', maxlength: 24 }
             ]
           },
-          { t: 'chips', key: 'sep', label: 'Between the names', options: idLabel(W.textstack.separators) },
-          { t: 'toggle', key: 'showNames', label: 'Show the names line' },
-          { t: 'textarea', key: 'caption', label: 'Caption', ph: 'two halves of the same daydream' },
-          { t: 'text', key: 'footnote', label: 'Footnote', ph: 'since 2024', maxlength: 32 },
-          { t: 'text', key: 'tags', label: 'Scattered tags', ph: 'love, always, ours', maxlength: 80 },
-          { t: 'toggle', key: 'showTags', label: 'Scatter the tags' },
-          { t: 'note', text: 'Tags print small and in brackets, like (love) — the quietest way to say something only you two read.' }
+          { t: 'chips', key: 'sep', label: '이름 사이 기호', options: idLabel(W.textstack.separators) },
+          { t: 'toggle', key: 'showNames', label: '이름 줄 표시' },
+          { t: 'textarea', key: 'caption', label: '캡션', ph: 'two halves of the same daydream' },
+          { t: 'note', text: '배경화면에 들어가는 글자라 영문이 제일 예쁘게 나와요. 태그·풋노트 같은 작은 글자는 아래 「세부 조정」에 있어요.' }
         ]
       },
       {
-        title: 'Type', hint: 'fonts and spacing', open: false,
-        items: [
-          {
-            t: 'row', items: [
-              { t: 'select', key: 'titleFont', label: 'Headline font', options: fontOptions },
-              { t: 'select', key: 'bodyFont', label: 'Body font', options: fontOptions }
-            ]
-          },
-          { t: 'slider', key: 'titleSize', label: 'Headline size', min: 30, max: 180, step: 1, fmt: function (v) { return Math.round(v); } },
-          { t: 'slider', key: 'titleTrack', label: 'Headline tracking', min: -20, max: 200, step: 1, fmt: function (v) { return Math.round(v); } },
-          {
-            t: 'chips', key: 'titleCase', label: 'Headline case', options: [
-              { v: 'none', l: 'As typed' }, { v: 'upper', l: 'UPPER' },
-              { v: 'lower', l: 'lower' }, { v: 'title', l: 'Title' }
-            ]
-          },
-          { t: 'toggle', key: 'titleItalic', label: 'Italic headline' },
-          { t: 'slider', key: 'bodySize', label: 'Body size', min: 14, max: 70, step: 1, fmt: function (v) { return Math.round(v); } },
-          { t: 'slider', key: 'bodyTrack', label: 'Body tracking', min: 0, max: 300, step: 1, fmt: function (v) { return Math.round(v); } },
-          {
-            t: 'chips', key: 'bodyCase', label: 'Body case', options: [
-              { v: 'none', l: 'As typed' }, { v: 'upper', l: 'UPPER' }, { v: 'lower', l: 'lower' }
-            ]
-          },
-          { t: 'toggle', key: 'captionRule', label: 'Underline the caption' }
-        ]
-      },
-      {
-        title: 'Photo', hint: 'toned to match the artwork',
+        title: '사진', hint: '팔레트에 맞게 자동 보정',
         items: [
           {
             t: 'custom',
@@ -242,8 +212,8 @@
               var el = W.controls.el;
               var wrap = el('div', 'field');
               var zone = el('label', 'dropZone');
-              zone.appendChild(el('b', null, 'Add a photo'));
-              zone.appendChild(el('span', null, 'click, or drop one anywhere on the preview'));
+              zone.appendChild(el('b', null, '사진 추가하기'));
+              zone.appendChild(el('span', null, '클릭하거나, 프리뷰에 사진을 끌어다 놓아도 돼요'));
               fileInput = document.createElement('input');
               fileInput.type = 'file';
               fileInput.accept = 'image/*';
@@ -255,13 +225,13 @@
 
               var bar = el('div', 'photoBar');
               photoNameEl = el('span', 'name', '');
-              var reset = el('button', 'btn sm', 'Recentre');
+              var reset = el('button', 'btn sm', '가운데로');
               reset.type = 'button';
               reset.addEventListener('click', function () {
                 st.ox = 0.5; st.oy = 0.5; st.zoom = 1;
                 panel.refresh(); draw();
               });
-              var remove = el('button', 'btn sm', 'Remove');
+              var remove = el('button', 'btn sm', '삭제');
               remove.type = 'button';
               remove.addEventListener('click', function () {
                 W.photo.clear();
@@ -281,70 +251,53 @@
               if (on && photoNameEl) photoNameEl.textContent = W.photo.state.name;
             }
           },
-          { t: 'cards', key: 'photoShape', label: 'Frame', options: idLabel(W.frames.shapes), grid: 'palGrid', when: W.photo.has },
-          { t: 'select', key: 'photoRatio', label: 'Frame proportion', options: C.ratios.map(function (r) { return { v: r.id, l: r.label }; }), when: W.photo.has },
-          { t: 'chips', key: 'tone', label: 'Tone', options: idLabel(S.tones), when: W.photo.has },
-          { t: 'slider', key: 'toneAmount', label: 'Tone strength', min: 0, max: 1, step: 0.01, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
-          { t: 'slider', key: 'halftoneCells', label: 'Halftone dots', min: 14, max: 130, step: 1, fmt: function (v) { return Math.round(v); }, when: function (s) { return W.photo.has() && s.tone === 'halftone'; } },
+          { t: 'cards', key: 'photoShape', label: '프레임', options: idLabel(W.frames.shapes), grid: 'palGrid', when: W.photo.has },
+          { t: 'chips', key: 'tone', label: '톤 (필터)', options: idLabel(S.tones), when: W.photo.has },
+          { t: 'slider', key: 'toneAmount', label: '톤 강도', min: 0, max: 1, step: 0.01, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
+          { t: 'slider', key: 'halftoneCells', label: '망점 촘촘함', min: 14, max: 130, step: 1, fmt: function (v) { return Math.round(v); }, when: function (s) { return W.photo.has() && s.tone === 'halftone'; } },
           {
             t: 'row', items: [
-              { t: 'slider', key: 'brightness', label: 'Brightness', min: -0.5, max: 0.5, step: 0.01, when: W.photo.has },
-              { t: 'slider', key: 'contrast', label: 'Contrast', min: 0.4, max: 2, step: 0.01, when: W.photo.has }
+              { t: 'slider', key: 'zoom', label: '확대', min: 1, max: 3, step: 0.01, when: W.photo.has },
+              { t: 'slider', key: 'photoRotate', label: '기울기', min: -12, max: 12, step: 0.5, when: W.photo.has }
             ]
           },
           {
             t: 'row', items: [
-              { t: 'slider', key: 'saturation', label: 'Saturation', min: 0, max: 2, step: 0.01, when: W.photo.has },
-              { t: 'slider', key: 'blur', label: 'Softness', min: 0, max: 1, step: 0.01, when: W.photo.has }
+              { t: 'slider', key: 'feather', label: '가장자리 페이드', min: 0, max: 0.9, step: 0.01, when: function (s) { return W.photo.has() && s.tone !== 'halftone'; } },
+              { t: 'slider', key: 'opacity', label: '불투명도', min: 0.1, max: 1, step: 0.01, when: W.photo.has }
             ]
           },
-          {
-            t: 'row', items: [
-              { t: 'slider', key: 'feather', label: 'Edge fade', min: 0, max: 0.9, step: 0.01, when: function (s) { return W.photo.has() && s.tone !== 'halftone'; } },
-              { t: 'slider', key: 'opacity', label: 'Opacity', min: 0.1, max: 1, step: 0.01, when: W.photo.has }
-            ]
-          },
-          {
-            t: 'row', items: [
-              { t: 'slider', key: 'zoom', label: 'Zoom', min: 1, max: 3, step: 0.01, when: W.photo.has },
-              { t: 'slider', key: 'photoRotate', label: 'Tilt', min: -12, max: 12, step: 0.5, when: W.photo.has }
-            ]
-          },
-          { t: 'select', key: 'blend', label: 'Blend', options: S.blends.map(function (b) { return { v: b.id, l: b.label }; }), when: W.photo.has },
-          { t: 'slider', key: 'overprint', label: 'Riso overprint', min: 0, max: 1, step: 0.01, when: W.photo.has },
-          { t: 'toggle', key: 'photoRing', label: 'Keyline around the frame', when: W.photo.has },
-          { t: 'toggle', key: 'polaroid', label: 'Instant-photo card', when: function (s) { return W.photo.has() && s.layout === 'sticker'; } },
-          { t: 'note', text: 'Duotone and Halftone reprint the photo in the palette’s own ink, which is what makes a snapshot sit inside the artwork instead of on top of it.' }
+          { t: 'note', text: '듀오톤·망점 필터는 사진을 팔레트 잉크로 다시 인쇄해서, 사진이 배경화면 위에 붙은 게 아니라 그림 안에 들어간 것처럼 보이게 해줘요. 밝기·대비 같은 세밀한 보정은 「세부 조정」에 있습니다.', when: W.photo.has }
         ]
       },
       {
-        title: 'Finish', hint: 'texture, motifs, discretion',
+        title: '세부 조정 · 디자인', hint: '레이아웃 · 팔레트 · 장식', open: false,
         items: [
-          { t: 'slider', key: 'subtlety', label: 'Discretion', min: 0, max: 1, step: 0.01, fmt: function (v) { return v < 0.25 ? 'loud and proud' : v < 0.55 ? 'balanced' : v < 0.8 ? 'quiet' : 'nobody will know'; } },
-          { t: 'note', text: 'Discretion shrinks the headline and thins out the motifs in one move — slide it up for a wallpaper you can open in a meeting.' },
-          { t: 'chips', key: 'motifs', label: 'Motifs', options: idLabel(S.motifKinds), multi: true },
-          { t: 'slider', key: 'decoDensity', label: 'Motif density', min: 0, max: 2, step: 0.01 },
-          { t: 'toggle', key: 'glitter', label: 'Glitter fill on big stars' },
-          { t: 'chips', key: 'auraShape', label: 'Aura shape', options: [{ v: 'heart', l: 'Heart' }, { v: 'puff', l: 'Star' }, { v: 'blob', l: 'Blob' }, { v: 'circle', l: 'Circle' }, { v: 'clover', l: 'Clover' }, { v: 'none', l: 'None' }], when: function (s) { return s.layout === 'aura'; } },
-          { t: 'chips', key: 'paperStyle', label: 'Paper', options: [{ v: 'none', l: 'Plain' }, { v: 'dots', l: 'Dots' }, { v: 'grid', l: 'Grid' }, { v: 'lines', l: 'Lines' }], when: function (s) { return s.layout !== 'riso'; } },
-          { t: 'chips', key: 'cardStyle', label: 'Card behind the words', options: [{ v: 'none', l: 'None' }, { v: 'round', l: 'Rounded' }, { v: 'square', l: 'Square' }, { v: 'ellipse', l: 'Ellipse' }], when: function (s) { return s.layout === 'paper'; } },
-          { t: 'toggle', key: 'swirl', label: 'Beaded swirl', when: function (s) { return s.layout === 'paper'; } },
-          { t: 'toggle', key: 'border', label: 'Dashed border', when: function (s) { return s.layout === 'sticker'; } },
-          { t: 'toggle', key: 'doodleOutline', label: 'Outline the doodles', when: function (s) { return s.layout === 'sticker'; } },
-          { t: 'slider', key: 'washStrength', label: 'Colour wash', min: 0, max: 1.6, step: 0.01 },
-          { t: 'slider', key: 'grain', label: 'Grain', min: 0, max: 3, step: 0.01 },
-          { t: 'slider', key: 'vignette', label: 'Vignette', min: 0, max: 0.5, step: 0.01 },
+          { t: 'cards', key: 'layout', label: '레이아웃', options: layoutCards },
+          { t: 'cards', key: 'palette', label: '팔레트', options: paletteCards, grid: 'palGrid' },
+          { t: 'chips', key: 'motifs', label: '흩뿌릴 모티프', options: idLabel(S.motifKinds), multi: true },
+          { t: 'slider', key: 'decoDensity', label: '모티프 밀도', min: 0, max: 2, step: 0.01 },
+          { t: 'toggle', key: 'glitter', label: '큰 별에 글리터 채우기' },
+          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } },
+          { t: 'chips', key: 'paperStyle', label: '종이 질감', options: [{ v: 'none', l: '민무늬' }, { v: 'dots', l: '도트' }, { v: 'grid', l: '모눈' }, { v: 'lines', l: '줄노트' }], when: function (s) { return s.layout !== 'riso'; } },
+          { t: 'chips', key: 'cardStyle', label: '글자 뒤 카드', options: [{ v: 'none', l: '없음' }, { v: 'round', l: '둥근' }, { v: 'square', l: '각진' }, { v: 'ellipse', l: '타원' }], when: function (s) { return s.layout === 'paper'; } },
+          { t: 'toggle', key: 'swirl', label: '점 소용돌이', when: function (s) { return s.layout === 'paper'; } },
+          { t: 'toggle', key: 'border', label: '점선 테두리', when: function (s) { return s.layout === 'sticker'; } },
+          { t: 'toggle', key: 'doodleOutline', label: '낙서에 테두리선', when: function (s) { return s.layout === 'sticker'; } },
+          { t: 'slider', key: 'washStrength', label: '컬러 워시', min: 0, max: 1.6, step: 0.01 },
+          { t: 'slider', key: 'grain', label: '그레인 (필름 질감)', min: 0, max: 3, step: 0.01 },
+          { t: 'slider', key: 'vignette', label: '비네트 (가장자리 어둡게)', min: 0, max: 0.5, step: 0.01 },
           {
             t: 'custom',
             render: function () {
               var el = W.controls.el;
               var wrap = el('div', 'field');
               var row = el('div', 'fieldRow');
-              row.appendChild(el('span', 'fieldLabel', 'Arrangement'));
+              row.appendChild(el('span', 'fieldLabel', '배치'));
               var v = el('span', 'fieldVal', '');
               row.appendChild(v);
               wrap.appendChild(row);
-              var b = el('button', 'btn sm', 'Shuffle the scatter');
+              var b = el('button', 'btn sm', '장식 다시 흩뿌리기');
               b.type = 'button';
               b.style.alignSelf = 'flex-start';
               b.addEventListener('click', function () {
@@ -358,6 +311,69 @@
             update: function (s, node) { node._v.textContent = 'seed ' + s.seed; }
           }
         ]
+      },
+      {
+        title: '세부 조정 · 사진', hint: '보정 · 블렌드', open: false,
+        items: [
+          { t: 'note', text: '사진을 추가하면 조절할 수 있어요.', when: function () { return !W.photo.has(); } },
+          { t: 'select', key: 'photoRatio', label: '프레임 비율', options: C.ratios.map(function (r) { return { v: r.id, l: r.label }; }), when: W.photo.has },
+          {
+            t: 'row', items: [
+              { t: 'slider', key: 'brightness', label: '밝기', min: -0.5, max: 0.5, step: 0.01, when: W.photo.has },
+              { t: 'slider', key: 'contrast', label: '대비', min: 0.4, max: 2, step: 0.01, when: W.photo.has }
+            ]
+          },
+          {
+            t: 'row', items: [
+              { t: 'slider', key: 'saturation', label: '채도', min: 0, max: 2, step: 0.01, when: W.photo.has },
+              { t: 'slider', key: 'blur', label: '몽글몽글 (블러)', min: 0, max: 1, step: 0.01, when: W.photo.has }
+            ]
+          },
+          { t: 'select', key: 'blend', label: '블렌드 모드', options: S.blends.map(function (b) { return { v: b.id, l: b.label }; }), when: W.photo.has },
+          { t: 'slider', key: 'overprint', label: '리소 겹인쇄', min: 0, max: 1, step: 0.01, when: W.photo.has },
+          { t: 'toggle', key: 'photoRing', label: '프레임에 얇은 라인', when: W.photo.has },
+          { t: 'toggle', key: 'polaroid', label: '폴라로이드 카드', when: function (s) { return W.photo.has() && s.layout === 'sticker'; } }
+        ]
+      },
+      {
+        title: '세부 조정 · 글자', hint: '폰트 · 자간 · 작은 글자', open: false,
+        items: [
+          {
+            t: 'row', items: [
+              { t: 'select', key: 'titleFont', label: '메인 폰트', options: fontOptions },
+              { t: 'select', key: 'bodyFont', label: '보조 폰트', options: fontOptions }
+            ]
+          },
+          {
+            t: 'row', items: [
+              { t: 'slider', key: 'titleSize', label: '메인 크기', min: 30, max: 180, step: 1, fmt: function (v) { return Math.round(v); } },
+              { t: 'slider', key: 'titleTrack', label: '메인 자간', min: -20, max: 200, step: 1, fmt: function (v) { return Math.round(v); } }
+            ]
+          },
+          {
+            t: 'chips', key: 'titleCase', label: '메인 대소문자', options: [
+              { v: 'none', l: '그대로' }, { v: 'upper', l: 'UPPER' },
+              { v: 'lower', l: 'lower' }, { v: 'title', l: 'Title' }
+            ]
+          },
+          { t: 'toggle', key: 'titleItalic', label: '메인 이탤릭' },
+          {
+            t: 'row', items: [
+              { t: 'slider', key: 'bodySize', label: '보조 크기', min: 14, max: 70, step: 1, fmt: function (v) { return Math.round(v); } },
+              { t: 'slider', key: 'bodyTrack', label: '보조 자간', min: 0, max: 300, step: 1, fmt: function (v) { return Math.round(v); } }
+            ]
+          },
+          {
+            t: 'chips', key: 'bodyCase', label: '보조 대소문자', options: [
+              { v: 'none', l: '그대로' }, { v: 'upper', l: 'UPPER' }, { v: 'lower', l: 'lower' }
+            ]
+          },
+          { t: 'toggle', key: 'captionRule', label: '캡션에 밑줄' },
+          { t: 'text', key: 'footnote', label: '풋노트 (작은 글자)', ph: 'since 2024', maxlength: 32 },
+          { t: 'text', key: 'tags', label: '흩뿌림 태그 (쉼표로 구분)', ph: 'love, always, ours', maxlength: 80 },
+          { t: 'toggle', key: 'showTags', label: '태그 흩뿌리기' },
+          { t: 'note', text: '태그는 (love) 처럼 괄호에 담겨 여백에 작게 흩어져요 — 둘만 알아보는 문장을 숨기기 좋아요.' }
+        ]
       }
     ];
   }
@@ -369,9 +385,9 @@
       st.ox = 0.5; st.oy = 0.5; st.zoom = 1;
       panel.refresh();
       draw();
-      toast('Photo added — try Tone to match it to the palette.');
+      toast('사진 추가 완료 — 톤 필터로 팔레트에 맞춰보세요.');
     }).catch(function () {
-      toast('That file could not be read as an image.');
+      toast('이미지 파일로 읽을 수 없었어요.');
     });
   }
 
@@ -463,13 +479,13 @@
   function download(btn) {
     var label = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Rendering…';
+    btn.textContent = '만드는 중…';
     R.toBlob(st).then(function (blob) {
       saveBlob(blob, R.slug(st) + '.png');
-      toast('Saved ' + R.slug(st) + '.png');
+      toast(R.slug(st) + '.png 저장 완료');
     }).catch(function (e) {
       console.error(e);
-      toast('Export failed — try a smaller size.');
+      toast('저장에 실패했어요 — 사이즈를 줄여보세요.');
     }).then(function () {
       btn.disabled = false;
       btn.textContent = label;
@@ -491,12 +507,12 @@
         btn.textContent = label;
         panel.refresh();
         draw();
-        toast('Saved ' + done + ' wallpapers.');
+        toast('배경화면 ' + done + '장 저장 완료');
         return;
       }
       var id = queue.shift();
       st.presetId = id;
-      btn.textContent = 'Rendering ' + (done + 1) + '/' + (done + queue.length + 1) + '…';
+      btn.textContent = (done + 1) + '/' + (done + queue.length + 1) + ' 만드는 중…';
       R.toBlob(st).then(function (blob) {
         saveBlob(blob, R.slug(st) + '.png');
         done++;
@@ -540,11 +556,11 @@
       st = S.randomize(st);
       panel.refresh();
       draw();
-      toast('New look — hit it again if it is not the one.');
+      toast('새 무드 등장 — 마음에 안 들면 한 번 더!');
     });
     document.getElementById('btnCopyLink').addEventListener('click', function () {
       var url = location.origin + location.pathname + '#' + S.serialize(st);
-      var ok = function () { toast('Link copied — it rebuilds this exact wallpaper.'); };
+      var ok = function () { toast('링크 복사 완료 — 열면 이 배경화면이 그대로 복원돼요.'); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(ok, function () { toast(url); });
       } else {

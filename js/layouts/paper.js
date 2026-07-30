@@ -112,7 +112,7 @@
   W.layoutRegistry.push({
     id: 'paper',
     label: 'Paper',
-    blurb: 'Dot-grid stationery with a halftone print. Very safe in public.',
+    blurb: '점노트 위에 망점 인쇄. 밖에서 봐도 그냥 문구류.',
     defaults: { photoShape: 'rect', tone: 'halftone', feather: 0, paperStyle: 'dots', cardStyle: 'round', auraShape: 'none' },
     draw: draw
   });

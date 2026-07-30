@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pairtone — wallpaper maker for two</title>
-<meta name="description" content="Make a matching phone, tablet and desktop wallpaper for you and your favourite pair. Soft riso, halftone and aura looks that still pass in public.">
+<title>pairtone — 우리 둘 배경화면 메이커</title>
+<meta name="description" content="최애 커플 이름으로 만드는 감성 배경화면. 폰·패드·데스크탑 사이즈 프리셋, 사진 필터, 일코 가능한 디자인까지.">
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Italiana&family=Inter:wght@300..700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Caveat:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Italiana&family=Inter:wght@300..700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Caveat:wght@400..700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='25' font-size='24'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
 </head>
@@ -18,38 +18,38 @@
   <div class="brand">
     <span class="mark">✦</span>
     <span class="wordmark">pairtone</span>
-    <span class="tagline">wallpaper maker for two</span>
+    <span class="tagline">우리 둘 배경화면 메이커</span>
   </div>
   <div class="topActions">
-    <button type="button" class="btn ghost" id="btnRandom" title="Roll a whole new look">Surprise me</button>
-    <button type="button" class="btn ghost" id="btnCopyLink" title="Copy a link that rebuilds this exact wallpaper">Copy link</button>
-    <button type="button" class="btn primary" id="btnDownload">Download PNG</button>
+    <button type="button" class="btn ghost" id="btnRandom" title="완전히 새로운 무드 뽑기">랜덤 뽑기</button>
+    <button type="button" class="btn ghost" id="btnCopyLink" title="이 배경화면을 그대로 복원하는 링크 복사">링크 복사</button>
+    <button type="button" class="btn primary" id="btnDownload">PNG 저장</button>
   </div>
 </header>
 
 <main class="shell">
 
-  <section class="stage" aria-label="Preview">
+  <section class="stage" aria-label="미리보기">
     <div class="stageInner">
       <div class="deviceWrap" id="deviceWrap">
-        <canvas id="preview" width="600" height="1300" aria-label="Wallpaper preview"></canvas>
-        <div class="dropHint" id="dropHint" hidden>Drop your photo</div>
+        <canvas id="preview" width="600" height="1300" aria-label="배경화면 미리보기"></canvas>
+        <div class="dropHint" id="dropHint" hidden>여기에 사진을 놓아주세요</div>
       </div>
       <div class="stageMeta">
         <span id="sizeLabel">—</span>
         <span class="dot">·</span>
         <span id="tierLabel">—</span>
         <span class="dot">·</span>
-        <label class="inlineCheck"><input type="checkbox" id="guideToggle"> lock-screen guides</label>
+        <label class="inlineCheck"><input type="checkbox" id="guideToggle"> 잠금화면 가이드</label>
       </div>
-      <p class="stageTip" id="stageTip">Drag on the preview to reframe your photo, scroll to zoom.</p>
+      <p class="stageTip" id="stageTip">프리뷰를 드래그하면 사진 위치를 옮길 수 있어요.</p>
     </div>
   </section>
 
-  <section class="panel" aria-label="Controls">
+  <section class="panel" aria-label="설정">
     <div id="panelRoot"></div>
     <footer class="panelFoot">
-      <p>Nothing leaves your device — the photo is processed in your browser and never uploaded.</p>
+      <p>사진은 브라우저 안에서만 처리되고 어디에도 업로드되지 않아요.</p>
     </footer>
   </section>
 

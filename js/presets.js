@@ -30,7 +30,7 @@
       ]
     },
     {
-      group: 'iPad / Tablet',
+      group: '아이패드 · 탭',
       items: [
         { id: 'pad-mini', label: 'iPad mini', w: 1488, h: 2266 },
         { id: 'pad-11', label: 'iPad / Air 11"', w: 1640, h: 2360 },
@@ -43,7 +43,7 @@
       ]
     },
     {
-      group: 'Desktop / Watch',
+      group: '데스크탑 · 워치',
       items: [
         { id: 'dt-fhd', label: 'Desktop FHD', w: 1920, h: 1080 },
         { id: 'dt-qhd', label: 'Desktop QHD', w: 2560, h: 1440 },
@@ -55,12 +55,12 @@
       ]
     },
     {
-      group: 'Share',
+      group: 'SNS · 공유',
       items: [
         { id: 'sh-story', label: 'Story / Reels 9:16', w: 1080, h: 1920 },
         { id: 'sh-square', label: 'Square 1:1', w: 1440, h: 1440 },
         { id: 'sh-post', label: 'Post 4:5', w: 1440, h: 1800 },
-        { id: 'sh-kakao', label: 'Kakao profile', w: 1080, h: 1440 },
+        { id: 'sh-kakao', label: '카톡 프로필', w: 1080, h: 1440 },
         { id: 'sh-twt', label: 'X header 3:1', w: 1500, h: 500 }
       ]
     }

@@ -82,7 +82,7 @@
   W.layoutRegistry.push({
     id: 'aura',
     label: 'Aura',
-    blurb: 'Soft blooms + twinkles. The most discreet of the four.',
+    blurb: '뿌연 빛무리와 반짝임. 넷 중 제일 은은한 무드.',
     defaults: { photoShape: 'circle', tone: 'wash', feather: 0.35, auraShape: 'heart', paperStyle: 'none' },
     draw: draw
   });
