@@ -27,21 +27,39 @@
     });
 
     /* ---- geometry ---- */
+    /* Non-rectangular frames (heart, blob, star) ink far less of their
+       plate than a circle does, so they get a larger plate to compensate —
+       otherwise the photo looks lost inside its own glow. */
+    var shapeBoost = /heart|star|blob/.test(st.photoShape) ? 1.22 : 1;
     var photoW = Math.min(m.inner, w * (wide ? 0.34
-      : env.tier === 'tall' ? 0.6 : env.tier === 'phone' ? 0.62 : 0.5));
+      : env.tier === 'tall' ? 0.6 : env.tier === 'phone' ? 0.62 : 0.5) * shapeBoost);
     var ratio = W.compose.ratioById[st.photoRatio] || 1;
     var photoH = photoW / ratio;
     var hasPhoto = env.hasPhoto;
-
-    var hlBox = { x: m.left, y: 0, w: m.inner * (wide ? 0.46 : 0.9) };
-    var hl = PO.headline(env, hlBox, { align: 'center', measure: true, style: st.headlineStyle });
 
     var capH = (c.caption && !env.micro) ? mic * 3.4 : 0;
     /* the rails own the strip at the foot; the stack must not reach it */
     var railBand = env.micro ? 0 : mic * 3.2;
     var bandBottom = env.band.bottom - railBand;
+    var avail = bandBottom - env.band.top;
+
+    /* headline and photo share the band: the lockup may take at most a
+       third of it, and whatever the stack still overflows comes out of
+       the photo — type is never pushed into the rails */
+    var hlBox = { x: m.left, y: 0, w: m.inner * (wide ? 0.46 : 0.9) };
+    var hlMaxH = avail * (wide ? 0.5 : 0.34);
+    var hl = PO.headline(env, hlBox, { align: 'center', measure: true, style: st.headlineStyle, maxH: hlMaxH });
+
+    if (hasPhoto && !wide) {
+      var maxPhotoH = avail - hl.h - capH - u(90);
+      if (photoH > maxPhotoH) {
+        photoH = Math.max(u(220), maxPhotoH);
+        photoW = photoH * ratio;
+      }
+    }
+
     var total = (hasPhoto ? photoH + u(90) : 0) + hl.h + capH;
-    var free = Math.max(0, (bandBottom - env.band.top) - total);
+    var free = Math.max(0, avail - total);
     var y = env.band.top + free * 0.42;
 
     var plate = null;
@@ -56,11 +74,12 @@
       var fn = P.motifs[st.auraShape] || P.motifs.heart;
       var hx = plate ? plate.x + plate.w / 2 : w / 2;
       var hy = plate ? plate.y + plate.h / 2 : env.band.top + (env.band.bottom - env.band.top) * 0.32;
-      var hr = plate ? Math.min(plate.w, plate.h) * 0.72 : env.S * 0.32;
+      /* glow hugs the photo instead of dwarfing it */
+      var hr = plate ? Math.min(plate.w, plate.h) * 0.58 : env.S * 0.32;
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
-        pal.soft[0], { layers: 18, spread: 0.62, alpha: 0.6 * st.washStrength });
-      P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr * 0.6,
-        pal.inks[1] || pal.soft[1], { layers: 12, spread: 0.4, alpha: 0.2 * st.washStrength });
+        pal.soft[0], { layers: 18, spread: 0.5, alpha: 0.6 * st.washStrength });
+      P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr * 0.66,
+        pal.inks[1] || pal.soft[1], { layers: 12, spread: 0.34, alpha: 0.22 * st.washStrength });
     }
 
     if (plate) env.drawPhoto(plate);
@@ -70,7 +89,7 @@
       var tx = w - m.right - hlBox.w;
       hlBox.x = tx;
       hlBox.y = env.band.top + ((bandBottom - env.band.top) - (hl.h + capH)) / 2;
-      PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle });
+      PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle, maxH: hlMaxH });
       if (capH) {
         PO.block(env, hlBox.x, hlBox.y + hl.h + mic * 0.8, hlBox.w, [c.caption], {
           size: mic, lead: 1.5, align: 'center', alpha: 0.8, upper: false, font: st.bodyFont
@@ -79,7 +98,7 @@
     } else {
       hlBox.x = (w - hlBox.w) / 2;
       hlBox.y = (plate ? plate.y + plate.h + u(90) : y);
-      PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle });
+      PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle, maxH: hlMaxH });
       if (capH) {
         PO.block(env, hlBox.x, hlBox.y + hl.h + mic * 0.9, hlBox.w, [c.caption], {
           size: mic, lead: 1.5, align: 'center', alpha: 0.8, upper: false, font: st.bodyFont
@@ -87,8 +106,11 @@
       }
     }
 
-    /* ---- twinkles, kept clear of the type ---- */
-    var avoid = [{ x: hlBox.x, y: hlBox.y - u(20), w: hlBox.w, h: hl.h + capH + u(40) }];
+    /* ---- twinkles, kept clear of the type and the foot rails ---- */
+    var avoid = [
+      { x: hlBox.x, y: hlBox.y - u(20), w: hlBox.w, h: hl.h + capH + u(40) },
+      { x: 0, y: bandBottom - u(10), w: w, h: h - bandBottom + u(10) }
+    ];
     if (plate) avoid.push(plate);
     D.twinkles(env, { count: 44, avoid: avoid, colors: pal.inks.concat(pal.soft), rMin: 5, rMax: 15 });
     D.scatter(env, {

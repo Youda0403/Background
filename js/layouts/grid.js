@@ -87,14 +87,39 @@
     if (st.showNames && c.names) sources.push(c.names);
     if (c.caption && !env.micro) sources.push(c.caption);
 
-    /* Drop whole phrases until the block fits — a sentence cut off
-       mid-word looks like a bug rather than a decision. */
+    /* Trim the caption word by word until the block fits — whole words
+       only, so the cut always lands on a word boundary, and the title and
+       names are never sacrificed. */
     var rows = packRows(sources, cols);
-    while (rows.length > rowsFit && sources.length > 1) {
-      sources.pop();
+    while (rows.length > rowsFit && sources.length) {
+      var last = String(sources[sources.length - 1]).trim().split(/\s+/);
+      if (last.length > 1 && sources.length > 1) {
+        last.pop();
+        sources[sources.length - 1] = last.join(' ');
+      } else if (sources.length > 1) {
+        sources.pop();
+      } else {
+        break;
+      }
       rows = packRows(sources, cols);
     }
     if (rows.length > rowsFit) rows = rows.slice(0, rowsFit);
+
+    /* When the words are short, spread them down the lattice the way the
+       reference does, instead of leaving one clump over empty grid. */
+    var deficit = rowsFit - rows.length;
+    if (deficit > 2) {
+      var gapsIdx = [];
+      rows.forEach(function (r, i2) { if (r === null) gapsIdx.push(i2); });
+      var spread = Math.min(deficit - 1, Math.max(2, gapsIdx.length * 2));
+      var stretched = [];
+      var extraPerGap = gapsIdx.length ? Math.floor(spread / gapsIdx.length) : 0;
+      rows.forEach(function (r) {
+        stretched.push(r);
+        if (r === null) for (var e = 0; e < extraPerGap; e++) stretched.push(null);
+      });
+      rows = stretched.slice(0, rowsFit);
+    }
 
     /* sit the block a little above centre, like the reference */
     var startRow = Math.max(0, Math.round((rowsFit - rows.length) * 0.36));

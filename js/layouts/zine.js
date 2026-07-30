@@ -7,17 +7,19 @@
   var U = W.util, P = W.prim, PO = W.poster, T = W.type;
 
   /* Own rng: the bar widths clamp to whole pixels, so driving this from
-     the shared stream would desync the preview from the export. */
-  function barcode(ctx, x, y, w, h, seedRand, color, alpha) {
+     the shared stream would desync the preview from the export.
+     Vertical: horizontal bars stacked down a tall column, like the spine
+     barcode on the reference sleeve. */
+  function barcodeV(ctx, x, y, w, h, seedRand, color, alpha) {
     var rand = U.rng(Math.floor(seedRand() * 1e9));
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = color;
-    var cx = x;
-    while (cx < x + w - 2) {
-      var bw = Math.max(1, (0.15 + rand() * 0.5) * (w / 18));
-      ctx.fillRect(cx, y, bw, h);
-      cx += bw + Math.max(1, (0.2 + rand() * 0.45) * (w / 18));
+    var cy = y;
+    while (cy < y + h - 2) {
+      var bh = Math.max(1, (0.15 + rand() * 0.5) * (h / 26));
+      ctx.fillRect(x, cy, w, bh);
+      cy += bh + Math.max(1, (0.2 + rand() * 0.45) * (h / 26));
     }
     ctx.restore();
   }
@@ -48,29 +50,37 @@
       ctx.restore();
     }
 
-    /* ---- left rails: numerals + barcode ---- */
-    var railX = m.left;
-    var plateLeft = m.left + (wide ? 0 : mic * 3.4);
-    if (!wide && !env.micro) {
-      var digits = '0123456789012';
-      var dSize = mic * 1.15;
-      ctx.save();
-      ctx.fillStyle = pal.text;
-      ctx.globalAlpha = 0.8;
-      T.setFont(ctx, 'dmmono', dSize, {});
-      ctx.translate(railX + dSize * 0.9, hl.bottom + u(150));
-      ctx.rotate(Math.PI / 2);
-      T.draw(ctx, digits, 0, 0, { align: 'left', tracking: dSize * 0.5 });
-      ctx.restore();
-      barcode(ctx, railX, hl.bottom + u(40), mic * 2.4, u(90), rand, pal.text, 0.85 * env.decoAlpha);
-    }
-
-    /* ---- halftone plate ---- */
+    /* ---- halftone plate, with a spine rail on its left ---- */
+    var railW = wide || env.micro ? 0 : mic * 3.4;
+    var plateLeft = m.left + railW;
     var top = hl.bottom + u(46);
     var footH = mic * 6.4;
     var plate = { x: plateLeft, y: top, w: w - m.right - plateLeft, h: h - m.bottom - footH - top };
     var ratio = W.compose.ratioById[st.photoRatio];
     if (ratio && plate.w / ratio < plate.h) plate.h = plate.w / ratio;
+
+    /* the rail runs the plate's full height: barcode above, digits below,
+       so the left edge is furniture rather than a gutter */
+    if (railW) {
+      var railX = m.left;
+      var bcH = plate.h * 0.34;
+      barcodeV(ctx, railX, plate.y, mic * 2.3, bcH, rand, pal.text, 0.85 * env.decoAlpha);
+      var digits = '0123456789012345678901';
+      var dSize = mic * 1.12;
+      ctx.save();
+      ctx.fillStyle = pal.text;
+      ctx.globalAlpha = 0.8;
+      T.setFont(ctx, 'dmmono', dSize, {});
+      ctx.translate(railX + dSize * 0.95, plate.y + bcH + mic * 1.4);
+      ctx.rotate(Math.PI / 2);
+      /* run the digit tape down to the plate's foot, clipped to fit */
+      var tape = digits;
+      while (T.measure(ctx, tape, dSize * 0.5) > plate.h - bcH - mic * 2 && tape.length > 4) {
+        tape = tape.slice(0, -1);
+      }
+      T.draw(ctx, tape, 0, 0, { align: 'left', tracking: dSize * 0.5 });
+      ctx.restore();
+    }
 
     if (plate.h > u(140)) {
       if (env.hasPhoto) {
@@ -115,10 +125,14 @@
       kinds: st.motifs, speckle: st.glitter
     });
 
-    /* ---- foot: caption block + credits ---- */
-    var footY = h - m.bottom - mic * 2.4;
+    /* ---- foot: caption seated above the rule, credits below it ---- */
+    var ruleY = h - m.bottom - mic * 1.7;
     if (c.caption && !env.micro) {
-      PO.block(env, m.left, footY - mic * 1.2, m.inner * (wide ? 0.5 : 0.72), [c.caption], {
+      var capW = m.inner * (wide ? 0.5 : 0.72);
+      var capH = PO.block(env, 0, 0, capW, [c.caption], {
+        size: mic * 0.98, lead: 1.45, measure: true, font: st.bodyFont
+      });
+      PO.block(env, m.left, ruleY - mic * 0.9 - capH, capW, [c.caption], {
         size: mic * 0.98, lead: 1.45, alpha: 0.85, font: st.bodyFont, upper: false
       });
     }
@@ -127,8 +141,8 @@
     ctx.strokeStyle = pal.text;
     ctx.lineWidth = Math.max(1, u(1.4));
     ctx.beginPath();
-    ctx.moveTo(m.left, h - m.bottom - mic * 1.7);
-    ctx.lineTo(w - m.right, h - m.bottom - mic * 1.7);
+    ctx.moveTo(m.left, ruleY);
+    ctx.lineTo(w - m.right, ruleY);
     ctx.stroke();
     ctx.restore();
 
