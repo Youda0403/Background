@@ -337,6 +337,10 @@ input[type="range"]::-moz-range-thumb {
 .toggle input:checked + .switch::after { transform: translateX(15px); }
 .toggle input:focus-visible + .switch { box-shadow: 0 0 0 3px var(--accent-soft); }
 
+/* label + help chip sit side by side; the chip is never inside the label */
+.labelRow { display: inline-flex; align-items: center; gap: 6px; }
+.labelRow > label, .labelRow > .fieldLabel { display: inline; }
+
 /* help popovers */
 .helpWrap { position: relative; display: inline-flex; vertical-align: middle; }
 .helpBtn {

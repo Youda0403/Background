@@ -178,9 +178,9 @@
     label: 'Grid',
     blurb: '글자를 격자 칸에 채운 타이포 포스터. 일코 최강.',
     defaults: {
-      photoShape: 'rect', photoRatio: 'free', tone: 'mono', toneAmount: 1,
+      photoShape: 'rect', tone: 'mono', toneAmount: 1,
       feather: 0, motifs: ['sparkle'],
-      decoDensity: 0, vignette: 0.06, grain: 1.2
+      decoCount: 0, vignette: 0.06, grain: 1.2
     },
     draw: draw
   });

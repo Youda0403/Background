@@ -8,22 +8,27 @@
      calligraphic scripts, editorial grotesques, typewriter monos and a
      couple of deliberately kitsch faces. */
   var FONTS = [
-    { id: 'didone', label: 'Bodoni Moda', group: '디스플레이 세리프', stack: '"Bodoni Moda", "Didot", Georgia, serif', big: 1.0 },
-    { id: 'playfair', label: 'Playfair Display', group: '디스플레이 세리프', stack: '"Playfair Display", Georgia, serif', big: 1.0 },
-    { id: 'instrument', label: 'Instrument Serif', group: '디스플레이 세리프', stack: '"Instrument Serif", Georgia, serif', big: 1.05 },
-    { id: 'cormorant', label: 'Cormorant', group: '디스플레이 세리프', stack: '"Cormorant Garamond", Georgia, serif', big: 1.12 },
-    { id: 'fraunces', label: 'Fraunces', group: '디스플레이 세리프', stack: '"Fraunces", Georgia, serif', big: 0.98 },
+    { id: 'didone', label: 'Bodoni Moda', group: '세리프', stack: '"Bodoni Moda", Didot, Georgia, serif', big: 1.0 },
+    { id: 'playfair', label: 'Playfair Display', group: '세리프', stack: '"Playfair Display", Georgia, serif', big: 1.0 },
+    { id: 'dmserif', label: 'DM Serif Display', group: '세리프', stack: '"DM Serif Display", Georgia, serif', big: 0.98 },
+    { id: 'instrument', label: 'Instrument Serif', group: '세리프', stack: '"Instrument Serif", Georgia, serif', big: 1.05 },
+    { id: 'cormorant', label: 'Cormorant', group: '세리프', stack: '"Cormorant Garamond", Georgia, serif', big: 1.12 },
+    { id: 'fraunces', label: 'Fraunces', group: '세리프', stack: '"Fraunces", Georgia, serif', big: 0.98 },
+    { id: 'youngserif', label: 'Young Serif', group: '세리프', stack: '"Young Serif", Georgia, serif', big: 0.94 },
 
-    { id: 'pinyon', label: 'Pinyon Script', group: '필기체', stack: '"Pinyon Script", "Snell Roundhand", cursive', big: 1.5, scriptish: true },
-    { id: 'italianno', label: 'Italianno', group: '필기체', stack: '"Italianno", "Snell Roundhand", cursive', big: 1.75, scriptish: true },
+    { id: 'birthstone', label: 'Birthstone', group: '필기체', stack: '"Birthstone", "Snell Roundhand", cursive', big: 1.45, scriptish: true },
+    { id: 'delafield', label: 'Mrs Saint Delafield', group: '필기체', stack: '"Mrs Saint Delafield", "Snell Roundhand", cursive', big: 1.55, scriptish: true },
+    { id: 'parisienne', label: 'Parisienne', group: '필기체', stack: '"Parisienne", "Snell Roundhand", cursive', big: 1.3, scriptish: true },
+    { id: 'italianno', label: 'Italianno', group: '필기체', stack: '"Italianno", "Snell Roundhand", cursive', big: 1.7, scriptish: true },
+    { id: 'sacramento', label: 'Sacramento', group: '필기체', stack: '"Sacramento", "Snell Roundhand", cursive', big: 1.3, scriptish: true },
+    { id: 'yellowtail', label: 'Yellowtail', group: '필기체', stack: '"Yellowtail", "Brush Script MT", cursive', big: 1.15, scriptish: true },
 
+    { id: 'spacegrotesk', label: 'Space Grotesk', group: '산세리프', stack: '"Space Grotesk", "Helvetica Neue", Arial, sans-serif', big: 0.94 },
+    { id: 'familjen', label: 'Familjen Grotesk', group: '산세리프', stack: '"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif', big: 0.94 },
     { id: 'bricolage', label: 'Bricolage Grotesque', group: '산세리프', stack: '"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif', big: 0.92 },
-    { id: 'archivo', label: 'Archivo', group: '산세리프', stack: '"Archivo", "Helvetica Neue", Arial, sans-serif', big: 0.9 },
     { id: 'syne', label: 'Syne', group: '산세리프', stack: '"Syne", "Helvetica Neue", Arial, sans-serif', big: 0.92 },
-    { id: 'anton', label: 'Anton', group: '산세리프', stack: '"Anton", "Arial Narrow", Impact, sans-serif', big: 0.88 },
 
-    { id: 'unbounded', label: 'Unbounded', group: '키치', stack: '"Unbounded", "Helvetica Neue", sans-serif', big: 0.86 },
-    { id: 'bagel', label: 'Bagel Fat One', group: '키치', stack: '"Bagel Fat One", "Arial Black", sans-serif', big: 0.88 },
+    { id: 'bagel', label: 'Bagel Fat One', group: '통통', stack: '"Bagel Fat One", "Arial Black", sans-serif', big: 0.88 },
 
     { id: 'dmmono', label: 'DM Mono', group: '모노', stack: '"DM Mono", ui-monospace, "SF Mono", Menlo, monospace', big: 0.9 },
     { id: 'spacemono', label: 'Space Mono', group: '모노', stack: '"Space Mono", ui-monospace, Menlo, monospace', big: 0.9 }
@@ -32,10 +37,12 @@
   var BY_ID = {};
   FONTS.forEach(function (f) { BY_ID[f.id] = f; });
 
-  /* Old ids from the first release, kept so saved links still open. */
+  /* Ids from earlier releases, kept so saved links still open. */
   var ALIASES = {
     'serif-display': 'instrument', 'serif-fine': 'cormorant', 'deco': 'didone',
-    'grotesk': 'archivo', 'mono': 'dmmono', 'hand': 'pinyon'
+    'grotesk': 'spacegrotesk', 'mono': 'dmmono', 'hand': 'parisienne',
+    'archivo': 'spacegrotesk', 'anton': 'syne', 'unbounded': 'bricolage',
+    'pinyon': 'delafield'
   };
 
   function resolve(id) { return BY_ID[id] || BY_ID[ALIASES[id]] || FONTS[0]; }

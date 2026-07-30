@@ -58,6 +58,17 @@
     }
   }
 
+  /* Lifts the whole image toward one colour — a faded, printed-on-paper
+     look that leaves the original hues recognisable. */
+  function veil(d, light, amount) {
+    var c = U.hex2rgb(light);
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] += (c[0] - d[i]) * amount;
+      d[i + 1] += (c[1] - d[i + 1]) * amount;
+      d[i + 2] += (c[2] - d[i + 2]) * amount;
+    }
+  }
+
   function duotone(d, dark, light, amount) {
     var a = U.hex2rgb(dark), b = U.hex2rgb(light);
     for (var i = 0; i < d.length; i += 4) {
@@ -118,8 +129,13 @@
     } else if (o.tone === 'mono' || o.tone === 'halftone') {
       saturate(d, 0);
     } else if (o.tone === 'wash') {
-      saturate(d, U.clamp(o.saturation * (1 - o.toneAmount * 0.7), 0, 2));
-      duotone(d, o.duoDark, o.duoLight, o.toneAmount * 0.72);
+      /* Wash keeps the photo's own hues and fades them into the paper,
+         like a sun-bleached print. Duotone replaces the hues outright.
+         Making these two visibly different matters more than either
+         being subtle — they used to be near-identical. */
+      saturate(d, U.clamp(o.saturation * (1 - o.toneAmount * 0.3), 0, 2));
+      veil(d, o.duoLight, o.toneAmount * 0.55);
+      levels(d, 0, 1 + o.toneAmount * 0.18);
     } else {
       saturate(d, o.saturation);
     }

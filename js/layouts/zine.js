@@ -35,7 +35,9 @@
 
     /* ---- headline, struck through like a rubber stamp ---- */
     var hlBox = { x: m.left, y: m.top + mic * 0.6, w: m.inner * (wide ? 0.52 : 0.94) };
-    var hl = PO.headline(env, hlBox, { align: 'left', style: 'scriptSans', l2Weight: 600 });
+    /* a sleeve is mostly artwork: the title takes a quarter, no more */
+    var hlMaxH = (h - m.top - m.bottom) * (wide ? 0.4 : 0.26);
+    var hl = PO.headline(env, hlBox, { align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH });
 
     if (st.strike && hl.h) {
       ctx.save();
@@ -56,8 +58,8 @@
     var top = hl.bottom + u(46);
     var footH = mic * 6.4;
     var plate = { x: plateLeft, y: top, w: w - m.right - plateLeft, h: h - m.bottom - footH - top };
-    var ratio = W.compose.ratioById[st.photoRatio];
-    if (ratio && plate.w / ratio < plate.h) plate.h = plate.w / ratio;
+    /* a sleeve plate is never taller than a 4:5 portrait */
+    if (plate.h > plate.w * 1.25) plate.h = plate.w * 1.25;
 
     /* the rail runs the plate's full height: barcode above, digits below,
        so the left edge is furniture rather than a gutter */
@@ -121,8 +123,7 @@
 
     /* ---- outlined bursts over the print ---- */
     PO.accents(env, plate, {
-      count: 5, rMin: 22, rMax: 62, outline: true,
-      kinds: st.motifs, speckle: st.glitter
+      rMin: 22, rMax: 62, outline: true, kinds: st.motifs, speckle: st.glitter
     });
 
     /* ---- foot: caption seated above the rule, credits below it ---- */
@@ -158,7 +159,7 @@
     label: 'Zine',
     blurb: '복사기 감성 레코드 슬리브. 망점 + 바코드.',
     defaults: {
-      photoShape: 'rect', photoRatio: 'portrait45', tone: 'halftone',
+      photoShape: 'rect', tone: 'halftone',
       halftoneCells: 58, feather: 0, headlineStyle: 'scriptSans',
       strike: true, grain: 1.7, motifs: ['burst', 'burst4'], vignette: 0.08
     },

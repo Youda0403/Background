@@ -33,8 +33,7 @@
     var shapeBoost = /heart|star|blob/.test(st.photoShape) ? 1.22 : 1;
     var photoW = Math.min(m.inner, w * (wide ? 0.34
       : env.tier === 'tall' ? 0.6 : env.tier === 'phone' ? 0.62 : 0.5) * shapeBoost);
-    var ratio = W.compose.ratioById[st.photoRatio] || 1;
-    var photoH = photoW / ratio;
+    var photoH = photoW;   /* the soft layout always frames a square */
     var hasPhoto = env.hasPhoto;
 
     var capH = (c.caption && !env.micro) ? mic * 3.4 : 0;
@@ -54,7 +53,7 @@
       var maxPhotoH = avail - hl.h - capH - u(90);
       if (photoH > maxPhotoH) {
         photoH = Math.max(u(220), maxPhotoH);
-        photoW = photoH * ratio;
+        photoW = photoH;
       }
     }
 
@@ -112,9 +111,9 @@
       { x: 0, y: bandBottom - u(10), w: w, h: h - bandBottom + u(10) }
     ];
     if (plate) avoid.push(plate);
-    D.twinkles(env, { count: 44, avoid: avoid, colors: pal.inks.concat(pal.soft), rMin: 5, rMax: 15 });
+    D.twinkles(env, { avoid: avoid, colors: pal.inks.concat(pal.soft), rMin: 5, rMax: 15 });
     D.scatter(env, {
-      count: 12, avoid: avoid, kinds: st.motifs, colors: pal.inks,
+      avoid: avoid, kinds: st.motifs, colors: pal.inks,
       rMin: 14, rMax: 30, bigRatio: 0.24, minDist: 100,
       alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
       speckle: st.glitter
@@ -134,7 +133,7 @@
     label: 'Aura',
     blurb: '뿌연 빛무리 + 부드러운 사진창. 제일 은은해요.',
     defaults: {
-      photoShape: 'circle', photoRatio: 'square', tone: 'wash', toneAmount: 0.8,
+      photoShape: 'circle', tone: 'wash', toneAmount: 0.8,
       feather: 0.38, auraShape: 'heart', headlineStyle: 'stack',
       motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
     },

@@ -44,9 +44,10 @@ without colliding with it. Nothing is scaled after being fitted.
 (`×  ♡  &  ·  +  /  ✦  —  space`), initials-only monogram, caption, footnote,
 and bracket tags like `(love)` set along the foot rail. Every field is optional.
 
-A pair name containing a space is split across the two lines of the headline
-lockup — `Spirit of Nature` becomes **Spirit** / **of Nature.**, the trick that
-gives the reference posters their voice.
+The pair-name field takes a line break: press Enter and the headline splits
+there, setting the first line in one face and the second in another — the trick
+that gives the reference posters their voice. A single-line name falls back to
+splitting at the first space, so `Sunrise Duo` becomes **Sunrise** / **Duo**.
 
 **Plain-language help.** Every piece of jargon — duotone, halftone, scrim,
 overprint, bleed, vignette — has a `?` next to it that opens a short note in
@@ -63,23 +64,28 @@ it into the palette:
 | Tone | What it does |
 | --- | --- |
 | Natural | brightness / contrast / saturation only |
-| Wash | desaturates and pulls the image toward the palette's ink ramp |
-| Duotone | maps luminance onto the palette's two inks |
+| Wash | keeps the photo's own hues and fades them into the paper, like a sun-bleached print |
+| Duotone | discards the hues and remaps luminance onto the palette's two inks |
 | Mono | grayscale |
-| Halftone | reprints the photo as dot screen in the palette's ink |
+| Halftone | reprints the photo as a dot screen in the palette's ink |
 
-Plus nine frame shapes, thirteen frame proportions (`자동` plus five portrait,
-square and six landscape ratios up to 21:9), feathered edges, softness, tilt,
-blend mode, riso overprint, and drag-to-reframe / scroll-to-zoom directly on the
-preview. Duotone and Halftone are the ones that matter: they print the photo in
-the wallpaper's own ink, so a snapshot sits *inside* the design instead of on
-top of it.
+Wash and Duotone are deliberately far apart: one keeps the photograph
+recognisable, the other turns it into artwork.
 
-**Curated over configurable.** Five layouts, twelve palettes, sixteen one-click
-looks, sixteen motif kinds, fifteen fonts. A look sets layout + palette + fonts
-+ texture at once but keeps your words, photo and canvas size. The layouts own
-their own composition, so the remaining sliders can nudge a design but cannot
-break it — the panel shows four sections by default and folds the rest away.
+Each layout decides where the photo goes and how big it is, so there is no frame
+proportion to set — a photo slot that moved independently of the design was a
+source of confusion, not control. Aura, the one layout built around a cut-out,
+keeps its nine frame shapes. Everything else offers feathered edges, softness,
+tilt, blend mode, riso overprint, and drag-to-reframe / scroll-to-zoom directly
+on the preview.
+
+**Two decisions, not three.** A design is a **layout** (where things sit) and a
+**palette** (colour, type pairing and paper feel). That is the whole model —
+there is no separate "look" concept, because layout × palette is already 60
+finished combinations and a third overlapping idea only made the panel harder to
+read. Picking a palette also swaps the fonts and grain, so it changes the voice
+and not just the hue. The layouts own their own composition, so every remaining
+slider can nudge a design but cannot break it.
 
 **Export set.** Tick several devices and get matching wallpapers for all of
 them in one go — the same artwork, recomposed for each size.
@@ -100,18 +106,22 @@ which stays local). State also persists in `localStorage`.
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
 | **Aura** | Colour blooms and a feathered photo window. The soft one. |
 
-## Looks
+## Palettes
 
-Spirit · Sage Letter · Anthurium · Overfeel · Summer Child · Be New · Fireworks ·
-Hiding Spot · Crossword · Chrome · Hatachi · Riso Blue · Apple Silver ·
-Star Milk · Aura Heart · Soft Sheet
+Star Milk · Green Wash · Sage Letter · Aura Heart · Dot Diary · Riso Blue ·
+Apple Silver · Jelly Tide · Cream Doodle · Soft Sheet · Ink & Blush ·
+Midnight Wish
+
+Each carries its own `type` pairing (title / script / body face plus the
+headline style that suits it) and `texture` (grain, vignette, glitter).
 
 ## Fonts
 
-Display serifs (Bodoni Moda, Playfair Display, Instrument Serif, Cormorant,
-Fraunces), scripts (Pinyon Script, Italianno), grotesques (Bricolage Grotesque,
-Archivo, Syne, Anton), kitsch (Unbounded, Bagel Fat One) and monos (DM Mono,
-Space Mono) — served from Google Fonts with system fallbacks.
+Serifs (Bodoni Moda, Playfair Display, DM Serif Display, Instrument Serif,
+Cormorant, Fraunces, Young Serif), scripts (Birthstone, Mrs Saint Delafield,
+Parisienne, Italianno, Sacramento, Yellowtail), grotesques (Space Grotesk,
+Familjen Grotesk, Bricolage Grotesque, Syne), one fat display (Bagel Fat One)
+and monos (DM Mono, Space Mono) — from Google Fonts with system fallbacks.
 
 ---
 
@@ -135,18 +145,18 @@ js/
   photo.js        load → levels → saturate → duotone → blur → halftone → place
   textstack.js    resolves the text fields into strings
   deco.js         motif scatter with keep-out zones
-  compose.js      aspect-ratio tiers and photo proportions
+  compose.js      aspect-ratio tiers
   poster.js       poster furniture: paper, margins, frames, corner marks,
                   rails, micro-blocks, side labels, the headline lockup,
                   edge accents, tag rail
   layouts/        editorial · lyric · grid · zine · aura
-  state.js        defaults, looks, migration, share-link serialisation
+  state.js        defaults, palette voices, migration, share links
   render.js       builds the draw context, runs a layout, exports PNG
   controls.js     declarative control panel with help popovers
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Four things worth knowing before you edit
+### Six things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -170,6 +180,16 @@ particle counts come from size relative to the canvas, never from pixels.
 from `env.nominalAr` (the target's true proportions) rather than the live canvas,
 because a scaled preview's own aspect ratio differs slightly. `grid.js` computes
 its row count this way.
+
+**Never nest a button inside `<label for=…>`.** Clicking it activates the label,
+which focuses the field and scrolls the panel. The help chips are siblings of
+their labels for exactly this reason (`controls.js`, `withHelp`).
+
+**The exact preview repaints offscreen.** Rendering a full-resolution frame
+straight into the visible canvas leaves it blank for the ~200 ms the layout
+takes. `ui.js` draws into an offscreen canvas and swaps it in with one
+`drawImage`. There is also no `resize` redraw: the artwork does not depend on the
+viewport, and on phones the URL bar hiding fires `resize` on every scroll.
 
 ### Adding a layout
 

@@ -45,10 +45,9 @@
 
     /* ---- headline at the foot, burst behind ---- */
     var hlBox = { x: inset.left + u(34), y: h - inset.bottom - u(40), w: plate.w - u(68) };
-    var text = { l1: st.showNames && c.names ? c.names : '', l2: c.title || c.names };
-    if (!text.l2) text = PO.headlineText(env);
+    var hlMaxH = plate.h * 0.36;
     var hl = PO.headline(env, hlBox, {
-      align: 'left', anchor: 'bottom', style: 'capsScript', text: text,
+      align: 'left', anchor: 'bottom', style: 'capsScript', maxH: hlMaxH,
       color: overPhoto, measure: true, ruleAfterSmall: true
     });
 
@@ -56,13 +55,13 @@
       ctx.save();
       ctx.globalAlpha = 0.85 * env.decoAlpha;
       ctx.fillStyle = pal.inks[2] || pal.inks[0];
-      P.burst(ctx, hl.x + u(30), hl.y + hl.h * 0.72, hl.h * 0.88, 8, 0.06);
+      P.burst(ctx, hl.x + u(24), hl.y + hl.h * 0.74, hl.h * 0.5, 8, 0.06);
       ctx.fill();
       ctx.restore();
     }
 
     PO.headline(env, hlBox, {
-      align: 'left', anchor: 'bottom', style: 'capsScript', text: text,
+      align: 'left', anchor: 'bottom', style: 'capsScript', maxH: hlMaxH,
       color: overPhoto, ruleAfterSmall: true
     });
 
@@ -100,7 +99,7 @@
 
     /* ---- sparkles along the type ---- */
     PO.accents(env, { x: hlBox.x, y: hl.y || h * 0.7, w: hlBox.w, h: hl.h || u(200) }, {
-      count: 4, rMin: 14, rMax: 34,
+      rMin: 14, rMax: 34,
       colors: [pal.inks[2] || pal.inks[0], overPhoto], speckle: st.glitter
     });
   }
@@ -111,7 +110,7 @@
     label: 'Lyric',
     blurb: '가사 포스터. 사진 꽉 채우고 아래에 큰 필기체.',
     defaults: {
-      photoShape: 'rect', photoRatio: 'free', tone: 'wash', toneAmount: 0.55,
+      photoShape: 'rect', tone: 'wash', toneAmount: 0.55,
       feather: 0, headlineStyle: 'capsScript', bleed: false, burst: true,
       scrim: 0.4, motifs: ['burst', 'sparkle', 'flash'], vignette: 0.12
     },

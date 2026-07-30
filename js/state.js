@@ -1,7 +1,9 @@
 /* Single source of truth + share-link serialisation.
-   Deliberately fewer knobs than the first release: the layouts now own
-   their own composition, so the settings that remain are the ones that
-   change the result without being able to break it. */
+
+   Two decisions make a design: a LAYOUT (where things sit) and a PALETTE
+   (colour, type and paper feel). Everything else is an optional nudge.
+   There is deliberately no third "look" concept — layout × palette is
+   already 60 finished combinations. */
 (function (W) {
   'use strict';
   var U = W.util;
@@ -13,14 +15,16 @@
     customW: 1179,
     customH: 2556,
 
-    /* scene */
+    /* the two real choices */
     layout: 'editorial',
     palette: 'sage',
+
+    /* scene */
     seed: 12,
     washStrength: 1,
     grain: 1,
     vignette: 0.06,
-    decoDensity: 1,
+    decoCount: 6,
     subtlety: 0.3,
     motifs: ['burst', 'sparkle'],
     glitter: false,
@@ -40,7 +44,7 @@
 
     /* words */
     titleMode: 'pair',
-    pairName: 'Spirit of Nature',
+    pairName: 'Spirit\nof Nature',
     nameA: 'Aki',
     nameB: 'Ren',
     sep: 'x',
@@ -50,14 +54,12 @@
     tags: 'love, always, ours',
     showTags: true,
 
-    titleFont: 'didone',
-    scriptFont: 'pinyon',
-    bodyFont: 'archivo',
-    titleCase: 'none',
+    titleFont: 'cormorant',
+    scriptFont: 'italianno',
+    bodyFont: 'dmmono',
 
     /* photo */
     photoShape: 'rect',
-    photoRatio: 'free',
     tone: 'wash',
     toneAmount: 0.7,
     brightness: 0,
@@ -75,40 +77,16 @@
     photoRotate: 0
   };
 
-  /* Curated looks. Each one is a finished design; the sliders only nudge. */
-  var LOOKS = [
-    { id: 'spirit', label: 'Spirit', st: { layout: 'editorial', palette: 'greenwash', titleFont: 'archivo', scriptFont: 'pinyon', bodyFont: 'archivo', headlineStyle: 'scriptSans', tone: 'wash', toneAmount: 0.72, photoRatio: 'free', motifs: ['sparkle'], decoDensity: 0.5, grain: 1.3, vignette: 0.04, subtlety: 0.3 } },
-    { id: 'sageletter', label: 'Sage Letter', st: { layout: 'editorial', palette: 'sage', titleFont: 'cormorant', scriptFont: 'italianno', bodyFont: 'dmmono', headlineStyle: 'scriptSans', tone: 'wash', toneAmount: 0.92, blur: 0.2, photoRatio: 'portrait45', motifs: ['sparkle'], decoDensity: 0.4, grain: 1.5, sideLabel: true, subtlety: 0.45 } },
-    { id: 'anthurium', label: 'Anthurium', st: { layout: 'editorial', palette: 'sage', titleFont: 'archivo', bodyFont: 'archivo', headlineStyle: 'stack', titleCase: 'lower', tone: 'duo', toneAmount: 1, photoRatio: 'portrait34', motifs: ['burst'], decoDensity: 0.6, grain: 0.8, subtlety: 0.2 } },
-    { id: 'overfeel', label: 'Overfeel', st: { layout: 'editorial', palette: 'riso', titleFont: 'spacemono', bodyFont: 'spacemono', headlineStyle: 'stack', titleCase: 'lower', tone: 'duo', toneAmount: 1, photoRatio: 'free', motifs: ['sparkle'], decoDensity: 0.3, grain: 1.6, subtlety: 0.5 } },
-
-    { id: 'summerchild', label: 'Summer Child', st: { layout: 'lyric', palette: 'kawaii', titleFont: 'playfair', scriptFont: 'pinyon', bodyFont: 'archivo', headlineStyle: 'capsScript', tone: 'wash', toneAmount: 0.5, blur: 0.12, burst: true, scrim: 0.34, motifs: ['burst', 'sparkle'], grain: 1.4, subtlety: 0.2 } },
-    { id: 'benew', label: 'Be New', st: { layout: 'lyric', palette: 'jelly', titleFont: 'didone', scriptFont: 'italianno', bodyFont: 'archivo', headlineStyle: 'capsScript', tone: 'wash', toneAmount: 0.6, bleed: true, burst: false, scrim: 0.22, motifs: ['sparkle', 'burst4'], grain: 0.7, subtlety: 0.25 } },
-    { id: 'fireworks', label: 'Fireworks', st: { layout: 'lyric', palette: 'midnight', titleFont: 'didone', scriptFont: 'pinyon', bodyFont: 'archivo', headlineStyle: 'capsScript', tone: 'duo', toneAmount: 0.95, bleed: true, burst: true, scrim: 0.5, glitter: true, motifs: ['burst', 'flash'], grain: 1.2, vignette: 0.24, subtlety: 0.2 } },
-    { id: 'hidingspot', label: 'Hiding Spot', st: { layout: 'lyric', palette: 'mono', titleFont: 'syne', scriptFont: 'pinyon', bodyFont: 'dmmono', headlineStyle: 'capsScript', tone: 'duo', toneAmount: 1, bleed: false, burst: false, scrim: 0.18, motifs: ['sparkle', 'burst4'], grain: 1.1, subtlety: 0.4 } },
-
-    { id: 'crossword', label: 'Crossword', st: { layout: 'grid', palette: 'aurapink', titleFont: 'archivo', bodyFont: 'archivo', tone: 'mono', decoDensity: 0, grain: 1.3, subtlety: 0.3 } },
-    { id: 'chrome', label: 'Chrome', st: { layout: 'grid', palette: 'mono', titleFont: 'anton', bodyFont: 'archivo', tone: 'halftone', halftoneCells: 44, decoDensity: 0, grain: 1, subtlety: 0.35 } },
-
-    { id: 'hatachi', label: 'Hatachi', st: { layout: 'zine', palette: 'mono', titleFont: 'playfair', scriptFont: 'italianno', bodyFont: 'dmmono', headlineStyle: 'scriptSans', tone: 'halftone', halftoneCells: 56, strike: true, motifs: ['burst', 'burst4'], grain: 1.9, subtlety: 0.25 } },
-    { id: 'risoblue', label: 'Riso Blue', st: { layout: 'zine', palette: 'riso', titleFont: 'bricolage', scriptFont: 'pinyon', bodyFont: 'dmmono', headlineStyle: 'scriptSans', tone: 'duo', toneAmount: 0.95, strike: false, motifs: ['burst4', 'sparkle'], grain: 1.7, subtlety: 0.3 } },
-    { id: 'applesilver', label: 'Apple Silver', st: { layout: 'zine', palette: 'applesilver', titleFont: 'instrument', scriptFont: 'pinyon', bodyFont: 'dmmono', headlineStyle: 'scriptSans', tone: 'duo', toneAmount: 0.85, strike: false, glitter: true, motifs: ['star', 'burst'], grain: 1.1, subtlety: 0.15 } },
-
-    { id: 'starmilk', label: 'Star Milk', st: { layout: 'aura', palette: 'starmilk', titleFont: 'instrument', scriptFont: 'pinyon', bodyFont: 'dmmono', headlineStyle: 'stack', auraShape: 'puff', photoShape: 'circle', photoRatio: 'square', tone: 'wash', feather: 0.4, motifs: ['puff', 'sparkle'], vignette: 0.05, subtlety: 0.3 } },
-    { id: 'auraheart', label: 'Aura Heart', st: { layout: 'aura', palette: 'aurapink', titleFont: 'cormorant', scriptFont: 'italianno', bodyFont: 'dmmono', headlineStyle: 'scriptSans', auraShape: 'heart', photoShape: 'heart', photoRatio: 'square', tone: 'wash', feather: 0.45, motifs: ['puff', 'sparkle'], vignette: 0.07, subtlety: 0.2 } },
-    { id: 'softsheet', label: 'Soft Sheet', st: { layout: 'aura', palette: 'kawaii', titleFont: 'bagel', scriptFont: 'pinyon', bodyFont: 'dmmono', headlineStyle: 'stack', auraShape: 'blob', photoShape: 'card', photoRatio: 'portrait45', tone: 'wash', toneAmount: 0.55, feather: 0.1, motifs: ['puff', 'heart', 'flower', 'bow', 'cloud'], vignette: 0.04, subtlety: 0.15 } }
-  ];
-
   var HEADLINE_STYLES = [
-    { id: 'scriptSans', label: '필기체 + 굵은 산세리프' },
+    { id: 'scriptSans', label: '필기체 + 굵은 고딕' },
     { id: 'capsScript', label: '작은 대문자 + 큰 필기체' },
     { id: 'didone', label: '전부 대문자 세리프' },
-    { id: 'stack', label: '같은 폰트 2줄' }
+    { id: 'stack', label: '같은 폰트로 두 줄' }
   ];
 
   var TONES = [
     { id: 'natural', label: '원본' },
-    { id: 'wash', label: '워시' },
+    { id: 'wash', label: '빛바램' },
     { id: 'duo', label: '듀오톤' },
     { id: 'mono', label: '흑백' },
     { id: 'halftone', label: '망점' }
@@ -150,38 +128,27 @@
     Object.keys(DEFAULTS).forEach(function (k) {
       st[k] = Array.isArray(DEFAULTS[k]) ? DEFAULTS[k].slice() : DEFAULTS[k];
     });
+    applyPalette(st, st.palette);
     return st;
   }
 
-  function migrate(st) {
-    if (LAYOUT_ALIASES[st.layout]) st.layout = LAYOUT_ALIASES[st.layout];
-    ['titleFont', 'bodyFont', 'scriptFont'].forEach(function (k) {
-      if (st[k] && W.type.aliases[st[k]]) st[k] = W.type.aliases[st[k]];
-    });
-    if (!W.compose.ratioById[st.photoRatio] && st.photoRatio !== 'free') st.photoRatio = 'free';
-    st.motifs = (st.motifs || []).filter(function (m) { return !!W.prim.motifs[m]; });
-    if (!st.motifs.length) st.motifs = DEFAULTS.motifs.slice();
+  /* A palette brings its own type pairing and paper feel with it. */
+  function applyPalette(st, paletteId) {
+    var p = W.palettes.byId[paletteId];
+    if (!p) return st;
+    st.palette = paletteId;
+    if (p.type) {
+      st.titleFont = p.type.title;
+      st.scriptFont = p.type.script;
+      st.bodyFont = p.type.body;
+      st.headlineStyle = p.type.headline;
+    }
+    if (p.texture) {
+      st.grain = Math.round((p.texture.grain / 0.08) * 100) / 100;
+      st.vignette = p.texture.vignette;
+      st.glitter = !!p.texture.glitter;
+    }
     return st;
-  }
-
-  function applyLook(st, lookId) {
-    var look = LOOKS.filter(function (l) { return l.id === lookId; })[0];
-    if (!look) return st;
-    /* Looks reset the design but never touch what the user wrote, how the
-       photo is cropped, or which device they are making this for. */
-    var keep = ['presetId', 'orientation', 'customW', 'customH', 'titleMode',
-      'pairName', 'nameA', 'nameB', 'sep', 'showNames', 'caption', 'footnote',
-      'tags', 'showTags', 'zoom', 'ox', 'oy', 'brightness', 'contrast',
-      'saturation', 'safeShift', 'showGuides', 'seed', 'headlineScale', 'microScale'];
-    var kept = {};
-    keep.forEach(function (k) { kept[k] = st[k]; });
-    var next = create();
-    Object.keys(look.st).forEach(function (k) {
-      next[k] = Array.isArray(look.st[k]) ? look.st[k].slice() : look.st[k];
-    });
-    keep.forEach(function (k) { next[k] = kept[k]; });
-    next.look = lookId;
-    return next;
   }
 
   function applyLayoutDefaults(st, layoutId) {
@@ -192,6 +159,20 @@
       st[k] = Array.isArray(L.defaults[k]) ? L.defaults[k].slice() : L.defaults[k];
     });
     st.layout = layoutId;
+    /* the palette's voice outranks the layout's placeholder fonts */
+    applyPalette(st, st.palette);
+  }
+
+  function migrate(st) {
+    if (LAYOUT_ALIASES[st.layout]) st.layout = LAYOUT_ALIASES[st.layout];
+    ['titleFont', 'bodyFont', 'scriptFont'].forEach(function (k) {
+      if (st[k] && W.type.aliases[st[k]]) st[k] = W.type.aliases[st[k]];
+      if (!W.type.byId[st[k]]) st[k] = DEFAULTS[k];
+    });
+    if (!W.palettes.byId[st.palette]) st.palette = DEFAULTS.palette;
+    st.motifs = (st.motifs || []).filter(function (m) { return !!W.prim.motifs[m]; });
+    if (!st.motifs.length) st.motifs = DEFAULTS.motifs.slice();
+    return st;
   }
 
   /* ---------- share links ---------- */
@@ -220,10 +201,12 @@
     try {
       var diff = JSON.parse(unb64url(hash));
       var st = create();
+      /* palette first: it seeds type and texture, and any explicit value
+         in the link must be able to override what it set */
+      if (diff.palette) applyPalette(st, diff.palette);
       Object.keys(diff).forEach(function (k) {
         if (k in DEFAULTS) st[k] = diff[k];
       });
-      /* old links may carry ids this release renamed */
       if (diff.layout && LAYOUT_ALIASES[diff.layout]) st.layout = LAYOUT_ALIASES[diff.layout];
       return migrate(st);
     } catch (e) {
@@ -233,17 +216,24 @@
 
   function randomize(st) {
     var r = U.rng(Date.now() ^ (Math.random() * 1e9));
-    var look = U.pick(r, LOOKS);
-    var next = applyLook(st, look.id);
+    var layouts = Object.keys(W.layouts || { editorial: 1 });
+    var next = create();
+    /* keep what the user wrote and how they framed their photo */
+    ['presetId', 'orientation', 'customW', 'customH', 'titleMode', 'pairName',
+      'nameA', 'nameB', 'sep', 'showNames', 'caption', 'footnote', 'tags',
+      'showTags', 'zoom', 'ox', 'oy', 'brightness', 'contrast', 'saturation',
+      'safeShift', 'showGuides'].forEach(function (k) { next[k] = st[k]; });
+    applyLayoutDefaults(next, U.pick(r, layouts));
+    applyPalette(next, U.pick(r, W.palettes.list).id);
     next.seed = Math.floor(r() * 9999);
     next.sep = U.pick(r, W.textstack.separators).id;
     return next;
   }
 
   W.state = {
-    defaults: DEFAULTS, looks: LOOKS, tones: TONES, blends: BLENDS,
+    defaults: DEFAULTS, tones: TONES, blends: BLENDS,
     motifKinds: MOTIF_KINDS, headlineStyles: HEADLINE_STYLES,
-    create: create, migrate: migrate, applyLook: applyLook,
+    create: create, migrate: migrate, applyPalette: applyPalette,
     applyLayoutDefaults: applyLayoutDefaults, serialize: serialize,
     deserialize: deserialize, randomize: randomize
   };

@@ -149,25 +149,31 @@
 
   /* ---------- display headline ---------- */
 
-  /* Splits the user's words into a two-line lockup. Splitting a phrase
-     across two lines in two different faces is what gives the reference
-     posters their voice ("Spirit" / "of nature."). */
-  function headlineText(env) {
-    var st = env.st, c = env.content;
-    var title = c.title || '';
-    var words = title.split(/\s+/).filter(Boolean);
-    var l1 = title, l2 = '';
+  /* Splits the user's words into the lockup's lines.
 
-    if (words.length >= 2) {
-      /* keep the first word alone when it is substantial, else 2 up top */
-      var cut = words[0].length >= 4 || words.length === 2 ? 1 : 2;
-      l1 = words.slice(0, cut).join(' ');
-      l2 = words.slice(cut).join(' ');
-    } else if (c.names) {
-      l2 = c.names;
+     An explicit line break in the pair name always wins — that is the
+     control the user reaches for first — and a single-line name falls
+     back to splitting at the first space, which is what gives the
+     reference posters their "Spirit / of nature." voice. */
+  function headlineText(env) {
+    var c = env.content;
+    var title = (c.title || '').replace(/\r/g, '');
+
+    if (title.indexOf('\n') >= 0) {
+      var parts = title.split('\n').map(function (t) { return t.trim(); }).filter(Boolean);
+      return { lines: parts.slice(0, 3), eyebrow: c.names };
     }
-    if (!l1 && l2) { l1 = l2; l2 = ''; }
-    return { l1: l1, l2: l2, extra: words.length >= 2 ? c.names : '' };
+
+    var words = title.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      var cut = words[0].length >= 4 || words.length === 2 ? 1 : 2;
+      return {
+        lines: [words.slice(0, cut).join(' '), words.slice(cut).join(' ')],
+        eyebrow: c.names
+      };
+    }
+    if (words.length === 1) return { lines: [words[0]], eyebrow: c.names };
+    return { lines: c.names ? [c.names] : [], eyebrow: '' };
   }
 
   /* Draws the lockup inside `box` {x, y, w} and returns its bounds.
@@ -176,51 +182,42 @@
     opts = opts || {};
     var ctx = env.ctx, st = env.st;
     var txt = opts.text || headlineText(env);
-    if (!txt.l1 && !txt.l2) return { x: box.x, y: box.y, w: 0, h: 0 };
+    var body = (txt.lines || []).filter(Boolean);
+    if (!body.length) return { x: box.x, y: box.y, w: 0, h: 0, bottom: box.y };
 
     var style = opts.style || st.headlineStyle || 'scriptSans';
     var em = U.lerp(0.72, 1, env.emphasis) * (st.headlineScale || 1);
-    var W_ = box.w;
 
-    /* Per-style face + case + weight for each of the two lines. */
-    var spec;
-    if (style === 'didone') {
-      spec = [
-        { font: st.titleFont, weight: 400, italic: false, kase: 'upper', track: 0.02, w: 1.0 },
-        { font: st.titleFont, weight: 400, italic: false, kase: 'upper', track: 0.02, w: 1.0 }
-      ];
-    } else if (style === 'capsScript') {
-      spec = [
-        { font: st.bodyFont, weight: 500, italic: false, kase: 'upper', track: 0.2, w: 0.42, small: true },
-        { font: st.scriptFont, weight: 400, italic: false, kase: 'none', track: 0, w: 1.0 }
-      ];
-    } else if (style === 'stack') {
-      spec = [
-        { font: st.titleFont, weight: 400, italic: false, kase: st.titleCase, track: 0.01, w: 1.0 },
-        { font: st.titleFont, weight: 400, italic: false, kase: st.titleCase, track: 0.01, w: 1.0 }
-      ];
-    } else { /* scriptSans — script word, then a heavy sans word */
-      spec = [
-        { font: st.scriptFont, weight: 400, italic: false, kase: 'none', track: 0, w: 0.86, script: true },
-        { font: st.titleFont, weight: opts.l2Weight || 500, italic: false, kase: st.titleCase, track: 0.0, w: 1.0 }
-      ];
-    }
+    /* eyebrow: a small tracked caps line above the display lines */
+    var small = { font: st.bodyFont, weight: 500, kase: 'upper', track: 0.2, w: 0.42, small: true };
+    var scriptSpec = { font: st.scriptFont, weight: 400, kase: 'none', track: 0, w: 0.94, script: true };
+    var sansSpec = { font: st.titleFont, weight: opts.l2Weight || 500, kase: 'none', track: 0, w: 1 };
+    var serifSpec = { font: st.titleFont, weight: 400, kase: 'upper', track: 0.02, w: 1 };
+    var plainSpec = { font: st.titleFont, weight: 400, kase: 'none', track: 0.01, w: 1 };
 
     var lines = [];
-    if (txt.l1) lines.push({ text: T.applyCase(txt.l1, spec[0].kase), s: spec[0] });
-    if (txt.l2) lines.push({ text: T.applyCase(txt.l2, spec[1].kase), s: spec[1] });
-    if (lines.length === 1) lines[0].s = spec[lines[0].s === spec[0] && txt.l2 ? 0 : 1] || lines[0].s;
+    if (style === 'capsScript') {
+      if (txt.eyebrow && opts.eyebrow !== false) lines.push({ text: txt.eyebrow, s: small });
+      body.forEach(function (t) { lines.push({ text: t, s: scriptSpec }); });
+    } else if (style === 'didone') {
+      body.forEach(function (t) { lines.push({ text: t, s: serifSpec }); });
+    } else if (style === 'stack') {
+      body.forEach(function (t) { lines.push({ text: t, s: plainSpec }); });
+    } else { /* scriptSans — script first, then a heavier sans */
+      body.forEach(function (t, i) {
+        lines.push({ text: t, s: i === 0 && body.length > 1 ? scriptSpec : sansSpec });
+      });
+    }
 
-    /* Size each line to fill its share of the measure. Emphasis scales the
-       target width, never the fitted result — scaling afterwards would
-       undo the fit and is what kept the headline small. */
+    lines.forEach(function (ln) { ln.text = T.applyCase(ln.text, ln.s.kase); });
+
     var cap = env.u(420);
     lines.forEach(function (ln) {
       /* Scripts overhang their advance widths with swashes, so they get a
-         little less measure to play with. Nothing is scaled after the fit —
-         doing that is what previously pushed headlines off the page. */
+         little less measure. Nothing is scaled after the fit — doing that
+         is what previously pushed headlines off the page. */
       var slack = ln.s.script || T.isScript(ln.s.font) ? 0.94 : 1;
-      var target = W_ * ln.s.w * (ln.s.small ? 0.6 : 1) * em * slack;
+      var target = box.w * ln.s.w * (ln.s.small ? 0.6 : 1) * em * slack;
       var size = T.fill(ctx, ln.text, ln.s.font, target, ln.s.track,
         { weight: ln.s.weight, italic: ln.s.italic }, cap);
       if (ln.s.small) size = Math.min(size, micro(env) * 2.1);
@@ -241,7 +238,7 @@
     var total = lines[0].ink.asc + lines[0].ink.desc;
     for (var j = 1; j < lines.length; j++) total += gaps[j - 1] + lines[j].ink.desc;
 
-    /* On squarer canvases a two-line lockup can swallow the page; pull the
+    /* On squarer canvases a tall lockup can swallow the page; pull the
        whole thing down proportionally rather than letting it collide. */
     var maxH = opts.maxH || env.h * 0.44;
     if (total > maxH) {
@@ -262,8 +259,6 @@
     var align = opts.align || 'left';
     var ax = align === 'right' ? box.x + box.w : align === 'center' ? box.x + box.w / 2 : box.x;
 
-    /* Bounds are derived before drawing so a layout can seat a photo
-       against the headline and still paint the type on top. */
     var minX = Infinity, maxX = -Infinity;
     lines.forEach(function (ln) {
       var lx = align === 'right' ? ax - ln.w : align === 'center' ? ax - ln.w / 2 : ax;
@@ -274,13 +269,12 @@
     if (opts.measure) return bounds;
 
     ctx.save();
-    lines.forEach(function (ln, k) {
+    lines.forEach(function (ln, k2) {
       T.setFont(ctx, ln.s.font, ln.size, { weight: ln.s.weight, italic: ln.s.italic });
       ctx.fillStyle = (ln.s.script && opts.scriptColor) ? opts.scriptColor
         : (opts.color || env.pal.text);
       ctx.globalAlpha = ln.s.script && opts.scriptAlpha != null ? opts.scriptAlpha
         : (opts.alpha == null ? 1 : opts.alpha);
-      /* the script line hangs a touch left, like a signature */
       var lx = ax + (ln.s.script && align === 'left' ? -ln.size * 0.04 : 0);
       var b = T.draw(ctx, ln.text, lx, baseline, { align: align, tracking: ln.size * ln.s.track });
       if (ln.s.small && opts.ruleAfterSmall) {
@@ -293,7 +287,7 @@
         ctx.lineTo(box.x + box.w, baseline - ln.size * 0.28);
         ctx.stroke();
       }
-      if (k < lines.length - 1) baseline += gaps[k];
+      if (k2 < lines.length - 1) baseline += gaps[k2];
     });
     ctx.restore();
 
@@ -309,7 +303,7 @@
     var ctx = env.ctx, rand = env.rand, u = env.u;
     var kinds = opts.kinds || env.st.motifs;
     var colors = opts.colors || env.pal.inks;
-    var n = Math.max(0, Math.round((opts.count || 5) * env.decoDensity));
+    var n = Math.max(0, Math.round(opts.count == null ? env.decoBudget : opts.count));
     if (!n) return;
 
     /* candidate spots hugging the anchor rect's corners and edges */

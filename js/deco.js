@@ -36,7 +36,7 @@
     var ctx = env.ctx, rand = env.rand, u = env.u;
     var kinds = opts.kinds;
     var colors = opts.colors;
-    var n = Math.max(0, Math.round(opts.count * env.decoDensity));
+    var n = Math.max(0, Math.round(opts.count == null ? env.decoBudget : opts.count));
     if (!n) return;
     var pts = points(env, n, opts.avoid || [], u(opts.minDist || 70), opts.pad);
     var big = Math.max(1, Math.round(pts.length * (opts.bigRatio == null ? 0.18 : opts.bigRatio)));
@@ -77,7 +77,7 @@
   /* Tiny twinkles — cheap, dense, always flattering. */
   function twinkles(env, opts) {
     var ctx = env.ctx, rand = env.rand, u = env.u;
-    var n = Math.round((opts.count || 40) * env.decoDensity);
+    var n = Math.round(opts.count == null ? env.decoBudget * 3 : opts.count);
     var pts = points(env, n, opts.avoid || [], u(30), u(10));
     ctx.save();
     pts.forEach(function (p) {

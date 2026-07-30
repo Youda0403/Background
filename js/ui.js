@@ -58,13 +58,6 @@
     });
   }
 
-  function lookCards() {
-    return S.looks.map(function (l) {
-      var p = W.palettes.byId[l.st.palette];
-      return { v: l.id, l: l.label, colors: [p.base].concat(p.inks.slice(0, 2)) };
-    });
-  }
-
   function layoutCards() {
     return (W.layoutRegistry || []).map(function (l) {
       return { v: l.id, l: l.label, blurb: l.blurb };
@@ -96,10 +89,22 @@
      sliders stay live; once you stop, we repaint at the real output
      resolution, which makes the settled preview pixel-identical to the
      file you save. */
-  function paint(opts) {
+  var offscreen = document.createElement('canvas');
+
+  function paint(opts, offline) {
     var info;
     try {
-      info = R.render(canvas, st, opts);
+      if (offline) {
+        /* Render out of view, then swap in one drawImage. Painting the
+           full-resolution pass straight into the visible canvas leaves it
+           blank for the ~200ms the layout takes — that was the flicker. */
+        info = R.render(offscreen, st, opts);
+        canvas.width = offscreen.width;
+        canvas.height = offscreen.height;
+        canvas.getContext('2d').drawImage(offscreen, 0, 0);
+      } else {
+        info = R.render(canvas, st, opts);
+      }
     } catch (e) {
       console.error(e);
       toast('그리기에 실패했어요 — 다른 설정으로 시도해 보세요.');
@@ -121,7 +126,7 @@
 
   var paintExact = U.debounce(function () {
     if (dragging) return;
-    paint({ maxPixels: PREVIEW_PIXELS, guides: true });
+    paint({ maxPixels: PREVIEW_PIXELS, guides: true }, true);
   }, 190);
 
   function draw() {
@@ -143,10 +148,10 @@
     state: function () { return st; },
     get: function (k) { return st[k]; },
     set: function (k, v) {
-      if (k === 'look') {
-        st = S.applyLook(st, v);
-      } else if (k === 'layout') {
+      if (k === 'layout') {
         S.applyLayoutDefaults(st, v);
+      } else if (k === 'palette') {
+        S.applyPalette(st, v);
       } else {
         st[k] = v;
       }
@@ -158,48 +163,50 @@
   /* ---------- control spec ---------- */
 
   var HELP = {
-    look: '레이아웃·팔레트·폰트·질감을 한 번에 정해주는 완성된 디자인이에요. 눌러보고 마음에 드는 걸 고르면 끝.',
+    layout: '사진과 글자를 어디에 놓을지 정하는 「짜임새」예요. 다섯 개가 각각 완전히 다른 성격이라, 여기서 큰 인상이 정해져요.',
+    palette: '색 + 글꼴 + 종이 질감을 한 세트로 묶은 「분위기」예요. 같은 레이아웃이어도 팔레트를 바꾸면 완전히 다른 작품이 돼요.',
     subtlety: '올릴수록 제목이 작아지고 장식이 옅어져요. 최대로 올리면 그냥 전시 포스터처럼 보여서 밖에서 열어도 티가 안 나요.',
-    layout: '사진과 글자를 어떤 구조로 배치할지 정해요. 구조마다 성격이 완전히 달라요.',
-    palette: '이 디자인에 쓰이는 색 조합. 사진 색보정도 여기 색을 따라가요.',
-    headlineStyle: '제목 두 줄을 어떤 조합으로 짤지 정해요. 예를 들어 첫 줄은 필기체, 둘째 줄은 굵은 고딕처럼요.',
-    headlineScale: '제목 글자 크기. 레이아웃이 알아서 여백에 맞춰주니까 크게 키워도 안 넘쳐요.',
+    pairName: '엔터를 치면 그 자리에서 줄이 바뀌어요. 두 줄로 나누면 첫 줄은 필기체, 둘째 줄은 굵은 글씨처럼 서로 다른 폰트로 짜여요.',
+    headlineStyle: '제목 두 줄을 어떤 폰트 조합으로 짤지 정해요.',
+    headlineScale: '제목 글자 크기. 레이아웃이 여백에 맞춰주니까 키워도 안 넘쳐요.',
     microScale: '작은 글자(캡션·날짜·태그) 크기를 한 번에 조절해요.',
-    tone: '사진을 팔레트 색으로 다시 인쇄하는 방식이에요.\n· 원본: 그대로\n· 워시: 팔레트 색에 물들이기\n· 듀오톤: 밝고 어두운 부분을 팔레트 두 색으로 바꾸기\n· 흑백\n· 망점: 신문 인쇄처럼 점으로 표현\n듀오톤·망점이 사진을 그림 안에 녹여줘요.',
-    toneAmount: '위에서 고른 톤을 얼마나 세게 적용할지. 0이면 원본, 1이면 완전히 팔레트 색.',
-    halftoneCells: '망점 하나하나의 크기. 숫자가 클수록 점이 작고 촘촘해서 사진이 선명해져요.',
-    photoRatio: '사진 틀의 가로:세로 비율. 「자동」은 레이아웃이 남는 공간에 맞춰 알아서 잡아요.',
-    photoShape: '사진을 어떤 모양으로 오릴지 정해요.',
-    feather: '사진 가장자리를 흐릿하게 번지게 해서 배경에 녹아들게 해요. 0이면 딱 떨어지는 사각형.',
-    blend: '사진과 배경을 섞는 방식. 「곱하기」는 어두운 부분만 남아서 도장 찍은 느낌, 「스크린」은 반대로 밝은 부분만 남아요.',
-    overprint: '리소 인쇄에서 판이 살짝 어긋나 겹쳐 찍힌 느낌. 올리면 사진이 한 겹 더 밀려 찍혀요.',
-    grain: '필름·복사기 같은 거친 입자 질감. 올리면 디지털 느낌이 사라져요.',
+    tone: '사진을 어떤 인쇄 방식으로 바꿀지 정해요.\n· 원본: 그대로\n· 빛바램: 원래 색은 살리고 종이 색으로 바래게\n· 듀오톤: 색을 버리고 팔레트 두 색으로만 다시 칠하기\n· 흑백\n· 망점: 신문처럼 점으로 인쇄\n빛바램은 「원본에 가깝게」, 듀오톤은 「완전히 그림처럼」이에요.',
+    toneAmount: '위에서 고른 방식을 얼마나 세게 적용할지.',
+    halftoneCells: '망점 하나의 크기. 숫자가 클수록 점이 작고 촘촘해서 사진이 선명해져요.',
+    photoShape: '사진을 어떤 모양으로 오릴지. 나머지 레이아웃은 사진 자리가 정해져 있어서 이 설정이 없어요.',
+    feather: '사진 가장자리를 흐릿하게 번지게 해서 배경에 녹아들게 해요.',
+    blend: '사진과 배경을 섞는 방식. 「곱하기」는 어두운 부분만 남아 도장 찍은 느낌, 「스크린」은 반대예요.',
+    overprint: '리소 인쇄에서 판이 어긋나 겹쳐 찍힌 느낌.',
+    grain: '필름·복사기 같은 거친 입자 질감.',
     vignette: '네 가장자리를 살짝 어둡게 해서 시선을 가운데로 모아요.',
     washStrength: '배경에 깔리는 색 번짐의 진하기.',
-    scrim: '사진 아래쪽을 어둡게(또는 밝게) 덮어서 그 위에 올라가는 글자가 읽히게 해줘요.',
-    bleed: '켜면 사진이 여백 없이 화면을 꽉 채워요. 끄면 종이 여백과 모서리 표시가 생겨요.',
+    scrim: '사진 아래쪽을 덮어서 그 위 글자가 읽히게 해줘요.',
+    bleed: '켜면 사진이 여백 없이 꽉 차요. 끄면 종이 여백과 모서리 표시가 생겨요.',
     motifs: '여백에 흩뿌릴 작은 그림들. 여러 개 골라도 돼요.',
-    decoDensity: '흩뿌린 장식을 몇 개나 놓을지.',
+    decoCount: '흩뿌릴 장식을 몇 개 놓을지. 0이면 아예 없어요.',
     glitter: '큰 별 안을 반짝이는 은박 질감으로 채워요.',
     seed: '장식이 놓이는 자리를 다시 뽑아요. 디자인은 그대로고 위치만 바뀌어요.',
     safeShift: '잠금화면 시계와 아래 독 버튼이 가리는 영역을 비워두고 배치해요.',
     tags: '(love) 처럼 괄호에 담겨 아래쪽 줄에 작게 들어가요. 쉼표로 여러 개 넣을 수 있어요.',
     sep: '두 이름 사이에 들어갈 기호.',
     titleMode: '가장 큰 글자로 무엇을 넣을지 정해요.',
-    caption: '사진 옆이나 아래에 작게 들어가는 문장. 길면 자동으로 줄바꿈돼요.',
+    caption: '사진 옆이나 아래에 작게 들어가는 문장.',
     footnote: '날짜나 기념일처럼 아주 작게 들어가는 한 줄.',
-    strike: '제목 위로 줄을 하나 그어서 도장 찍은 듯한 인쇄물 느낌을 줘요.',
+    strike: '제목 위로 줄을 그어 인쇄물 느낌을 줘요.',
     burst: '제목 뒤에 가시 모양 별을 크게 깔아요.',
     sideLabel: '오른쪽 세로 방향으로 작은 글자를 넣어요.',
-    batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.'
+    batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.',
+    fonts: '팔레트가 알아서 어울리는 폰트를 골라줘요. 직접 바꾸고 싶을 때만 건드리면 돼요.'
   };
 
   function spec() {
     return [
       {
-        title: '무드', hint: '완성된 디자인 16종',
+        title: '디자인', hint: '이 두 개만 고르면 끝',
         items: [
-          { t: 'cards', key: 'look', options: lookCards, grid: 'lookGrid', cardClass: 'lookCard', help: HELP.look },
+          { t: 'cards', key: 'layout', label: '1. 짜임새 (레이아웃)', help: HELP.layout, options: layoutCards },
+          { t: 'cards', key: 'palette', label: '2. 분위기 (팔레트)', help: HELP.palette, options: paletteCards, grid: 'palGrid' },
+          { t: 'note', text: '팔레트는 색만이 아니라 어울리는 폰트와 종이 질감까지 같이 바꿔줘요. 조합해 보다가 마음에 드는 게 나오면 그대로 저장하면 돼요.' },
           {
             t: 'slider', key: 'subtlety', label: '일코 농도', min: 0, max: 1, step: 0.01, help: HELP.subtlety,
             fmt: function (v) { return v < 0.25 ? '당당하게' : v < 0.55 ? '적당히' : v < 0.8 ? '은은하게' : '아무도 몰라'; }
@@ -223,8 +230,8 @@
             render: function () {
               var el = W.controls.el;
               var wrap = el('div', 'field');
-              var lab = el('span', 'fieldLabel', '여러 기기 한 번에 저장');
-              lab.appendChild(document.createTextNode(' '));
+              var lab = el('span', 'labelRow');
+              lab.appendChild(el('span', 'fieldLabel', '여러 기기 한 번에 저장'));
               lab.appendChild(W.controls.helpChip(HELP.batch));
               wrap.appendChild(lab);
               var chips = el('div', 'chips');
@@ -263,8 +270,7 @@
               { v: 'monogram', l: '이니셜' }, { v: 'none', l: '없음' }
             ]
           },
-          { t: 'text', key: 'pairName', label: '페어명', ph: '예: Spirit of Nature', maxlength: 40 },
-          { t: 'note', text: '페어명에 띄어쓰기가 있으면 첫 단어와 나머지가 두 줄로 나뉘어요 — 「Spirit」 / 「of Nature.」처럼요.' },
+          { t: 'textarea', key: 'pairName', label: '페어명 (엔터 = 줄바꿈)', help: HELP.pairName, rows: 2, ph: 'Spirit\nof Nature' },
           {
             t: 'row', items: [
               { t: 'text', key: 'nameA', label: '이름 A', ph: 'Aki', maxlength: 24 },
@@ -327,10 +333,9 @@
               if (on && photoNameEl) photoNameEl.textContent = W.photo.state.name;
             }
           },
-          { t: 'chips', key: 'tone', label: '톤', help: HELP.tone, options: idLabel(S.tones), when: W.photo.has },
-          { t: 'slider', key: 'toneAmount', label: '톤 강도', min: 0, max: 1, step: 0.01, help: HELP.toneAmount, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
+          { t: 'chips', key: 'tone', label: '인쇄 방식', help: HELP.tone, options: idLabel(S.tones), when: W.photo.has },
+          { t: 'slider', key: 'toneAmount', label: '적용 강도', min: 0, max: 1, step: 0.01, help: HELP.toneAmount, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
           { t: 'slider', key: 'halftoneCells', label: '망점 촘촘함', min: 14, max: 130, step: 1, fmt: function (v) { return Math.round(v); }, help: HELP.halftoneCells, when: function (s) { return W.photo.has() && s.tone === 'halftone'; } },
-          { t: 'select', key: 'photoRatio', label: '사진 비율', help: HELP.photoRatio, options: C.ratios.map(function (r) { return { v: r.id, l: r.label }; }), when: W.photo.has },
           { t: 'cards', key: 'photoShape', label: '사진 모양', help: HELP.photoShape, options: idLabel(W.frames.shapes), grid: 'palGrid', when: function (s) { return W.photo.has() && s.layout === 'aura'; } },
           {
             t: 'row', items: [
@@ -338,22 +343,13 @@
               { t: 'slider', key: 'feather', label: '가장자리 번짐', min: 0, max: 0.9, step: 0.01, help: HELP.feather, when: function (s) { return W.photo.has() && s.tone !== 'halftone'; } }
             ]
           },
-          { t: 'note', text: '사진 없이도 디자인은 완성돼요. 넣으면 팔레트 색으로 다시 인쇄돼서 그림 안에 녹아들어요.' }
+          { t: 'note', text: '사진 없이도 디자인은 완성돼요. 넣으면 사진 자리는 레이아웃이 알아서 잡아줍니다.' }
         ]
       },
       {
-        title: '디자인 다듬기', hint: '레이아웃 · 팔레트 · 글자', open: false,
+        title: '더 만지기', hint: '글자 · 장식 · 질감', open: false,
         items: [
-          { t: 'cards', key: 'layout', label: '레이아웃', help: HELP.layout, options: layoutCards },
-          { t: 'cards', key: 'palette', label: '팔레트', help: HELP.palette, options: paletteCards, grid: 'palGrid' },
           { t: 'chips', key: 'headlineStyle', label: '제목 조합', help: HELP.headlineStyle, options: idLabel(S.headlineStyles) },
-          {
-            t: 'row', items: [
-              { t: 'select', key: 'titleFont', label: '제목 폰트', options: fontOptions },
-              { t: 'select', key: 'scriptFont', label: '필기체 폰트', options: scriptFontOptions, when: function (s) { return /script|caps/i.test(s.headlineStyle); } }
-            ]
-          },
-          { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', options: fontOptions },
           {
             t: 'row', items: [
               { t: 'slider', key: 'headlineScale', label: '제목 크기', min: 0.6, max: 1.35, step: 0.01, help: HELP.headlineScale },
@@ -361,24 +357,14 @@
             ]
           },
           {
-            t: 'chips', key: 'titleCase', label: '제목 대소문자', options: [
-              { v: 'none', l: '그대로' }, { v: 'upper', l: 'UPPER' },
-              { v: 'lower', l: 'lower' }, { v: 'title', l: 'Title' }
+            t: 'row', items: [
+              { t: 'select', key: 'titleFont', label: '제목 폰트', options: fontOptions, help: HELP.fonts },
+              { t: 'select', key: 'scriptFont', label: '필기체', options: scriptFontOptions, when: function (s) { return /script|caps/i.test(s.headlineStyle); } }
             ]
           },
-          { t: 'toggle', key: 'bleed', label: '사진 꽉 채우기', help: HELP.bleed, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'slider', key: 'scrim', label: '글자 뒤 어둡게', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'toggle', key: 'burst', label: '제목 뒤 가시별', help: HELP.burst, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
-          { t: 'toggle', key: 'sideLabel', label: '세로 측면 글자', help: HELP.sideLabel, when: function (s) { return s.layout === 'editorial'; } },
-          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } }
-        ]
-      },
-      {
-        title: '질감 · 장식', hint: '그레인 · 모티프', open: false,
-        items: [
+          { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', options: fontOptions },
+          { t: 'slider', key: 'decoCount', label: '장식 개수', min: 0, max: 20, step: 1, help: HELP.decoCount, fmt: function (v) { return Math.round(v) + '개'; } },
           { t: 'chips', key: 'motifs', label: '모티프', help: HELP.motifs, options: idLabel(S.motifKinds), multi: true },
-          { t: 'slider', key: 'decoDensity', label: '장식 개수', min: 0, max: 2, step: 0.01, help: HELP.decoDensity },
           { t: 'toggle', key: 'glitter', label: '별에 은박 반짝임', help: HELP.glitter },
           {
             t: 'row', items: [
@@ -387,14 +373,20 @@
             ]
           },
           { t: 'slider', key: 'washStrength', label: '색 번짐', min: 0, max: 1.6, step: 0.01, help: HELP.washStrength },
+          { t: 'toggle', key: 'bleed', label: '사진 꽉 채우기', help: HELP.bleed, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'slider', key: 'scrim', label: '글자 뒤 어둡게', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'toggle', key: 'burst', label: '제목 뒤 가시별', help: HELP.burst, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
+          { t: 'toggle', key: 'sideLabel', label: '세로 측면 글자', help: HELP.sideLabel, when: function (s) { return s.layout === 'editorial'; } },
+          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } },
           {
             t: 'custom',
             render: function () {
               var el = W.controls.el;
               var wrap = el('div', 'field');
               var row = el('div', 'fieldRow');
-              var lab = el('span', 'fieldLabel', '장식 자리');
-              lab.appendChild(document.createTextNode(' '));
+              var lab = el('span', 'labelRow');
+              lab.appendChild(el('span', 'fieldLabel', '장식 자리'));
               lab.appendChild(W.controls.helpChip(HELP.seed));
               row.appendChild(lab);
               var v = el('span', 'fieldVal', '');
@@ -623,7 +615,7 @@
       st = S.randomize(st);
       panel.refresh();
       draw();
-      toast('새 무드 등장 — 마음에 안 들면 한 번 더!');
+      toast('새 조합 등장 — 마음에 안 들면 한 번 더!');
     });
     document.getElementById('btnCopyLink').addEventListener('click', function () {
       var url = location.origin + location.pathname + '#' + S.serialize(st);
@@ -638,7 +630,9 @@
     wireDropZone();
     wireCanvasGestures();
 
-    window.addEventListener('resize', U.debounce(draw, 200));
+    /* No resize redraw: the artwork does not depend on the viewport, and
+       on phones the URL bar hiding fires resize on every scroll — which
+       repainted the canvas and made the preview flicker. */
 
     draw();
     /* webfonts land a beat later; redraw so the export matches the screen */

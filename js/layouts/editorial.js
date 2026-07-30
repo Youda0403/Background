@@ -39,7 +39,10 @@
        its own under the plate; only wide canvases have room for the
        side-by-side column the reference posters use. */
     var hlBox = { x: m.left, y: topRailY + mic * (wide ? 2.2 : 2.6), w: m.inner };
-    var hl = PO.headline(env, hlBox, { align: 'left', measure: true });
+    /* The plate is the subject; the headline gets at most a third of the
+       page so the photo never collapses into a strip. */
+    var hlMaxH = (h - m.top - m.bottom) * (wide ? 0.42 : 0.34);
+    var hl = PO.headline(env, hlBox, { align: 'left', measure: true, maxH: hlMaxH });
 
     var capW = wide ? m.inner * 0.4 : m.inner * 0.78;
     var capH = hasMicro
@@ -60,14 +63,7 @@
       var overlap = env.tier === 'tall' || env.tier === 'phone' ? 0.16 : 0.28;
       var top = hl.h ? hl.bottom - hl.h * overlap : hlBox.y;
       var capBand = capH ? capH + mic * 1.5 : 0;
-      var availH = h - m.bottom - footH - capBand - top;
-      var ratio = W.compose.ratioById[st.photoRatio];
-      plate = { x: m.left, y: top, w: m.inner, h: availH };
-      if (ratio) {
-        /* an explicit proportion wins; the slack falls to the foot */
-        plate.h = Math.min(availH, plate.w / ratio);
-        if (plate.h < availH) plate.y = top + (availH - plate.h) * 0.28;
-      }
+      plate = { x: m.left, y: top, w: m.inner, h: h - m.bottom - footH - capBand - top };
     }
     if (plate.h > u(160)) {
       if (env.hasPhoto) {
@@ -89,14 +85,10 @@
     }
 
     /* ---- accents hugging the plate, then the headline on top ---- */
-    PO.accents(env, plate, {
-      count: 5, rMin: 20, rMax: 52, outline: true, speckle: st.glitter
-    });
+    PO.accents(env, plate, { rMin: 20, rMax: 52, outline: true, speckle: st.glitter });
 
     PO.headline(env, hlBox, {
-      align: 'left',
-      scriptAlpha: 0.96,
-      l2Weight: 500
+      align: 'left', maxH: hlMaxH, scriptAlpha: 0.96, l2Weight: 500
     });
 
     /* ---- caption ---- */
@@ -135,7 +127,7 @@
     label: 'Editorial',
     blurb: '아트북 도판. 큰 사진 + 제목이 사진 위로 걸쳐요.',
     defaults: {
-      photoShape: 'rect', photoRatio: 'free', tone: 'wash', toneAmount: 0.7,
+      photoShape: 'rect', tone: 'wash', toneAmount: 0.7,
       feather: 0, headlineStyle: 'scriptSans',
       motifs: ['burst', 'sparkle'], sideLabel: false, vignette: 0.05
     },

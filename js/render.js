@@ -66,7 +66,8 @@
       content: TS.build(st),
       emphasis: 1 - sub,
       decoAlpha: U.lerp(1, 0.5, sub),
-      decoDensity: U.clamp(st.decoDensity, 0, 3) * U.lerp(1, 0.35, sub),
+      /* an absolute number of decorations, not an opaque multiplier */
+      decoBudget: Math.round(U.clamp(st.decoCount, 0, 24) * U.lerp(1, 0.4, sub)),
       hasPhoto: W.photo.has(),
       safe: sa,
       /* The target's true proportions. Integer canvas sizes mean the

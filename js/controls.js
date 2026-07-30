@@ -46,12 +46,16 @@
     return wrap;
   }
 
-  /* Wraps a label node so its text and the help chip sit together. */
+  /* Puts the label and its help chip side by side as SIBLINGS. Nesting a
+     button inside <label for="..."> makes a click activate the label,
+     which focuses the field and scrolls the panel — so the chip has to
+     live outside the label element. */
   function withHelp(labelNode, item) {
     if (!item.help) return labelNode;
-    labelNode.appendChild(document.createTextNode(' '));
-    labelNode.appendChild(helpChip(item.help));
-    return labelNode;
+    var row = el('span', 'labelRow');
+    row.appendChild(labelNode);
+    row.appendChild(helpChip(item.help));
+    return row;
   }
 
   function optionsOf(item, st) {
@@ -147,9 +151,10 @@
 
       case 'select': {
         node = el('div', 'field');
-        var lab = withHelp(el('label', null, item.label), item);
+        var labEl = el('label', null, item.label);
+        var lab = withHelp(labEl, item);
         var sel = document.createElement('select');
-        lab.setAttribute('for', 'c_' + item.key);
+        labEl.setAttribute('for', 'c_' + item.key);
         sel.id = 'c_' + item.key;
         node.appendChild(lab);
         node.appendChild(sel);
@@ -190,15 +195,17 @@
       case 'number':
       case 'textarea': {
         node = el('div', 'field');
-        var l2 = withHelp(el('label', null, item.label), item);
+        var l2El = el('label', null, item.label);
+        var l2 = withHelp(l2El, item);
         var inp = item.t === 'textarea' ? document.createElement('textarea')
           : document.createElement('input');
         if (item.t === 'number') { inp.type = 'number'; inp.min = item.min; inp.max = item.max; }
         else if (item.t === 'text') inp.type = 'text';
+        if (item.rows) inp.rows = item.rows;
         if (item.ph) inp.placeholder = item.ph;
         if (item.maxlength) inp.maxLength = item.maxlength;
         inp.id = 'c_' + item.key;
-        l2.setAttribute('for', inp.id);
+        l2El.setAttribute('for', inp.id);
         node.appendChild(l2);
         node.appendChild(inp);
         inp.addEventListener('input', function () {
