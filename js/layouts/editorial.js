@@ -127,8 +127,10 @@
     label: 'Editorial',
     blurb: '아트북 도판. 큰 사진 + 제목이 사진 위로 걸쳐요.',
     defaults: {
+      titleFont: 'cormorant', scriptFont: 'italianno', bodyFont: 'dmmono',
+      headlineStyle: 'scriptSans',
       photoShape: 'rect', tone: 'wash', toneAmount: 0.7,
-      feather: 0, headlineStyle: 'scriptSans',
+      feather: 0,
       motifs: ['burst', 'sparkle'], sideLabel: false, vignette: 0.05
     },
     draw: draw

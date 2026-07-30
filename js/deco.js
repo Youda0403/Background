@@ -16,17 +16,22 @@
   function points(env, count, avoid, minDist, pad) {
     var rand = env.rand, w = env.w, h = env.h;
     var out = [];
-    var tries = count * 40;
     pad = pad == null ? env.u(24) : pad;
-    while (out.length < count && tries-- > 0) {
-      var x = U.lerp(pad, w - pad, rand());
-      var y = U.lerp(pad, h - pad, rand());
-      if (inAny(avoid, x, y, pad * 0.5)) continue;
-      var ok = true;
-      for (var i = 0; i < out.length; i++) {
-        if (Math.hypot(out[i][0] - x, out[i][1] - y) < minDist) { ok = false; break; }
+    /* Relax the spacing in passes rather than returning fewer points than
+       asked for: the count is a promise the UI makes to the user. */
+    for (var pass = 0; pass < 5 && out.length < count; pass++) {
+      var dist = minDist * Math.pow(0.7, pass);
+      var tries = count * 40;
+      while (out.length < count && tries-- > 0) {
+        var x = U.lerp(pad, w - pad, rand());
+        var y = U.lerp(pad, h - pad, rand());
+        if (pass < 4 && inAny(avoid, x, y, pad * 0.5)) continue;
+        var ok = true;
+        for (var i = 0; i < out.length; i++) {
+          if (Math.hypot(out[i][0] - x, out[i][1] - y) < dist) { ok = false; break; }
+        }
+        if (ok) out.push([x, y]);
       }
-      if (ok) out.push([x, y]);
     }
     return out;
   }

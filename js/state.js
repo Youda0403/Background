@@ -1,9 +1,8 @@
 /* Single source of truth + share-link serialisation.
 
-   Two decisions make a design: a LAYOUT (where things sit) and a PALETTE
-   (colour, type and paper feel). Everything else is an optional nudge.
-   There is deliberately no third "look" concept — layout × palette is
-   already 60 finished combinations. */
+   Two decisions make a design: a LAYOUT (where things sit, and which
+   fonts suit it) and a PALETTE (colour). Everything else is an optional
+   nudge. There is deliberately no third "look" concept. */
 (function (W) {
   'use strict';
   var U = W.util;
@@ -128,26 +127,13 @@
     Object.keys(DEFAULTS).forEach(function (k) {
       st[k] = Array.isArray(DEFAULTS[k]) ? DEFAULTS[k].slice() : DEFAULTS[k];
     });
-    applyPalette(st, st.palette);
     return st;
   }
 
-  /* A palette brings its own type pairing and paper feel with it. */
+  /* A palette is colour, nothing else — swapping one must never move the
+     typography out from under the user. */
   function applyPalette(st, paletteId) {
-    var p = W.palettes.byId[paletteId];
-    if (!p) return st;
-    st.palette = paletteId;
-    if (p.type) {
-      st.titleFont = p.type.title;
-      st.scriptFont = p.type.script;
-      st.bodyFont = p.type.body;
-      st.headlineStyle = p.type.headline;
-    }
-    if (p.texture) {
-      st.grain = Math.round((p.texture.grain / 0.08) * 100) / 100;
-      st.vignette = p.texture.vignette;
-      st.glitter = !!p.texture.glitter;
-    }
+    if (W.palettes.byId[paletteId]) st.palette = paletteId;
     return st;
   }
 
@@ -159,8 +145,6 @@
       st[k] = Array.isArray(L.defaults[k]) ? L.defaults[k].slice() : L.defaults[k];
     });
     st.layout = layoutId;
-    /* the palette's voice outranks the layout's placeholder fonts */
-    applyPalette(st, st.palette);
   }
 
   function migrate(st) {
@@ -201,9 +185,6 @@
     try {
       var diff = JSON.parse(unb64url(hash));
       var st = create();
-      /* palette first: it seeds type and texture, and any explicit value
-         in the link must be able to override what it set */
-      if (diff.palette) applyPalette(st, diff.palette);
       Object.keys(diff).forEach(function (k) {
         if (k in DEFAULTS) st[k] = diff[k];
       });

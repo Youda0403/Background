@@ -86,9 +86,34 @@
     ctx.fillStyle = opts.color || env.pal.text;
     ctx.globalAlpha = (opts.alpha == null ? 0.72 : opts.alpha);
     T.setFont(ctx, opts.font || 'dmmono', size, {});
-    if (parts[0]) T.draw(ctx, parts[0], m.left, y, { align: 'left', tracking: size * 0.16 });
-    if (parts[1]) T.draw(ctx, parts[1], env.w / 2, y, { align: 'center', tracking: size * 0.16 });
-    if (parts[2]) T.draw(ctx, parts[2], env.w - m.right, y, { align: 'right', tracking: size * 0.16 });
+
+    /* Left and right ends used to overlap when a name ran long. Shrink to
+       fit, then truncate — a rail is furniture and must never collide. */
+    var tr = size * 0.16;
+    var gap = size * 1.2;
+    var wL = parts[0] ? T.measure(ctx, parts[0], tr) : 0;
+    var wC = parts[1] ? T.measure(ctx, parts[1], tr) : 0;
+    var wR = parts[2] ? T.measure(ctx, parts[2], tr) : 0;
+    var need = wL + wC + wR + (wC ? gap * 2 : gap);
+    if (need > m.inner) {
+      size *= Math.max(0.62, m.inner / need);
+      T.setFont(ctx, opts.font || 'dmmono', size, {});
+      tr = size * 0.16;
+      gap = size * 1.2;
+      wL = parts[0] ? T.measure(ctx, parts[0], tr) : 0;
+      wC = parts[1] ? T.measure(ctx, parts[1], tr) : 0;
+      wR = parts[2] ? T.measure(ctx, parts[2], tr) : 0;
+    }
+    var left = parts[0];
+    var budget = m.inner - wC - wR - (wC ? gap * 2 : gap);
+    if (left && T.measure(ctx, left, tr) > budget) {
+      while (left.length > 2 && T.measure(ctx, left + '…', tr) > budget) left = left.slice(0, -1);
+      left += '…';
+    }
+
+    if (left) T.draw(ctx, left, m.left, y, { align: 'left', tracking: tr });
+    if (parts[1]) T.draw(ctx, parts[1], env.w / 2, y, { align: 'center', tracking: tr });
+    if (parts[2]) T.draw(ctx, parts[2], env.w - m.right, y, { align: 'right', tracking: tr });
     ctx.restore();
     return size;
   }
@@ -191,7 +216,9 @@
     /* eyebrow: a small tracked caps line above the display lines */
     var small = { font: st.bodyFont, weight: 500, kase: 'upper', track: 0.2, w: 0.42, small: true };
     var scriptSpec = { font: st.scriptFont, weight: 400, kase: 'none', track: 0, w: 0.94, script: true };
-    var sansSpec = { font: st.titleFont, weight: opts.l2Weight || 500, kase: 'none', track: 0, w: 1 };
+    /* the sans line takes a little less measure so the script stays the
+       hero of the pairing rather than the two fighting for the width */
+    var sansSpec = { font: st.titleFont, weight: opts.l2Weight || 500, kase: 'none', track: 0, w: 0.84 };
     var serifSpec = { font: st.titleFont, weight: 400, kase: 'upper', track: 0.02, w: 1 };
     var plainSpec = { font: st.titleFont, weight: 400, kase: 'none', track: 0.01, w: 1 };
 
@@ -268,26 +295,41 @@
     var bounds = { x: minX, y: yTop, w: maxX - minX, h: total, bottom: yTop + total };
     if (opts.measure) return bounds;
 
-    ctx.save();
+    /* Baselines first, then draw the plain lines and the script lines in
+       two passes. A script's descender is meant to sweep across the line
+       below it — drawing in reading order buried those tails under the
+       next line's ink, which is what looked wrong. */
+    var bl = [];
     lines.forEach(function (ln, k2) {
+      bl.push(baseline);
+      if (k2 < lines.length - 1) baseline += gaps[k2];
+    });
+
+    ctx.save();
+    var order = [];
+    lines.forEach(function (ln, k2) { if (!ln.s.script) order.push(k2); });
+    lines.forEach(function (ln, k2) { if (ln.s.script) order.push(k2); });
+
+    order.forEach(function (k2) {
+      var ln = lines[k2];
+      var lineBaseline = bl[k2];
       T.setFont(ctx, ln.s.font, ln.size, { weight: ln.s.weight, italic: ln.s.italic });
       ctx.fillStyle = (ln.s.script && opts.scriptColor) ? opts.scriptColor
         : (opts.color || env.pal.text);
       ctx.globalAlpha = ln.s.script && opts.scriptAlpha != null ? opts.scriptAlpha
         : (opts.alpha == null ? 1 : opts.alpha);
       var lx = ax + (ln.s.script && align === 'left' ? -ln.size * 0.04 : 0);
-      var b = T.draw(ctx, ln.text, lx, baseline, { align: align, tracking: ln.size * ln.s.track });
+      var b = T.draw(ctx, ln.text, lx, lineBaseline, { align: align, tracking: ln.size * ln.s.track });
       if (ln.s.small && opts.ruleAfterSmall) {
         var rx = b.x + b.w + ln.size * 0.5;
         ctx.globalAlpha = 0.7;
         ctx.strokeStyle = opts.color || env.pal.text;
         ctx.lineWidth = Math.max(1, env.u(1.8));
         ctx.beginPath();
-        ctx.moveTo(rx, baseline - ln.size * 0.28);
-        ctx.lineTo(box.x + box.w, baseline - ln.size * 0.28);
+        ctx.moveTo(rx, lineBaseline - ln.size * 0.28);
+        ctx.lineTo(box.x + box.w, lineBaseline - ln.size * 0.28);
         ctx.stroke();
       }
-      if (k2 < lines.length - 1) baseline += gaps[k2];
     });
     ctx.restore();
 
@@ -306,15 +348,25 @@
     var n = Math.max(0, Math.round(opts.count == null ? env.decoBudget : opts.count));
     if (!n) return;
 
-    /* candidate spots hugging the anchor rect's corners and edges */
-    var spots = [
-      [anchor.x, anchor.y, 1.0], [anchor.x + anchor.w, anchor.y, 0.8],
-      [anchor.x, anchor.y + anchor.h, 0.7], [anchor.x + anchor.w, anchor.y + anchor.h, 1.0],
-      [anchor.x + anchor.w * 0.5, anchor.y, 0.5],
-      [anchor.x + anchor.w, anchor.y + anchor.h * 0.5, 0.6],
-      [anchor.x, anchor.y + anchor.h * 0.62, 0.55],
-      [anchor.x + anchor.w * 0.24, anchor.y + anchor.h, 0.5]
+    /* Candidate spots walk the anchor's perimeter, corners first, so the
+       requested number of decorations can actually all be placed. */
+    var corners = [
+      [anchor.x, anchor.y, 1.0], [anchor.x + anchor.w, anchor.y + anchor.h, 1.0],
+      [anchor.x + anchor.w, anchor.y, 0.8], [anchor.x, anchor.y + anchor.h, 0.75]
     ];
+    var spots = corners.slice();
+    var ring = Math.max(4, n);
+    for (var q = 0; q < ring; q++) {
+      var t = (q + 0.5) / ring;
+      var per = t * 4;
+      var side = Math.floor(per), f = per - side;
+      var px, py;
+      if (side === 0) { px = anchor.x + anchor.w * f; py = anchor.y; }
+      else if (side === 1) { px = anchor.x + anchor.w; py = anchor.y + anchor.h * f; }
+      else if (side === 2) { px = anchor.x + anchor.w * (1 - f); py = anchor.y + anchor.h; }
+      else { px = anchor.x; py = anchor.y + anchor.h * (1 - f); }
+      spots.push([px, py, 0.5 + (q % 3) * 0.18]);
+    }
 
     ctx.save();
     for (var i = 0; i < n && i < spots.length; i++) {
@@ -357,7 +409,8 @@
     ctx.fillStyle = opts.color || env.pal.text;
     ctx.globalAlpha = (opts.alpha == null ? 0.62 : opts.alpha);
     size = T.fit(ctx, joined, 'dmmono', size, m.inner, 0.12, {});
-    T.draw(ctx, joined, opts.align === 'left' ? m.left : env.w / 2, y,
+    T.draw(ctx, joined, opts.align === 'left' ? m.left
+      : opts.align === 'right' ? env.w - m.right : env.w / 2, y,
       { align: opts.align || 'center', tracking: size * 0.12 });
     ctx.restore();
   }

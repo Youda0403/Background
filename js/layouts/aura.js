@@ -111,8 +111,11 @@
       { x: 0, y: bandBottom - u(10), w: w, h: h - bandBottom + u(10) }
     ];
     if (plate) avoid.push(plate);
-    D.twinkles(env, { avoid: avoid, colors: pal.inks.concat(pal.soft), rMin: 5, rMax: 15 });
+    /* one budget, split — so "8개" really puts eight things on the page */
+    var twinkleN = Math.round(env.decoBudget * 0.6);
+    D.twinkles(env, { count: twinkleN, avoid: avoid, colors: pal.inks.concat(pal.soft), rMin: 5, rMax: 15 });
     D.scatter(env, {
+      count: env.decoBudget - twinkleN,
       avoid: avoid, kinds: st.motifs, colors: pal.inks,
       rMin: 14, rMax: 30, bigRatio: 0.24, minDist: 100,
       alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
@@ -133,8 +136,10 @@
     label: 'Aura',
     blurb: '뿌연 빛무리 + 부드러운 사진창. 제일 은은해요.',
     defaults: {
+      titleFont: 'instrument', scriptFont: 'birthstone', bodyFont: 'dmmono',
+      headlineStyle: 'stack',
       photoShape: 'circle', tone: 'wash', toneAmount: 0.8,
-      feather: 0.38, auraShape: 'heart', headlineStyle: 'stack',
+      feather: 0.38, auraShape: 'heart',
       motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
     },
     draw: draw

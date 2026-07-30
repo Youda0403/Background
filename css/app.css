@@ -360,12 +360,9 @@ input[type="range"]::-moz-range-thumb {
   background: var(--ink); color: var(--bg-2); border-color: var(--ink);
 }
 .helpPop {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 7px);
-  left: -8px;
+  position: fixed;
+  z-index: 60;
   width: max-content;
-  max-width: min(268px, 74vw);
   padding: 9px 12px;
   background: var(--ink);
   color: var(--bg-2);
@@ -377,16 +374,17 @@ input[type="range"]::-moz-range-thumb {
   white-space: pre-line;
   box-shadow: var(--shadow-lift);
 }
-.helpPop.flip { left: auto; right: -8px; }
 .helpPop::before {
   content: "";
   position: absolute;
-  top: -4px; left: 14px;
+  top: -4px;
+  left: var(--arrow, 14px);
+  margin-left: -4px;
   width: 8px; height: 8px;
   background: var(--ink);
   transform: rotate(45deg);
 }
-.helpPop.flip::before { left: auto; right: 14px; }
+.helpPop.below::before { top: auto; bottom: -4px; }
 
 .toggleRow { display: flex; align-items: center; gap: 8px; }
 .toggleRow .toggle { flex: 1; }

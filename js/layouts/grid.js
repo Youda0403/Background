@@ -123,8 +123,10 @@
 
     /* sit the block a little above centre, like the reference */
     var startRow = Math.max(0, Math.round((rowsFit - rows.length) * 0.36));
-    var hi = pal.inks[2] || pal.inks[0];
-    var letterInk = U.onColor(hi) === '#1a1a1a' ? '#1a1a1a' : '#f7f7f5';
+    /* A soft tinted panel with the page's own ink on top, rather than a
+       saturated block — the filled cells were shouting over the photo. */
+    var hi = pal.soft[0];
+    var letterInk = pal.text;
 
     ctx.save();
     rows.forEach(function (row, ri) {
@@ -141,13 +143,13 @@
         if (wi) col += 1;
         for (var k = 0; k < word.length && col < cols; k++, col++) {
           var cx = plate.x + col * cell;
-          ctx.globalAlpha = 0.92;
+          ctx.globalAlpha = 0.82;
           ctx.fillStyle = hi;
           ctx.fillRect(cx + u(0.6), cy + u(0.6), cell - u(1.2), cell - u(1.2));
 
-          var size = cell * 0.6;
+          var size = cell * 0.56;
           T.setFont(ctx, st.bodyFont, size, { weight: 500 });
-          ctx.globalAlpha = 1;
+          ctx.globalAlpha = 0.92;
           ctx.fillStyle = letterInk;
           ctx.textBaseline = 'middle';
           var gw = ctx.measureText(word[k]).width;
@@ -178,6 +180,8 @@
     label: 'Grid',
     blurb: '글자를 격자 칸에 채운 타이포 포스터. 일코 최강.',
     defaults: {
+      titleFont: 'spacegrotesk', scriptFont: 'parisienne', bodyFont: 'spacegrotesk',
+      headlineStyle: 'stack',
       photoShape: 'rect', tone: 'mono', toneAmount: 1,
       feather: 0, motifs: ['sparkle'],
       decoCount: 0, vignette: 0.06, grain: 1.2

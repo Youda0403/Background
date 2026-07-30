@@ -110,8 +110,10 @@
     label: 'Lyric',
     blurb: '가사 포스터. 사진 꽉 채우고 아래에 큰 필기체.',
     defaults: {
+      titleFont: 'playfair', scriptFont: 'delafield', bodyFont: 'spacegrotesk',
+      headlineStyle: 'capsScript',
       photoShape: 'rect', tone: 'wash', toneAmount: 0.55,
-      feather: 0, headlineStyle: 'capsScript', bleed: false, burst: true,
+      feather: 0, bleed: false, burst: true,
       scrim: 0.4, motifs: ['burst', 'sparkle', 'flash'], vignette: 0.12
     },
     draw: draw

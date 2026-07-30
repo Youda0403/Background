@@ -22,25 +22,57 @@
     btn.setAttribute('aria-expanded', 'false');
     var pop = el('span', 'helpPop', text);
     pop.hidden = true;
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      var open = pop.hidden;
-      /* one at a time */
+
+    function closeAll() {
       Array.prototype.forEach.call(document.querySelectorAll('.helpPop'), function (o) {
         o.hidden = true;
       });
       Array.prototype.forEach.call(document.querySelectorAll('.helpBtn'), function (o) {
         o.setAttribute('aria-expanded', 'false');
       });
-      pop.hidden = !open;
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (open) {
-        pop.classList.remove('flip');
-        var r = pop.getBoundingClientRect();
-        if (r.right > window.innerWidth - 8) pop.classList.add('flip');
+    }
+
+    /* The bubble is positioned in viewport coordinates and clamped to the
+       screen. Absolute positioning meant a chip near an edge pushed its
+       bubble out of view, and no amount of CSS could see the viewport. */
+    function place() {
+      var r = btn.getBoundingClientRect();
+      pop.style.maxWidth = Math.min(288, window.innerWidth - 24) + 'px';
+      pop.style.left = '0px';
+      pop.style.top = '0px';
+      var pr = pop.getBoundingClientRect();
+      var left = r.left + r.width / 2 - pr.width / 2;
+      left = Math.max(12, Math.min(left, window.innerWidth - pr.width - 12));
+      var top = r.bottom + 8;
+      if (top + pr.height > window.innerHeight - 12) {
+        top = Math.max(12, r.top - pr.height - 8);
       }
+      pop.style.left = Math.round(left) + 'px';
+      pop.style.top = Math.round(top) + 'px';
+      /* point the arrow back at the button */
+      var arrow = Math.max(10, Math.min(r.left + r.width / 2 - left, pr.width - 10));
+      pop.style.setProperty('--arrow', Math.round(arrow) + 'px');
+      pop.classList.toggle('below', top < r.top);
+    }
+
+    btn.addEventListener('pointerdown', function (e) {
+      /* stop the browser focusing the button — focusing an element the
+         page has scrolled past is what used to yank the panel */
+      e.preventDefault();
     });
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var open = pop.hidden;
+      closeAll();
+      if (!open) return;
+      pop.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      place();
+    });
+    window.addEventListener('scroll', function () { if (!pop.hidden) place(); }, true);
+    window.addEventListener('resize', function () { if (!pop.hidden) place(); });
+
     wrap.appendChild(btn);
     wrap.appendChild(pop);
     return wrap;

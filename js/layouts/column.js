@@ -1,0 +1,153 @@
+/* COLUMN — a cyanotype-ish photo field with a paper column of dense
+   little type pinned along one edge: title, an etymology line built from
+   the two names, the caption set as a block, and a footnote at the foot.
+   Reference grammar: the "overfeel" dictionary poster. */
+(function (W) {
+  'use strict';
+  var U = W.util, P = W.prim, PO = W.poster, T = W.type;
+
+  function draw(env) {
+    var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
+    var st = env.st, pal = env.pal, c = env.content, rand = env.rand;
+
+    /* ---- the photo field fills everything ---- */
+    var field = { x: 0, y: 0, w: w, h: h };
+    if (env.hasPhoto) {
+      env.drawPhoto(field);
+    } else {
+      ctx.fillStyle = U.mix(pal.duo[0], pal.base, 0.35);
+      ctx.fillRect(0, 0, w, h);
+      P.wash(ctx, w * 0.3, h * 0.3, env.S * 0.9, pal.soft[0], 0.5 * st.washStrength);
+      P.wash(ctx, w * 0.8, h * 0.75, env.S * 0.8, pal.soft[1] || pal.soft[0], 0.4 * st.washStrength);
+    }
+
+    var m = PO.margins(env);
+    var mic = PO.micro(env);
+    var wide = env.tier === 'wide';
+    var onField = U.onColor(U.mix(pal.duo[0], pal.duo[1], 0.4));
+
+    /* ---- silhouette motifs floating on the field ---- */
+    PO.accents(env, { x: 0, y: env.band.top, w: w * (env.micro ? 1 : 0.56), h: env.band.bottom - env.band.top }, {
+      rMin: 26, rMax: 74, colors: [onField], outline: false, speckle: false
+    });
+
+    if (env.micro) {
+      /* a watch face gets the title alone, centred on the field */
+      PO.headline(env, { x: m.left, y: env.band.top + (env.band.bottom - env.band.top) * 0.34, w: m.inner },
+        { align: 'center', color: onField, maxH: h * 0.4 });
+      return;
+    }
+
+    /* ---- the paper column, sized to its own contents ---- */
+    var colW = w * (wide ? 0.34 : env.tier === 'tablet' || env.tier === 'square' ? 0.4 : 0.46);
+    var pad = u(30);
+    var inner = colW - pad * 2;
+    var bandH = env.band.bottom - env.band.top;
+
+    /* Build the parts first and measure them, so the column can be as tall
+       as it needs to be. A full-height column with a short caption left a
+       large empty panel, which read as a mistake rather than as space. */
+    var title = (c.title || 'pairtone').replace(/\n/g, ' ').toLowerCase();
+    var tSize = T.fit(ctx, title, st.titleFont, inner * 0.34, inner, 0.04, {});
+
+    var etym = [];
+    var a = st.nameA.trim(), b = st.nameB.trim();
+    if (a || b) etym.push('etymology:  from ' + (a || '—').toLowerCase() + '  +  ' + (b || '—').toLowerCase());
+    if (c.footnote) etym.push('together:  ' + c.footnote.toLowerCase());
+
+    var etymH = etym.length ? PO.block(env, 0, 0, inner, etym, {
+      size: mic * 0.9, lead: 1.6, measure: true, font: 'dmmono'
+    }) : 0;
+    var capH = c.caption ? PO.block(env, 0, 0, inner, [c.caption], {
+      size: mic * 0.92, lead: 1.55, measure: true, font: st.bodyFont
+    }) : 0;
+    var markR = st.decoCount > 0 ? Math.min(inner * 0.3, u(120)) : 0;
+    var namesH = (st.showNames && c.names) ? mic * 2.6 : 0;
+
+    var contentH = pad + tSize * 1.5 + (etymH ? etymH + mic * 0.9 : 0)
+      + (markR ? markR * 1.25 : 0) + (capH ? capH + mic : 0) + namesH + pad;
+    var colH = Math.min(bandH, Math.max(contentH, bandH * 0.5));
+
+    var col = {
+      x: w - colW - m.right * 0.5,
+      y: env.band.top + (bandH - colH) * 0.42,
+      w: colW, h: colH
+    };
+
+    ctx.save();
+    ctx.globalAlpha = 0.96;
+    ctx.fillStyle = pal.base;
+    ctx.fillRect(col.x, col.y, col.w, col.h);
+    ctx.restore();
+
+    var cx = col.x + pad;
+    var y = col.y + pad;
+
+    /* title, tracked wide like a dictionary headword */
+    T.setFont(ctx, st.titleFont, tSize, {});
+    ctx.save();
+    ctx.fillStyle = pal.text;
+    var tb = T.draw(ctx, title, cx, y + tSize * 0.82, { align: 'left', tracking: tSize * 0.04 });
+    T.rule(ctx, tb, tSize * 0.34, Math.max(1, u(1.4)), pal.text, 0.45);
+    ctx.restore();
+    y += tSize * 1.5;
+
+    if (etymH) {
+      PO.block(env, cx, y, inner, etym, {
+        size: mic * 0.9, lead: 1.6, upper: false, alpha: 0.85, font: 'dmmono', tracking: 0.02
+      });
+      y += etymH + mic * 0.9;
+    }
+
+    /* a small inked motif, like the pressed flower in the reference */
+    if (markR) {
+      ctx.save();
+      ctx.globalAlpha = 0.9 * env.decoAlpha;
+      ctx.fillStyle = pal.duo[0];
+      var fn = P.motifs[st.motifs[0]] || P.motifs.burst;
+      fn(ctx, cx + inner / 2, y + markR * 0.6, markR * 0.55, rand);
+      ctx.fill();
+      ctx.restore();
+      y += markR * 1.25;
+    }
+
+    if (capH) {
+      PO.block(env, cx, y, inner, [c.caption], {
+        size: mic * 0.92, lead: 1.55, upper: false, alpha: 0.88, font: st.bodyFont
+      });
+      y += capH + mic;
+    }
+
+    if (namesH) {
+      PO.block(env, cx, col.y + col.h - pad - mic * 1.6, inner, [c.names], {
+        size: mic * 0.95, lead: 1.4, alpha: 0.8, font: 'dmmono', tracking: 0.14
+      });
+    }
+
+    /* ---- field-side furniture ---- */
+    var fieldW = col.x - m.left - u(56);
+    if (fieldW > u(200)) {
+      PO.block(env, m.left, col.y + col.h - mic * 2.4, fieldW,
+        ['please note, this poster is about: ' + (c.tags[0] || 'us')], {
+          size: mic * 0.88, lead: 1.4, upper: false, alpha: 0.85,
+          color: onField, font: 'dmmono', tracking: 0.1
+        });
+    }
+    PO.tagRail(env, col.y - mic * 0.6, { m: m, size: mic * 0.86, alpha: 0.7, color: onField, align: 'left' });
+  }
+
+  W.layoutRegistry = W.layoutRegistry || [];
+  W.layoutRegistry.push({
+    id: 'column',
+    label: 'Column',
+    blurb: '사전 같은 종이 칼럼 + 꽉 찬 사진. 차분하고 지적인 무드.',
+    defaults: {
+      titleFont: 'dmserif', scriptFont: 'sacramento', bodyFont: 'spacemono',
+      headlineStyle: 'stack',
+      photoShape: 'rect', tone: 'duo', toneAmount: 0.95,
+      feather: 0, motifs: ['flower', 'sparkle'], decoCount: 5,
+      grain: 1.3, vignette: 0.05
+    },
+    draw: draw
+  });
+})(window.PT = window.PT || {});

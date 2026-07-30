@@ -159,8 +159,10 @@
     label: 'Zine',
     blurb: '복사기 감성 레코드 슬리브. 망점 + 바코드.',
     defaults: {
+      titleFont: 'bricolage', scriptFont: 'parisienne', bodyFont: 'dmmono',
+      headlineStyle: 'scriptSans',
       photoShape: 'rect', tone: 'halftone',
-      halftoneCells: 58, feather: 0, headlineStyle: 'scriptSans',
+      halftoneCells: 58, feather: 0,
       strike: true, grain: 1.7, motifs: ['burst', 'burst4'], vignette: 0.08
     },
     draw: draw
