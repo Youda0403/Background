@@ -85,10 +85,17 @@
     var n = Math.round(opts.count == null ? env.decoBudget * 3 : opts.count);
     var pts = points(env, n, opts.avoid || [], u(30), u(10));
     ctx.save();
-    pts.forEach(function (p) {
+    pts.forEach(function (p, i) {
       var r = u(U.range(rand, opts.rMin || 5, opts.rMax || 13));
-      ctx.globalAlpha = U.range(rand, 0.3, 0.9) * env.decoAlpha;
-      ctx.fillStyle = U.pick(rand, opts.colors);
+      var a = U.range(rand, 0.3, 0.9) * env.decoAlpha;
+      var col = U.pick(rand, opts.colors);
+      /* `hero` lands on a fixed cadence at a firm alpha. Picking colours
+         at random meant a palette's accent could sit in the list and
+         still never be drawn — the draws are made either way, so the
+         stream stays identical between the preview and the export. */
+      if (opts.hero && i % 4 === 0) { col = opts.hero; a = Math.max(a, 0.85); }
+      ctx.globalAlpha = a;
+      ctx.fillStyle = col;
       P.sparkle(ctx, p[0], p[1], r, 0.14);
       ctx.fill();
     });

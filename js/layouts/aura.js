@@ -77,8 +77,11 @@
       var hr = plate ? Math.min(plate.w, plate.h) * 0.58 : env.S * 0.32;
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
         pal.soft[0], { layers: 18, spread: 0.5, alpha: 0.6 * st.washStrength });
+      /* the inner core carries the accent, so the softest layout still
+         shows the palette's loudest colour somewhere */
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr * 0.66,
-        pal.inks[1] || pal.soft[1], { layers: 12, spread: 0.34, alpha: 0.22 * st.washStrength });
+        pal.accent || pal.inks[1] || pal.soft[1],
+        { layers: 12, spread: 0.34, alpha: 0.3 * st.washStrength });
     }
 
     if (plate) env.drawPhoto(plate);
@@ -113,10 +116,17 @@
     if (plate) avoid.push(plate);
     /* one budget, split — so "8개" really puts eight things on the page */
     var twinkleN = Math.round(env.decoBudget * 0.6);
-    D.twinkles(env, { count: twinkleN, avoid: avoid, colors: pal.inks.concat(pal.soft), rMin: 5, rMax: 15 });
+    /* the accent rides along with the inks — the blooms are made of `soft`,
+       which is deliberately pale, so without this the loudest colour in
+       the palette never appears on the softest layout */
+    var inks = [pal.accent].concat(pal.inks).filter(Boolean);
+    D.twinkles(env, {
+      count: twinkleN, avoid: avoid, colors: inks.concat(pal.soft),
+      hero: pal.accent, rMin: 5, rMax: 15
+    });
     D.scatter(env, {
       count: env.decoBudget - twinkleN,
-      avoid: avoid, kinds: st.motifs, colors: pal.inks,
+      avoid: avoid, kinds: st.motifs, colors: inks,
       rMin: 14, rMax: 30, bigRatio: 0.24, minDist: 100,
       alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
       speckle: st.glitter

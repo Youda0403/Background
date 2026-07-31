@@ -72,6 +72,11 @@ it into the palette:
 Wash and Duotone are deliberately far apart: one keeps the photograph
 recognisable, the other turns it into artwork.
 
+Grid and Type default to Duotone rather than Mono. Grey is not a palette
+colour: a grayscale plate sat on the page as a slab that belonged to no
+design, most obviously on the saturated palettes. Mono is still one click
+away when that is the effect you want.
+
 Each layout decides where the photo goes and how big it is, so there is no frame
 proportion to set — a photo slot that moved independently of the design was a
 source of confusion, not control. Aura, the one layout built around a cut-out,
@@ -101,11 +106,11 @@ which stays local). State also persists in `localStorage`.
 | | |
 | --- | --- |
 | **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. |
-| **Lyric** | A torn photograph across the top, the caption cut into pasted paper scraps, and a huge script headline filling the paper below. The photograph is a piece of *printed paper*, so it carries its own stock — on a dark palette that stock stays light, and the tear reads instead of vanishing into the page. |
-| **Grid** | A crossword of highlighted cells spelling your words over a monochrome photo. The most deniable of the set. |
+| **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a huge script headline filling the paper that is left. The photograph is a piece of *printed paper*, so it carries its own stock — on a dark palette that stock stays light, and the tear reads instead of vanishing into the page. A wide canvas tears down the side instead of across, because stacked, the script had a quarter of a desktop to fill and three quarters of empty paper under it. |
+| **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
 | **Aura** | Colour blooms and a feathered photo window. The soft one. |
-| **Column** | A full-bleed photo field with a paper column of dictionary-dense small type — headword, etymology, definition — pinned along one edge. |
+| **Column** | A full-bleed photo field with a paper card of dictionary-dense small type — headword, etymology, definition — pinned along one edge. The card is a *card*: on a dark palette it stays light, where painting it in the page colour put a navy box on a navy field and lost it entirely. |
 
 ## Palettes
 
@@ -115,7 +120,24 @@ Midnight Wish · Shampoo Blue · Crimson Letter · Terracotta · Lavender Haze �
 Matcha · Peach Fizz · Butter Note · Inkwell · Charcoal
 
 Colour only: `base`, `soft`, `inks`, the `duo` ramp photos are toned into,
-`text`, and how much `grain` the stock carries.
+`text`, `accent`, and how much `grain` the stock carries.
+
+**Every palette has one loud colour, and every layout is obliged to show
+it.** This was not true before, and the swatch was lying: Apple Silver's card
+showed red and yellow, and then rendered a page of blue. The reason is
+structural — a duotone photo is monochrome by definition, and all the type
+came from `text` — so no amount of picking prettier palettes would have fixed
+it. Each layout now spends the accent somewhere with real area: one word of
+Type's headline, Grid's title cells, Zine's strike and bracket corners,
+Column's rules and cross-reference, Lyric's pasted tape, Aura's core glow and
+twinkles. The swatch shows page / photo ink / accent / decorative ink, which
+is what the wallpaper is actually made of.
+
+The accent is checked two ways: it must clear 2.6:1 contrast against its own
+page, and the rendered pixels of all 126 combinations are searched for its
+hue. Layouts resolve it against whatever they are printing on — Column's card
+is light even when the page is dark, so the same colour is deepened there
+rather than swapped.
 
 Halftone prints in a single ink, so it picks whichever end of the `duo` ramp
 contrasts with the stock it is printing on — otherwise a dark palette printed a

@@ -124,9 +124,14 @@
     /* sit the block a little above centre, like the reference */
     var startRow = Math.max(0, Math.round((rowsFit - rows.length) * 0.36));
     /* A soft tinted panel with the page's own ink on top, rather than a
-       saturated block — the filled cells were shouting over the photo. */
+       saturated block — the filled cells were shouting over the photo.
+       The pair's own name is the exception: it gets the palette's accent,
+       so the one word that matters is also the one piece of colour on a
+       page a monochrome photo would otherwise flatten. */
     var hi = pal.soft[0];
     var letterInk = pal.text;
+    var accent = pal.accent || pal.inks[0];
+    var accentInk = U.onColor(accent);
 
     ctx.save();
     rows.forEach(function (row, ri) {
@@ -143,14 +148,15 @@
         if (wi) col += 1;
         for (var k = 0; k < word.length && col < cols; k++, col++) {
           var cx = plate.x + col * cell;
-          ctx.globalAlpha = 0.82;
-          ctx.fillStyle = hi;
+          var lead = row.group === 0;
+          ctx.globalAlpha = lead ? 0.94 : 0.82;
+          ctx.fillStyle = lead ? accent : hi;
           ctx.fillRect(cx + u(0.6), cy + u(0.6), cell - u(1.2), cell - u(1.2));
 
           var size = cell * 0.56;
           T.setFont(ctx, st.bodyFont, size, { weight: 500 });
           ctx.globalAlpha = 0.92;
-          ctx.fillStyle = letterInk;
+          ctx.fillStyle = lead ? accentInk : letterInk;
           ctx.textBaseline = 'middle';
           var gw = ctx.measureText(word[k]).width;
           ctx.fillText(word[k], cx + cell / 2 - gw / 2, cy + cell * 0.54);
@@ -182,7 +188,7 @@
     defaults: {
       titleFont: 'spacegrotesk', scriptFont: 'playball', bodyFont: 'spacegrotesk',
       headlineStyle: 'stack',
-      photoShape: 'rect', tone: 'mono', toneAmount: 1,
+      photoShape: 'rect', tone: 'duo', toneAmount: 0.92,
       feather: 0, motifs: ['sparkle'],
       decoCount: 0, vignette: 0.06, grain: 1.2
     },

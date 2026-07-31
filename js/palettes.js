@@ -1,12 +1,18 @@
 /* Palettes lifted from the reference boards. Colour only — the fonts
    belong to the layout and to the user, not to the palette.
 
-   base  : page colour
-   inks  : decorative colours (stars, panels, motifs)
-   duo   : [shadow, highlight] used to tone photos into the page
-   text  : foreground for typography
-   soft  : aura / wash colours
-   grain : how much paper texture this stock naturally carries
+   base   : page colour
+   inks   : decorative colours (stars, panels, motifs)
+   duo    : [shadow, highlight] used to tone photos into the page
+   text   : foreground for typography
+   soft   : aura / wash colours
+   accent : the loud one — the single chromatic colour every layout is
+            obliged to put somewhere you can see. Without it a palette
+            whose swatch shows red and yellow rendered as a page of blue,
+            because a duotone photo is monochrome by definition and the
+            type all came from `text`. The card promised a colour the
+            wallpaper never delivered.
+   grain  : how much paper texture this stock naturally carries
 */
 (function (W) {
   'use strict';
@@ -20,6 +26,7 @@
       inks: ['#8fd3a6', '#7fc4e8', '#f7d774', '#c9e7b0'],
       duo: ['#3f6b56', '#f4fbf2'],
       text: '#5d6a5f',
+      accent: '#c98a1e',
       grain: 0.05
     },
     {
@@ -30,6 +37,7 @@
       inks: ['#8cc79a', '#6fae85', '#cfe6cd', '#a3d0ae'],
       duo: ['#2f5a41', '#f2fbf3'],
       text: '#4c6b56',
+      accent: '#3f7d55',
       grain: 0.04
     },
     {
@@ -40,6 +48,7 @@
       inks: ['#a9b795', '#8d9c7b', '#d6d2bd', '#f4f1e6'],
       duo: ['#5d6a4d', '#f1efe3'],
       text: '#6b6f5c',
+      accent: '#b06a4a',
       grain: 0.12
     },
     {
@@ -50,6 +59,7 @@
       inks: ['#f4a8bf', '#c9b6e8', '#ffe9a8', '#bfe4ef'],
       duo: ['#8a5a72', '#fdf2f6'],
       text: '#8d6577',
+      accent: '#d1547a',
       grain: 0.05
     },
     {
@@ -60,6 +70,7 @@
       inks: ['#2b2b2b', '#9fbcd6', '#f2ddda', '#c9c9c4'],
       duo: ['#1f2933', '#f8f8f6'],
       text: '#2b2b2b',
+      accent: '#e2664f',
       grain: 0.06
     },
     {
@@ -70,6 +81,7 @@
       inks: ['#1f5f86', '#8b9360', '#e8e2d0', '#123f5c'],
       duo: ['#12496c', '#f5f1e4'],
       text: '#1b3d52',
+      accent: '#c9503a',
       grain: 0.14
     },
     {
@@ -80,6 +92,7 @@
       inks: ['#d9dde6', '#e8443f', '#f4d24e', '#8fb8e8'],
       duo: ['#0b2559', '#dfe6f2'],
       text: '#eef2fa',
+      accent: '#e8443f',
       grain: 0.08
     },
     {
@@ -90,6 +103,7 @@
       inks: ['#3f7fbf', '#8fc6e8', '#f4c6d8', '#ffe8a8'],
       duo: ['#255d92', '#f7fbff'],
       text: '#6a7684',
+      accent: '#d1567f',
       grain: 0.03
     },
     {
@@ -100,6 +114,7 @@
       inks: ['#5b86d6', '#f2a8c4', '#9fd4c0', '#2f4f9c'],
       duo: ['#3b5aa0', '#fbfbe8'],
       text: '#5a6285',
+      accent: '#d1548a',
       grain: 0.07
     },
     {
@@ -110,6 +125,7 @@
       inks: ['#f6c9a8', '#a8d3ea', '#f2b8c6', '#e8dfa8'],
       duo: ['#8a6a58', '#fdf8f2'],
       text: '#8a7566',
+      accent: '#d95f78',
       grain: 0.05
     },
     {
@@ -120,6 +136,7 @@
       inks: ['#161616', '#8c8c8c', '#f0dcd8', '#d8d8d4'],
       duo: ['#111111', '#f6f4f2'],
       text: '#161616',
+      accent: '#c2452f',
       grain: 0.09
     },
     {
@@ -130,6 +147,7 @@
       inks: ['#cfd6f2', '#8f9be0', '#f2d9a8', '#b9a8e0'],
       duo: ['#0d1024', '#c9d2f2'],
       text: '#e4e8fa',
+      accent: '#f2d9a8',
       grain: 0.1
     }
     ,
@@ -141,6 +159,7 @@
       inks: ['#2b4f7a', '#7fb2dd', '#ffffff', '#b9cfe4'],
       duo: ['#1d3c60', '#eaf4fc'],
       text: '#1f3d5e',
+      accent: '#c2452c',
       grain: 0.05
     },
     {
@@ -151,6 +170,7 @@
       inks: ['#a32a2a', '#7d1f24', '#e3b9a6', '#2e2422'],
       duo: ['#6b1c1c', '#f7f0e6'],
       text: '#5c2320',
+      accent: '#a32a2a',
       grain: 0.13
     },
     {
@@ -161,6 +181,7 @@
       inks: ['#b4643c', '#8a4a2e', '#e0bb9b', '#4a3326'],
       duo: ['#7a4429', '#f6ebdd'],
       text: '#6b4130',
+      accent: '#b4643c',
       grain: 0.12
     },
     {
@@ -171,6 +192,7 @@
       inks: ['#8f7ac0', '#6d5aa0', '#e0d2f2', '#f4c9de'],
       duo: ['#5b4a86', '#f7f3fc'],
       text: '#6a5a92',
+      accent: '#8f5aa8',
       grain: 0.05
     },
     {
@@ -181,6 +203,7 @@
       inks: ['#5c7038', '#3f4f26', '#c3d3a0', '#e6ead6'],
       duo: ['#3a4a22', '#f0f3e5'],
       text: '#455230',
+      accent: '#c96a3c',
       grain: 0.11
     },
     {
@@ -191,6 +214,7 @@
       inks: ['#f28f6e', '#e2694f', '#ffd9c4', '#8fc7c2'],
       duo: ['#a8543a', '#fff4ef'],
       text: '#a05a44',
+      accent: '#e2694f',
       grain: 0.05
     },
     {
@@ -201,6 +225,7 @@
       inks: ['#c9a23c', '#8f6f22', '#f2e2b0', '#6f7a4a'],
       duo: ['#7a5f1e', '#fdf7e4'],
       text: '#6f5a24',
+      accent: '#a8781a',
       grain: 0.09
     },
     {
@@ -211,6 +236,7 @@
       inks: ['#26303a', '#4a5560', '#c9cdd2', '#8a6f52'],
       duo: ['#1d252e', '#f0eee8'],
       text: '#26303a',
+      accent: '#8a6f52',
       grain: 0.1
     },
     {
@@ -221,6 +247,7 @@
       inks: ['#e6e2d6', '#a8a396', '#c9b98a', '#8f8f86'],
       duo: ['#0e0e0d', '#e8e4d8'],
       text: '#ebe7db',
+      accent: '#c9b98a',
       grain: 0.13
     }
   ];

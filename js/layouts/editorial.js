@@ -82,13 +82,21 @@
 
     var y = stackTop + Math.max(0, stackH - total) * 0.25;
     var gaps = [];   /* the negative space each line leaves, for labels */
+    /* One word of the stack is set in the accent — the oldest trick in
+       Swiss poster typography, and on this layout the only place a real
+       area of colour can live: the page is flat, the photo strip is toned
+       into the palette, and everything else is one ink. The separator if
+       there is one, otherwise the last word. */
+    var sepAt = -1;
+    sized.forEach(function (l, i) { if (l.isSep && sepAt < 0) sepAt = i; });
+    var hot = sepAt >= 0 ? sepAt : sized.length - 1;
     ctx.save();
-    ctx.fillStyle = pal.text;
     sized.forEach(function (l, i) {
       y += l.ink.asc;
       var left = i % 2 === 0;
       var x = left ? m.left : w - m.right - l.w;
       if (l.isSep) x = m.left + m.inner * 0.08;
+      ctx.fillStyle = (i === hot && sized.length > 1) ? (pal.accent || pal.text) : pal.text;
       T.setFont(ctx, st.titleFont, l.size, { weight: weight });
       T.draw(ctx, l.text, x, y, { align: 'left', tracking: l.size * -0.015 });
       gaps.push({
@@ -109,13 +117,16 @@
       c.tags.slice(0, 2).forEach(function (t) { labels.push(t.toUpperCase()); });
       var li = 0;
       ctx.save();
-      ctx.fillStyle = pal.text;
+      /* the labels carry the palette's accent — on a page whose photo is
+         a grey strip and whose type is all one ink, they are the only
+         chance the colour gets to appear at all */
+      ctx.fillStyle = pal.accent || pal.text;
       gaps.forEach(function (g2, i) {
         if (li >= labels.length || g2.w < u(140) || sized[i].isSep) return;
         var size = mic * 0.78;
         T.setFont(ctx, 'dmmono', size, {});
         var ax = g2.align === 'right' ? w - m.right : m.left;
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.95;
         T.draw(ctx, labels[li], ax, g2.y, { align: g2.align, tracking: size * 0.14 });
         li++;
       });
@@ -126,9 +137,12 @@
     if (stripH) {
       var stripY = h - m.bottom - stripH;
       ctx.save();
-      ctx.globalAlpha = 0.4 * env.decoAlpha;
-      ctx.strokeStyle = pal.text;
-      ctx.lineWidth = Math.max(1, u(1.4));
+      /* full strength: Discretion thins the motif scatter and shrinks the
+         headline, but it must not bleach the palette's one colour out of
+         the page — a hairline rule is not what makes a wallpaper loud */
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = pal.accent || pal.text;
+      ctx.lineWidth = Math.max(1, u(2.2));
       ctx.beginPath();
       ctx.moveTo(m.left, stripY - mic * 1.1);
       ctx.lineTo(w - m.right, stripY - mic * 1.1);
@@ -181,7 +195,7 @@
     defaults: {
       titleFont: 'spacegrotesk', scriptFont: 'delafield', bodyFont: 'spacegrotesk',
       headlineStyle: 'stack',
-      photoShape: 'rect', tone: 'mono', toneAmount: 1,
+      photoShape: 'rect', tone: 'duo', toneAmount: 0.92,
       feather: 0, motifs: ['sparkle'], decoCount: 0,
       sideLabel: false, grain: 1.1, vignette: 0.04
     },

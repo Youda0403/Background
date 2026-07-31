@@ -54,7 +54,12 @@
 
   function paletteCards() {
     return W.palettes.list.map(function (p) {
-      return { v: p.id, l: p.label, colors: [p.base].concat(p.inks.slice(0, 3)) };
+      /* The swatch shows what the wallpaper will actually be made of: the
+         page, the ink the photo is toned into, the accent, the decorative
+         ink. It used to show inks 1–3, two of which no layout ever
+         reached for — so a card could promise red and yellow and hand
+         back a page of blue. */
+      return { v: p.id, l: p.label, colors: [p.base, p.duo[0], p.accent, p.inks[0]] };
     });
   }
 

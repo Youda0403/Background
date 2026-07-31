@@ -41,8 +41,11 @@
 
     if (st.strike && hl.h) {
       ctx.save();
-      ctx.globalAlpha = 0.9 * env.decoAlpha;
-      ctx.strokeStyle = pal.text;
+      /* the second plate of a two-colour riso print: the strike, the
+         bracket corners and the release line all run in the accent, which
+         is the only colour a halftone photo cannot supply */
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = pal.accent || pal.text;
       ctx.lineWidth = Math.max(1, u(2.6));
       var sy = hl.y + hl.h * 0.24;
       ctx.beginPath();
@@ -100,9 +103,9 @@
       }
       /* bracket corners rather than a full box */
       ctx.save();
-      ctx.globalAlpha = 0.8 * env.decoAlpha;
-      ctx.strokeStyle = pal.text;
-      ctx.lineWidth = Math.max(1, u(2));
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = pal.accent || pal.text;
+      ctx.lineWidth = Math.max(1, u(2.6));
       var L = u(56);
       ctx.beginPath();
       ctx.moveTo(plate.x, plate.y + L); ctx.lineTo(plate.x, plate.y); ctx.lineTo(plate.x + L, plate.y);
@@ -116,7 +119,7 @@
     if (c.footnote && !env.micro) {
       var rSize = Math.min(u(58), plate.h * 0.1, dateW * 0.92);
       ctx.save();
-      ctx.fillStyle = pal.text;
+      ctx.fillStyle = pal.accent || pal.text;
       ctx.globalAlpha = 0.95;
       T.setFont(ctx, st.titleFont, rSize, { weight: 600 });
       ctx.translate(w - m.right - dateW * 0.5 + rSize * 0.34, plate.y + plate.h * 0.5);

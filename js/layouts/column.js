@@ -25,6 +25,13 @@
     var mic = PO.micro(env);
     var wide = env.tier === 'wide';
     var onField = U.onColor(U.mix(pal.duo[0], pal.duo[1], 0.4));
+    /* the column is a card of paper, not a tinted panel — on a dark
+       palette `pal.base` put a navy box on a navy field and the card
+       vanished */
+    var card = PO.stock(pal);
+    /* the card is light even when the page is dark, so the accent has to
+       be resolved against the card, not against the palette's page */
+    var accent = PO.accentOn(pal, card.paper);
 
     /* ---- silhouette motifs floating on the field ---- */
     PO.accents(env, { x: 0, y: env.band.top, w: w * (env.micro ? 1 : 0.56), h: env.band.bottom - env.band.top }, {
@@ -78,7 +85,7 @@
 
     ctx.save();
     ctx.globalAlpha = 0.96;
-    ctx.fillStyle = pal.base;
+    ctx.fillStyle = card.paper;
     ctx.fillRect(col.x, col.y, col.w, col.h);
     ctx.restore();
 
@@ -88,22 +95,23 @@
     /* title, tracked wide like a dictionary headword */
     T.setFont(ctx, st.titleFont, tSize, {});
     ctx.save();
-    ctx.fillStyle = pal.text;
+    ctx.fillStyle = card.ink;
     var tb = T.draw(ctx, title, cx, y + tSize * 0.82, { align: 'left', tracking: tSize * 0.04 });
-    T.rule(ctx, tb, tSize * 0.34, Math.max(1, u(1.4)), pal.text, 0.45);
+    T.rule(ctx, tb, tSize * 0.34, Math.max(1, u(1.8)), accent, 0.95);
     ctx.restore();
     y += tSize * 1.5;
 
     if (etymH) {
       PO.block(env, cx, y, inner, etym, {
-        size: mic * 0.9, lead: 1.6, upper: false, alpha: 0.85, font: 'dmmono', tracking: 0.02
+        size: mic * 0.9, lead: 1.6, upper: false, alpha: 0.85, font: 'dmmono', tracking: 0.02,
+        color: card.sub
       });
       y += etymH + mic * 0.9;
     }
 
     /* a quiet divider: hairline, three small sparkles at its centre */
     ctx.save();
-    ctx.strokeStyle = pal.text;
+    ctx.strokeStyle = card.ink;
     ctx.globalAlpha = 0.35;
     ctx.lineWidth = Math.max(1, u(1.2));
     var dy = y + mic * 0.9;
@@ -114,8 +122,8 @@
     ctx.moveTo(cx + inner / 2 + sw, dy);
     ctx.lineTo(cx + inner, dy);
     ctx.stroke();
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = pal.text;
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = accent;
     [-1, 0, 1].forEach(function (k) {
       P.sparkle(ctx, cx + inner / 2 + k * mic * 1.5, dy, mic * (k ? 0.42 : 0.6), 0.16);
       ctx.fill();
@@ -125,28 +133,30 @@
 
     if (capH) {
       PO.block(env, cx, y, inner, [c.caption], {
-        size: mic * 0.92, lead: 1.55, upper: false, alpha: 0.88, font: st.bodyFont
+        size: mic * 0.92, lead: 1.55, upper: false, alpha: 0.88, font: st.bodyFont,
+        color: card.ink
       });
       y += capH + mic;
     }
 
     if (simH) {
       ctx.save();
-      ctx.fillStyle = pal.text;
-      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = card.sub;
+      ctx.globalAlpha = 0.85;
       T.setFont(ctx, 'dmmono', mic * 0.85, {});
       var sb = T.draw(ctx, simLine, cx, y + mic * 0.85, { align: 'left', tracking: mic * 0.06 });
       /* underline only the borrowed word, like a cross-reference */
       var lead = T.measure(ctx, 'similar to ', mic * 0.06);
       T.rule(ctx, { x: sb.x + lead, y: sb.y, w: sb.w - lead }, mic * 0.3,
-        Math.max(1, u(1.2)), pal.text, 0.6);
+        Math.max(1, u(1.6)), accent, 1);
       ctx.restore();
       y += simH;
     }
 
     if (namesH) {
       PO.block(env, cx, col.y + col.h - pad - mic * 1.6, inner, [c.names], {
-        size: mic * 0.95, lead: 1.4, alpha: 0.8, font: 'dmmono', tracking: 0.14
+        size: mic * 0.95, lead: 1.4, alpha: 0.9, font: 'dmmono', tracking: 0.14,
+        color: accent
       });
     }
 

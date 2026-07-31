@@ -6,14 +6,34 @@
   'use strict';
   var U = W.util, P = W.prim, PO = W.poster, T = W.type;
 
-  /* Ragged tear line across the canvas at height `y`. */
-  function tornEdge(ctx, w, y, rand, amp) {
-    ctx.moveTo(-4, y);
-    var steps = 42;
-    for (var i = 1; i <= steps; i++) {
-      var x = (i / steps) * (w + 8) - 4;
-      ctx.lineTo(x, y + (rand() - 0.5) * amp * (rand() > 0.86 ? 2.2 : 1));
+  /* One point on a ragged tear: `t` runs 0..1 along the edge. */
+  function jag(rand, amp) {
+    return (rand() - 0.5) * amp * (rand() > 0.86 ? 2.2 : 1);
+  }
+
+  /* The torn keep-region as a path: everything above a horizontal tear at
+     `at`, or everything left of a vertical one. A wide canvas tears down
+     the side — stacked, its script had a quarter of the page to fill and
+     three quarters of empty paper under it. */
+  function tornPath(ctx, w, h, at, vertical, rand, amp, add) {
+    var steps = 44;
+    if (!add) ctx.beginPath();
+    if (vertical) {
+      ctx.moveTo(-4, -4);
+      ctx.lineTo(at, -4);
+      for (var i = 0; i <= steps; i++) {
+        ctx.lineTo(at + jag(rand, amp), (i / steps) * (h + 8) - 4);
+      }
+      ctx.lineTo(-4, h + 4);
+    } else {
+      ctx.moveTo(-4, -4);
+      ctx.lineTo(w + 4, -4);
+      ctx.lineTo(w + 4, at);
+      for (var j = steps; j >= 0; j--) {
+        ctx.lineTo((j / steps) * (w + 8) - 4, at + jag(rand, amp));
+      }
     }
+    ctx.closePath();
   }
 
   /* Split the caption into 2–4 word scraps for the pasted labels. */
@@ -66,6 +86,7 @@
     var mic = PO.micro(env);
     var wide = env.tier === 'wide';
     var accent = pal.inks[0];
+    var hot = pal.accent || pal.inks[1] || accent;
 
     /* The photograph is a torn-off piece of *printed paper*, not a window
        cut into the page — so it carries its own stock. On a light palette
@@ -82,52 +103,48 @@
     ctx.fillStyle = pal.base;
     ctx.fillRect(0, 0, w, h);
 
-    /* ---- the photograph, torn off mid-page ---- */
-    var tearY = h * (wide ? 0.58 : env.tier === 'tablet' || env.tier === 'square' ? 0.5 : 0.54);
-    var photoTop = st.bleed ? 0 : 0;
-    var plate = { x: 0, y: photoTop, w: w, h: tearY - photoTop + u(30) };
+    /* ---- the photograph, torn off the page ---- */
+    var vertical = wide;
+    var tearAt = vertical
+      ? w * 0.54
+      : h * (env.tier === 'tablet' || env.tier === 'square' ? 0.5 : 0.54);
+    var amp = u(22);
+    var plate = vertical
+      ? { x: 0, y: 0, w: tearAt + u(30), h: h }
+      : { x: 0, y: 0, w: w, h: tearAt + u(30) };
 
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, w, tearY + u(26));
-    tornEdge(ctx, w, tearY, U.rng(env.seedNum + 7), u(22));
-    /* clip: everything above the tear line */
-    ctx.beginPath();
-    ctx.moveTo(-4, -4);
-    ctx.lineTo(w + 4, -4);
-    ctx.lineTo(w + 4, tearY);
-    var r1 = U.rng(env.seedNum + 7);
-    var steps = 44;
-    for (var i = steps; i >= 0; i--) {
-      var x = (i / steps) * (w + 8) - 4;
-      ctx.lineTo(x, tearY + (r1() - 0.5) * u(24) * (r1() > 0.86 ? 2.2 : 1));
-    }
-    ctx.closePath();
+    tornPath(ctx, w, h, tearAt, vertical, U.rng(env.seedNum + 7), amp);
     ctx.clip();
 
     /* the sheet the picture is printed on */
     ctx.fillStyle = stock;
-    ctx.fillRect(-4, -4, w + 8, tearY + u(30));
+    ctx.fillRect(-4, -4, plate.w + 8, plate.h + 8);
 
     if (env.hasPhoto) {
       env.drawPhoto(plate, stock);
     } else {
-      ctx.fillStyle = U.mix(pal.duo[0], stock, 0.25);
+      /* mostly stock, faintly inked — mixed the other way round the empty
+         sheet came out nearly black, which is the very thing the stock is
+         there to prevent */
+      ctx.fillStyle = U.mix(stock, pal.duo[0], 0.16);
       ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
-      P.wash(ctx, w * 0.35, tearY * 0.45, env.S * 0.8, pal.soft[0], 0.5 * st.washStrength);
-      P.wash(ctx, w * 0.78, tearY * 0.7, env.S * 0.6, pal.soft[1] || pal.soft[0], 0.4 * st.washStrength);
+      P.wash(ctx, plate.w * 0.35, plate.h * 0.45, env.S * 0.8, pal.soft[0], 0.5 * st.washStrength);
+      P.wash(ctx, plate.w * 0.78, plate.h * 0.7, env.S * 0.6, pal.soft[1] || pal.soft[0], 0.4 * st.washStrength);
     }
     /* scrim so the pasted scraps sit on something calm — pitched against
        the stock, not the page, or a dark palette lays black over a light
        photograph and pulls it back into the murk */
     if (st.scrim > 0.01) {
-      var g = ctx.createLinearGradient(0, 0, 0, tearY);
+      var g = vertical
+        ? ctx.createLinearGradient(0, 0, tearAt, 0)
+        : ctx.createLinearGradient(0, 0, 0, tearAt);
       var sc = U.luma(stock) < 0.5 ? '#101018' : '#ffffff';
       g.addColorStop(0, U.rgba(sc, st.scrim * 0.5));
       g.addColorStop(0.5, U.rgba(sc, 0));
       g.addColorStop(1, U.rgba(sc, st.scrim * 0.4));
       ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, tearY);
+      ctx.fillRect(0, 0, plate.w, plate.h);
     }
     ctx.restore();
 
@@ -135,49 +152,50 @@
     ctx.save();
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = '#000';
-    ctx.beginPath();
-    var r2 = U.rng(env.seedNum + 7);
-    ctx.moveTo(-4, tearY + u(10));
-    for (var j = 0; j <= 44; j++) {
-      var xx = (j / 44) * (w + 8) - 4;
-      ctx.lineTo(xx, tearY + u(10) + (r2() - 0.5) * u(24) * (r2() > 0.86 ? 2.2 : 1));
-    }
-    ctx.lineTo(w + 4, tearY + u(26));
-    ctx.lineTo(-4, tearY + u(26));
-    ctx.closePath();
-    ctx.fill();
+    /* The band *between* the tear and a copy of it shifted along: two
+       paths from the same seed jag identically, so an even-odd fill of
+       both leaves a shadow of even thickness hugging the edge — and none
+       of it lands on the photograph. */
+    var off = u(16);
+    tornPath(ctx, w, h, tearAt + off, vertical, U.rng(env.seedNum + 7), amp);
+    tornPath(ctx, w, h, tearAt, vertical, U.rng(env.seedNum + 7), amp, true);
+    ctx.fill('evenodd');
     ctx.restore();
 
     /* ---- lyric scraps pasted on the photo ---- */
     var frags = scraps(c.caption, env.micro ? 0 : wide ? 5 : 4);
     /* spread across the corners of the photo, well clear of each other */
     var top = env.band.top / h;
-    /* on a wide canvas the spots are fractions of the photo band, not of
-       the page — pinned to the page they slid off the picture and pasted
-       themselves onto the paper below the tear */
-    var spots = wide
-      ? [[0.16, 0.22, -2], [0.84, 0.3, 2], [0.18, 0.86, 1.5], [0.84, 0.78, -1.5], [0.5, 0.55, 1]]
-          .map(function (s) { return [s[0], (tearY / h) * s[1], s[2]]; })
+    /* spots are fractions of the photograph, never of the page — pinned to
+       the page they slid off the picture onto the paper beside the tear */
+    var spots = vertical
+      ? [[0.3, 0.16, -2], [0.66, 0.34, 2], [0.26, 0.56, 1.6], [0.62, 0.76, -1.6], [0.34, 0.92, 1]]
+          .map(function (s) { return [(tearAt / w) * s[0], s[1], s[2]]; })
       : [[0.27, top + 0.02, -2], [0.74, top + 0.11, 2],
-         [0.24, tearY / h - 0.14, 1.6], [0.75, tearY / h - 0.05, -1.6]];
+         [0.24, tearAt / h - 0.14, 1.6], [0.75, tearAt / h - 0.05, -1.6]];
+    /* every other scrap is torn off a strip of coloured tape — the page,
+       the photograph and the script are all one hue by construction, so
+       this is where the palette's accent gets to exist */
     frags.forEach(function (f, i) {
       if (i >= spots.length) return;
       var sp = spots[i];
+      var tape = i % 2 === 1;
       chip(env, f, w * sp[0], h * sp[1], {
         size: mic * 1.18, font: st.bodyFont, rot: sp[2],
-        paper: pal.base, ink: accent
+        paper: tape ? hot : pal.base, ink: tape ? U.onColor(hot) : accent
       });
     });
 
-    /* ---- the script headline owns the paper below ---- */
+    /* ---- the script headline owns whatever paper the tear left ---- */
     var footRail = env.micro ? 0 : mic * 2.6;
-    var hlBox = {
-      x: u(44),
-      y: tearY + u(60),
-      w: w - u(88)
-    };
-    var hlMaxH = h - m0() - hlBox.y;
-    function m0() { return footRail + u(50); }
+    /* the paper: below a horizontal tear, beside a vertical one */
+    var pap = vertical
+      ? { x: tearAt + u(54), y: env.band.top, w: w - tearAt - u(108), h: env.band.bottom - env.band.top }
+      : { x: u(44), y: tearAt + u(30), w: w - u(88), h: h - footRail - u(70) - tearAt };
+    var chipY = pap.y + pap.h + mic * 0.6;
+
+    var hlBox = { x: pap.x, y: pap.y, w: pap.w };
+    var hlMaxH = pap.h - (vertical ? mic * 3.4 : mic * 2.6);
 
     var txt = PO.headlineText(env);
     /* every line in script — the reference sets the whole phrase that way */
@@ -186,27 +204,33 @@
       align: 'center', color: accent, maxH: hlMaxH, measure: true
     });
     /* centre the lockup in the paper area */
-    hlBox.y = tearY + u(30) + Math.max(0, (h - footRail - u(40) - (tearY + u(30)) - hl.h) * 0.44);
+    hlBox.y = pap.y + Math.max(0, (hlMaxH - hl.h) * (vertical ? 0.4 : 0.44));
     PO.headline(env, hlBox, {
       style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
       align: 'center', color: accent, maxH: hlMaxH
     });
 
     /* small pasted chips punctuating the script, like "in" "my" */
+    var chipRow = Math.min(hlBox.y + hl.h + mic * 2.2, chipY - mic * 1.4);
+    var cxA = vertical ? pap.x + pap.w * 0.28 : w * 0.27;
+    var cxB = vertical ? pap.x + pap.w * 0.74 : w * 0.73;
     if (!env.micro && st.showNames && c.names) {
-      chip(env, c.names, w * 0.27, hlBox.y + hl.h + mic * 2.2, {
-        size: mic * 1.1, font: st.bodyFont, rot: -1.5, paper: pal.base, ink: accent
+      chip(env, c.names, cxA, chipRow, {
+        size: mic * 1.1, font: st.bodyFont, rot: -1.5, paper: hot, ink: U.onColor(hot)
       });
     }
     if (!env.micro && c.footnote) {
-      chip(env, c.footnote, w * 0.73, hlBox.y + hl.h + mic * 2.2, {
+      chip(env, c.footnote, cxB, chipRow, {
         size: mic * 1.1, font: st.bodyFont, rot: 1.5, paper: pal.base, ink: accent
       });
     }
 
     /* ---- foot rail ---- */
     if (!env.micro) {
-      PO.tagRail(env, h - u(40), { size: mic * 0.86, alpha: 0.55 });
+      PO.tagRail(env, h - u(40), {
+        size: mic * 0.86, alpha: 0.55,
+        m: vertical ? { left: pap.x, right: w - pap.x - pap.w, inner: pap.w } : null
+      });
     }
   }
 

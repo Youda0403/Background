@@ -24,6 +24,31 @@
     }
   }
 
+  /* A sheet of paper laid *on* the page — a torn photograph, a pasted
+     card, a dictionary column. On a light palette it is the page colour
+     and nothing looks different; on a dark one it stays light, because a
+     dark panel on a dark page is not a piece of paper, it is a hole you
+     cannot see. Returns the stock and an ink that reads on it. */
+  function stock(pal) {
+    var dark = U.luma(pal.base) < 0.42;
+    if (!dark) return { paper: pal.base, ink: pal.text, sub: pal.text };
+    var sheet = U.luma(pal.duo[1]) > 0.62 ? pal.duo[1] : U.mix(pal.base, '#f2efe6', 0.86);
+    /* the darkest thing in the palette that is not the page itself */
+    var ink = U.luma(pal.duo[0]) < 0.5 ? pal.duo[0] : pal.base;
+    return { paper: sheet, ink: ink, sub: U.mix(ink, sheet, 0.35) };
+  }
+
+  /* The accent, guaranteed to read on a given background. A dark palette
+     picks a light accent so it carries on the page — but Column prints it
+     on a light card, where that same colour disappears. Deepen it and
+     keep the hue rather than reaching for a different colour. */
+  function accentOn(pal, bg) {
+    var a = pal.accent || pal.inks[0];
+    var lb = U.luma(bg);
+    if (Math.abs(U.luma(a) - lb) >= 0.3) return a;
+    return U.mix(a, lb > 0.5 ? '#141412' : '#ffffff', 0.5);
+  }
+
   /* ---------- geometry ---------- */
 
   /* The classic poster margin. The top starts at the keep-out band rather
@@ -416,14 +441,17 @@
     ctx.fillStyle = opts.color || env.pal.text;
     ctx.globalAlpha = (opts.alpha == null ? 0.62 : opts.alpha);
     size = T.fit(ctx, joined, 'dmmono', size, m.inner, 0.12, {});
+    /* centre on the measure, not on the canvas — they are the same thing
+       for the default margins, but a layout that hands over half a page
+       (Lyric on a wide canvas) needs the rail under that half */
     T.draw(ctx, joined, opts.align === 'left' ? m.left
-      : opts.align === 'right' ? env.w - m.right : env.w / 2, y,
+      : opts.align === 'right' ? env.w - m.right : m.left + m.inner / 2, y,
       { align: opts.align || 'center', tracking: size * 0.12 });
     ctx.restore();
   }
 
   W.poster = {
-    paper: paper, margins: margins, frame: frame, corners: corners,
+    paper: paper, stock: stock, accentOn: accentOn, margins: margins, frame: frame, corners: corners,
     micro: micro, rail: rail, block: block, sideLabel: sideLabel,
     headlineText: headlineText, headline: headline,
     accents: accents, tagRail: tagRail
