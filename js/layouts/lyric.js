@@ -196,7 +196,7 @@
     label: 'Lyric',
     blurb: '찢어 붙인 사진 + 아래를 꽉 채우는 필기체 가사.',
     defaults: {
-      titleFont: 'playfair', scriptFont: 'birthstone', bodyFont: 'spacegrotesk',
+      titleFont: 'birthstone', scriptFont: 'playball', bodyFont: 'spacegrotesk',
       headlineStyle: 'capsScript',
       photoShape: 'rect', tone: 'halftone', halftoneCells: 78,
       feather: 0, bleed: false, burst: false, scrim: 0.24,

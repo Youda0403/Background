@@ -136,9 +136,9 @@
     label: 'Aura',
     blurb: '뿌연 빛무리 + 부드러운 사진창. 제일 은은해요.',
     defaults: {
-      titleFont: 'instrument', scriptFont: 'birthstone', bodyFont: 'dmmono',
+      titleFont: 'instrument', scriptFont: 'gwendolyn', bodyFont: 'dmmono',
       headlineStyle: 'stack',
-      photoShape: 'circle', tone: 'wash', toneAmount: 0.8,
+      photoShape: 'circle', tone: 'wash', toneAmount: 0.55,
       feather: 0.38, auraShape: 'heart',
       motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
     },

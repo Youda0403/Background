@@ -180,7 +180,7 @@
     label: 'Grid',
     blurb: '글자를 격자 칸에 채운 타이포 포스터. 일코 최강.',
     defaults: {
-      titleFont: 'spacegrotesk', scriptFont: 'parisienne', bodyFont: 'spacegrotesk',
+      titleFont: 'spacegrotesk', scriptFont: 'playball', bodyFont: 'spacegrotesk',
       headlineStyle: 'stack',
       photoShape: 'rect', tone: 'mono', toneAmount: 1,
       feather: 0, motifs: ['sparkle'],

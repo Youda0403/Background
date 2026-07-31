@@ -54,7 +54,7 @@
     showTags: true,
 
     titleFont: 'cormorant',
-    scriptFont: 'italianno',
+    scriptFont: 'petitformal',
     bodyFont: 'dmmono',
 
     /* photo */
@@ -77,10 +77,10 @@
   };
 
   var HEADLINE_STYLES = [
-    { id: 'scriptSans', label: '필기체 + 굵은 고딕' },
-    { id: 'capsScript', label: '작은 대문자 + 큰 필기체' },
-    { id: 'didone', label: '전부 대문자 세리프' },
-    { id: 'stack', label: '같은 폰트로 두 줄' }
+    { id: 'stack', label: '그대로' },
+    { id: 'capsScript', label: '위에 이름 한 줄 얹기' },
+    { id: 'didone', label: '전부 대문자' },
+    { id: 'scriptSans', label: '첫 줄만 다른 폰트' }
   ];
 
   var TONES = [

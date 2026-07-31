@@ -117,13 +117,24 @@ Matcha · Peach Fizz · Butter Note · Charcoal
 Colour only: `base`, `soft`, `inks`, the `duo` ramp photos are toned into,
 `text`, and how much `grain` the stock carries.
 
+Halftone prints in a single ink, so it picks whichever end of the `duo` ramp
+contrasts with `base` — otherwise a dark palette printed a dark photo onto dark
+paper and the picture disappeared. All 6 × 21 combinations are audited for
+flatness and for whether the photo actually reads.
+
 ## Fonts
 
 Serifs (Bodoni Moda, Playfair Display, DM Serif Display, Instrument Serif,
-Cormorant, Fraunces, Young Serif), scripts (Birthstone, Mrs Saint Delafield,
-Parisienne, Italianno, Sacramento, Yellowtail), grotesques (Space Grotesk,
-Familjen Grotesk, Bricolage Grotesque, Syne), one fat display (Bagel Fat One)
-and monos (DM Mono, Space Mono) — from Google Fonts with system fallbacks.
+Cormorant, Fraunces, Young Serif), scripts — upright (Playball, Petit Formal
+Script, Gwendolyn) and slanted (Birthstone, Mrs Saint Delafield, Parisienne,
+Italianno, Sacramento, Yellowtail), grotesques (Space Grotesk, Familjen
+Grotesk, Bricolage Grotesque, Syne), one fat display (Bagel Fat One) and monos
+(DM Mono, Space Mono) — from Google Fonts with system fallbacks.
+
+**The title font always sets the biggest line**, in every headline style. It
+used to be bypassed whenever the style called for a script, so changing it
+appeared to do nothing. Only the "first line differs" style reaches for a
+second face, and its control appears only then.
 
 ---
 

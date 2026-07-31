@@ -167,7 +167,7 @@
     palette: '색 조합이에요. 배경, 장식, 사진 보정 색이 전부 여기서 나와요. 글꼴은 건드리지 않으니 마음껏 바꿔봐도 돼요.',
     subtlety: '올릴수록 제목이 작아지고 장식이 옅어져요. 최대로 올리면 그냥 전시 포스터처럼 보여서 밖에서 열어도 티가 안 나요.',
     pairName: '엔터를 치면 그 자리에서 줄이 바뀌어요. 두 줄로 나누면 첫 줄은 필기체, 둘째 줄은 굵은 글씨처럼 서로 다른 폰트로 짜여요.',
-    headlineStyle: '제목 두 줄을 어떤 폰트 조합으로 짤지 정해요.',
+    headlineStyle: '페어명 두 줄을 어떻게 배치할지 정해요. 폰트는 아래에서 따로 고르면 돼요.',
     headlineScale: '제목 글자 크기. 레이아웃이 여백에 맞춰주니까 키워도 안 넘쳐요.',
     microScale: '작은 글자(캡션·날짜·태그) 크기를 한 번에 조절해요.',
     tone: '사진을 어떤 인쇄 방식으로 바꿀지 정해요.\n· 원본: 그대로\n· 빛바램: 원래 색은 살리고 종이 색으로 바래게\n· 듀오톤: 색을 버리고 팔레트 두 색으로만 다시 칠하기\n· 흑백\n· 망점: 신문처럼 점으로 인쇄\n빛바램은 「원본에 가깝게」, 듀오톤은 「완전히 그림처럼」이에요.',
@@ -196,7 +196,10 @@
     burst: '제목 뒤에 가시 모양 별을 크게 깔아요.',
     sideLabel: '오른쪽 세로 방향으로 작은 글자를 넣어요.',
     batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.',
-    fonts: '팔레트가 알아서 어울리는 폰트를 골라줘요. 직접 바꾸고 싶을 때만 건드리면 돼요.'
+    titleFontHelp: '페어명(가장 큰 글자)에 쓰이는 폰트예요. 필기체를 고르면 제목 전체가 필기체가 돼요.',
+    firstLineFont: '「첫 줄만 다른 폰트」를 골랐을 때, 첫 줄에만 쓰이는 폰트예요.',
+    bodyFontHelp: '캡션·날짜·태그 같은 작은 글자 전부에 쓰여요.',
+    fonts: '레이아웃마다 어울리는 폰트가 기본으로 정해져 있어요. 바꾸고 싶을 때만 건드리면 돼요.'
   };
 
   function spec() {
@@ -333,7 +336,7 @@
               if (on && photoNameEl) photoNameEl.textContent = W.photo.state.name;
             }
           },
-          { t: 'chips', key: 'tone', label: '인쇄 방식', help: HELP.tone, options: idLabel(S.tones), when: W.photo.has },
+          { t: 'chips', key: 'tone', label: '사진 인쇄 방식', help: HELP.tone, options: idLabel(S.tones), when: W.photo.has },
           { t: 'slider', key: 'toneAmount', label: '적용 강도', min: 0, max: 1, step: 0.01, help: HELP.toneAmount, when: function (s) { return W.photo.has() && /duo|wash/.test(s.tone); } },
           { t: 'slider', key: 'halftoneCells', label: '망점 촘촘함', min: 14, max: 130, step: 1, fmt: function (v) { return Math.round(v); }, help: HELP.halftoneCells, when: function (s) { return W.photo.has() && s.tone === 'halftone'; } },
           { t: 'cards', key: 'photoShape', label: '사진 모양', help: HELP.photoShape, options: idLabel(W.frames.shapes), grid: 'palGrid', when: function (s) { return W.photo.has() && s.layout === 'aura'; } },
@@ -347,38 +350,27 @@
         ]
       },
       {
-        title: '더 만지기', hint: '글자 · 장식 · 질감', open: false,
+        title: '글자 다듬기', hint: '폰트 · 크기', open: false,
         items: [
-          { t: 'chips', key: 'headlineStyle', label: '제목 조합', help: HELP.headlineStyle, options: idLabel(S.headlineStyles) },
+          { t: 'chips', key: 'headlineStyle', label: '페어명 배치', help: HELP.headlineStyle, options: idLabel(S.headlineStyles) },
+          { t: 'select', key: 'titleFont', label: '페어명 폰트', help: HELP.titleFontHelp, options: fontOptions },
+          { t: 'select', key: 'scriptFont', label: '첫 줄 폰트', help: HELP.firstLineFont, options: fontOptions, when: function (s) { return s.headlineStyle === 'scriptSans'; } },
+          { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', help: HELP.bodyFontHelp, options: fontOptions },
+          { t: 'note', text: '「(반듯)」이 붙은 필기체는 기울지 않고 똑바로 서 있어서 제목으로 쓰기 좋아요.' },
           {
             t: 'row', items: [
-              { t: 'slider', key: 'headlineScale', label: '제목 크기', min: 0.6, max: 1.35, step: 0.01, help: HELP.headlineScale },
+              { t: 'slider', key: 'headlineScale', label: '페어명 크기', min: 0.6, max: 1.35, step: 0.01, help: HELP.headlineScale },
               { t: 'slider', key: 'microScale', label: '작은 글자 크기', min: 0.7, max: 1.6, step: 0.01, help: HELP.microScale }
             ]
-          },
-          {
-            t: 'row', items: [
-              { t: 'select', key: 'titleFont', label: '제목 폰트', options: fontOptions, help: HELP.fonts },
-              { t: 'select', key: 'scriptFont', label: '필기체', options: scriptFontOptions, when: function (s) { return /script|caps/i.test(s.headlineStyle); } }
-            ]
-          },
-          { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', options: fontOptions },
+          }
+        ]
+      },
+      {
+        title: '장식 다듬기', hint: '개수 · 모양', open: false,
+        items: [
           { t: 'slider', key: 'decoCount', label: '장식 개수', min: 0, max: 20, step: 1, help: HELP.decoCount, fmt: function (v) { return Math.round(v) + '개'; } },
           { t: 'chips', key: 'motifs', label: '모티프', help: HELP.motifs, options: idLabel(S.motifKinds), multi: true },
           { t: 'toggle', key: 'glitter', label: '별에 은박 반짝임', help: HELP.glitter },
-          {
-            t: 'row', items: [
-              { t: 'slider', key: 'grain', label: '거친 입자', min: 0, max: 3, step: 0.01, help: HELP.grain },
-              { t: 'slider', key: 'vignette', label: '가장자리 어둡게', min: 0, max: 0.5, step: 0.01, help: HELP.vignette }
-            ]
-          },
-          { t: 'slider', key: 'washStrength', label: '색 번짐', min: 0, max: 1.6, step: 0.01, help: HELP.washStrength },
-          { t: 'toggle', key: 'bleed', label: '사진 꽉 채우기', help: HELP.bleed, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'slider', key: 'scrim', label: '글자 뒤 어둡게', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'toggle', key: 'burst', label: '제목 뒤 가시별', help: HELP.burst, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
-          { t: 'toggle', key: 'sideLabel', label: '세로 측면 글자', help: HELP.sideLabel, when: function (s) { return s.layout === 'editorial'; } },
-          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } },
           {
             t: 'custom',
             render: function () {
@@ -404,7 +396,21 @@
               return wrap;
             },
             update: function (s, node) { node._v.textContent = 'seed ' + s.seed; }
-          }
+          },
+          { t: 'note', text: '아래는 지금 고른 레이아웃에만 있는 옵션이에요.', when: function (s) { return /lyric|zine|editorial|aura/.test(s.layout); } },
+          { t: 'toggle', key: 'burst', label: '제목 뒤 가시별', help: HELP.burst, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'slider', key: 'scrim', label: '사진 위 그늘', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
+          { t: 'toggle', key: 'sideLabel', label: '세로 측면 글자', help: HELP.sideLabel, when: function (s) { return s.layout === 'editorial'; } },
+          { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } }
+        ]
+      },
+      {
+        title: '질감 다듬기', hint: '입자 · 명암', open: false,
+        items: [
+          { t: 'slider', key: 'grain', label: '거친 입자', min: 0, max: 3, step: 0.01, help: HELP.grain },
+          { t: 'slider', key: 'vignette', label: '가장자리 어둡게', min: 0, max: 0.5, step: 0.01, help: HELP.vignette },
+          { t: 'slider', key: 'washStrength', label: '색 번짐', min: 0, max: 1.6, step: 0.01, help: HELP.washStrength }
         ]
       },
       {

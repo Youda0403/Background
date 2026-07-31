@@ -27,6 +27,12 @@
   }
 
   function photoOpts(st, pal) {
+    /* Halftone prints in ONE ink. On a dark palette the dark end of the
+       duo ramp is invisible against the page, which made the photo vanish
+       entirely — pick whichever end actually contrasts with the paper. */
+    var baseL = U.luma(pal.base);
+    var ink = Math.abs(U.luma(pal.duo[0]) - baseL) >= Math.abs(U.luma(pal.duo[1]) - baseL)
+      ? pal.duo[0] : pal.duo[1];
     return {
       tone: st.tone,
       toneAmount: U.clamp(st.toneAmount, 0, 1),
@@ -36,7 +42,7 @@
       blur: st.blur,
       duoDark: pal.duo[0],
       duoLight: pal.duo[1],
-      inkColor: pal.duo[0],
+      inkColor: ink,
       feather: st.feather,
       opacity: st.opacity,
       blend: st.blend,

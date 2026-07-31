@@ -16,6 +16,9 @@
     { id: 'fraunces', label: 'Fraunces', group: '세리프', stack: '"Fraunces", Georgia, serif', big: 0.98 },
     { id: 'youngserif', label: 'Young Serif', group: '세리프', stack: '"Young Serif", Georgia, serif', big: 0.94 },
 
+    { id: 'playball', label: 'Playball (반듯)', group: '필기체', stack: '"Playball", "Snell Roundhand", cursive', big: 1.1, scriptish: true, upright: true },
+    { id: 'petitformal', label: 'Petit Formal (반듯)', group: '필기체', stack: '"Petit Formal Script", "Snell Roundhand", cursive', big: 1.25, scriptish: true, upright: true },
+    { id: 'gwendolyn', label: 'Gwendolyn (반듯)', group: '필기체', stack: '"Gwendolyn", "Snell Roundhand", cursive', big: 1.5, scriptish: true, upright: true },
     { id: 'birthstone', label: 'Birthstone', group: '필기체', stack: '"Birthstone", "Snell Roundhand", cursive', big: 1.45, scriptish: true },
     { id: 'delafield', label: 'Mrs Saint Delafield', group: '필기체', stack: '"Mrs Saint Delafield", "Snell Roundhand", cursive', big: 1.55, scriptish: true },
     { id: 'parisienne', label: 'Parisienne', group: '필기체', stack: '"Parisienne", "Snell Roundhand", cursive', big: 1.3, scriptish: true },

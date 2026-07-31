@@ -213,9 +213,16 @@
     var style = opts.style || st.headlineStyle || 'scriptSans';
     var em = U.lerp(0.72, 1, env.emphasis) * (st.headlineScale || 1);
 
-    /* eyebrow: a small tracked caps line above the display lines */
+    /* The title font always sets the biggest line, in every style. It used
+       to be bypassed by the script styles, so changing "제목 폰트" appeared
+       to do nothing — the single most confusing thing in the panel. */
     var small = { font: st.bodyFont, weight: 500, kase: 'upper', track: 0.2, w: 0.42, small: true };
-    var scriptSpec = { font: st.scriptFont, weight: 400, kase: 'none', track: 0, w: 0.94, script: true };
+    var bigSpec = {
+      font: st.titleFont, weight: 400, kase: 'none', track: 0,
+      w: T.isScript(st.titleFont) ? 0.94 : 1, script: T.isScript(st.titleFont)
+    };
+    /* only the "first line differs" style reaches for a second face */
+    var firstSpec = { font: st.scriptFont, weight: 400, kase: 'none', track: 0, w: 0.94, script: true };
     /* the sans line takes a little less measure so the script stays the
        hero of the pairing rather than the two fighting for the width */
     var sansSpec = { font: st.titleFont, weight: opts.l2Weight || 500, kase: 'none', track: 0, w: 0.84 };
@@ -225,14 +232,14 @@
     var lines = [];
     if (style === 'capsScript') {
       if (txt.eyebrow && opts.eyebrow !== false) lines.push({ text: txt.eyebrow, s: small });
-      body.forEach(function (t) { lines.push({ text: t, s: scriptSpec }); });
+      body.forEach(function (t) { lines.push({ text: t, s: bigSpec }); });
     } else if (style === 'didone') {
       body.forEach(function (t) { lines.push({ text: t, s: serifSpec }); });
     } else if (style === 'stack') {
       body.forEach(function (t) { lines.push({ text: t, s: plainSpec }); });
-    } else { /* scriptSans — script first, then a heavier sans */
+    } else { /* scriptSans — the first line in a second face, then the title font */
       body.forEach(function (t, i) {
-        lines.push({ text: t, s: i === 0 && body.length > 1 ? scriptSpec : sansSpec });
+        lines.push({ text: t, s: i === 0 && body.length > 1 ? firstSpec : sansSpec });
       });
     }
 

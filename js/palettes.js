@@ -204,6 +204,16 @@
       grain: 0.09
     },
     {
+      id: 'inkwell',
+      label: 'Inkwell',
+      base: '#eceae4',
+      soft: ['#c8c6bd', '#dcd9d0', '#b3b0a6'],
+      inks: ['#26303a', '#4a5560', '#c9cdd2', '#8a6f52'],
+      duo: ['#1d252e', '#f0eee8'],
+      text: '#26303a',
+      grain: 0.1
+    },
+    {
       id: 'charcoal',
       label: 'Charcoal',
       base: '#1c1c1a',
