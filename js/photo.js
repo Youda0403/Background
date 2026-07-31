@@ -149,7 +149,13 @@
 
   /* ---------- halftone ---------- */
 
-  function halftone(src, outW, outH, cell, ink, angle, contrast, ox, oy, zoom) {
+  /* `invert` flips which end of the tonal range gets ink. A halftone lays
+     ink where the picture is dark — correct while the ink is darker than
+     the stock. Print light ink on dark stock and that rule produces a
+     negative: the sun comes out as a hole and the shadows as solid light.
+     So when the ink is the lighter of the two, coverage follows brightness
+     instead. */
+  function halftone(src, outW, outH, cell, ink, angle, contrast, ox, oy, zoom, invert) {
     outW = Math.max(1, Math.round(outW));
     outH = Math.max(1, Math.round(outH));
     var out = document.createElement('canvas');
@@ -184,8 +190,9 @@
         var x = cx + lx * cos - ly * sin;
         var y = cy + lx * sin + ly * cos;
         if (x < -cell || y < -cell || x > outW + cell || y > outH + cell) continue;
-        var dark = 1 - lumAt(x, y);
-        var r = (cell * 0.72) * Math.sqrt(dark);
+        var l = lumAt(x, y);
+        var cov = invert ? l : 1 - l;
+        var r = (cell * 0.72) * Math.sqrt(cov);
         if (r < cell * 0.05) continue;
         g.beginPath();
         g.arc(x, y, r, 0, P.TAU);
@@ -218,7 +225,7 @@
     if (o.tone === 'halftone') {
       var cell = Math.max(2, (Math.min(w, h) / U.clamp(o.halftoneCells, 12, 140)));
       body = halftone(src, w, h, cell, o.inkColor || palette.duo[0], -0.26,
-        1.05 + o.contrast * 0.1, o.ox, o.oy, o.zoom);
+        1.05 + o.contrast * 0.1, o.ox, o.oy, o.zoom, o.halftoneInvert);
     } else {
       body = P.masked(w, h, function (g, cw, ch) {
         drawCover(g, src, 0, 0, cw, ch, o.ox, o.oy, o.zoom);

@@ -67,6 +67,17 @@
     var wide = env.tier === 'wide';
     var accent = pal.inks[0];
 
+    /* The photograph is a torn-off piece of *printed paper*, not a window
+       cut into the page — so it carries its own stock. On a light palette
+       that stock is the page itself and nothing changes. On a dark one it
+       stays light, which is what makes the tear read at all: a dark
+       picture printed onto a dark page is a black rectangle above black
+       paper, and the whole top half of the wallpaper disappears. */
+    var darkPage = U.luma(pal.base) < 0.42;
+    var stock = darkPage
+      ? (U.luma(pal.duo[1]) > 0.62 ? pal.duo[1] : U.mix(pal.base, '#f2efe6', 0.86))
+      : pal.base;
+
     /* ---- paper ---- */
     ctx.fillStyle = pal.base;
     ctx.fillRect(0, 0, w, h);
@@ -94,18 +105,24 @@
     ctx.closePath();
     ctx.clip();
 
+    /* the sheet the picture is printed on */
+    ctx.fillStyle = stock;
+    ctx.fillRect(-4, -4, w + 8, tearY + u(30));
+
     if (env.hasPhoto) {
-      env.drawPhoto(plate);
+      env.drawPhoto(plate, stock);
     } else {
-      ctx.fillStyle = U.mix(pal.duo[0], pal.base, 0.25);
+      ctx.fillStyle = U.mix(pal.duo[0], stock, 0.25);
       ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
       P.wash(ctx, w * 0.35, tearY * 0.45, env.S * 0.8, pal.soft[0], 0.5 * st.washStrength);
       P.wash(ctx, w * 0.78, tearY * 0.7, env.S * 0.6, pal.soft[1] || pal.soft[0], 0.4 * st.washStrength);
     }
-    /* scrim so the pasted scraps sit on something calm */
+    /* scrim so the pasted scraps sit on something calm — pitched against
+       the stock, not the page, or a dark palette lays black over a light
+       photograph and pulls it back into the murk */
     if (st.scrim > 0.01) {
       var g = ctx.createLinearGradient(0, 0, 0, tearY);
-      var sc = U.luma(pal.duo[0]) < 0.5 ? '#101018' : '#ffffff';
+      var sc = U.luma(stock) < 0.5 ? '#101018' : '#ffffff';
       g.addColorStop(0, U.rgba(sc, st.scrim * 0.5));
       g.addColorStop(0.5, U.rgba(sc, 0));
       g.addColorStop(1, U.rgba(sc, st.scrim * 0.4));
@@ -132,12 +149,15 @@
     ctx.restore();
 
     /* ---- lyric scraps pasted on the photo ---- */
-    var onPhoto = U.luma(pal.duo[0]) < 0.5 ? '#ffffff' : pal.base;
     var frags = scraps(c.caption, env.micro ? 0 : wide ? 5 : 4);
     /* spread across the corners of the photo, well clear of each other */
     var top = env.band.top / h;
+    /* on a wide canvas the spots are fractions of the photo band, not of
+       the page — pinned to the page they slid off the picture and pasted
+       themselves onto the paper below the tear */
     var spots = wide
-      ? [[0.16, 0.16, -2], [0.84, 0.2, 2], [0.18, 0.72, 1.5], [0.84, 0.68, -1.5], [0.5, 0.44, 1]]
+      ? [[0.16, 0.22, -2], [0.84, 0.3, 2], [0.18, 0.86, 1.5], [0.84, 0.78, -1.5], [0.5, 0.55, 1]]
+          .map(function (s) { return [s[0], (tearY / h) * s[1], s[2]]; })
       : [[0.27, top + 0.02, -2], [0.74, top + 0.11, 2],
          [0.24, tearY / h - 0.14, 1.6], [0.75, tearY / h - 0.05, -1.6]];
     frags.forEach(function (f, i) {

@@ -54,10 +54,14 @@
 
     /* ---- halftone plate, with a spine rail on its left ---- */
     var railW = wide || env.micro ? 0 : mic * 3.4;
+    /* the release line runs up the right edge, so it gets a column of its
+       own — printed over the plate it vanished on any palette whose text
+       colour matched the ink the photo was screened in */
+    var dateW = (c.footnote && !env.micro) ? mic * 2.2 : 0;
     var plateLeft = m.left + railW;
     var top = hl.bottom + u(46);
     var footH = mic * 6.4;
-    var plate = { x: plateLeft, y: top, w: w - m.right - plateLeft, h: h - m.bottom - footH - top };
+    var plate = { x: plateLeft, y: top, w: w - m.right - dateW - plateLeft, h: h - m.bottom - footH - top };
     /* a sleeve plate is never taller than a 4:5 portrait */
     if (plate.h > plate.w * 1.25) plate.h = plate.w * 1.25;
 
@@ -110,12 +114,12 @@
 
     /* ---- rotated release line up the right edge ---- */
     if (c.footnote && !env.micro) {
-      var rSize = Math.min(u(58), plate.h * 0.1);
+      var rSize = Math.min(u(58), plate.h * 0.1, dateW * 0.92);
       ctx.save();
       ctx.fillStyle = pal.text;
       ctx.globalAlpha = 0.95;
       T.setFont(ctx, st.titleFont, rSize, { weight: 600 });
-      ctx.translate(w - m.right - rSize * 0.35, plate.y + plate.h * 0.5);
+      ctx.translate(w - m.right - dateW * 0.5 + rSize * 0.34, plate.y + plate.h * 0.5);
       ctx.rotate(Math.PI / 2);
       T.draw(ctx, c.footnote, 0, 0, { align: 'center', tracking: rSize * 0.01 });
       ctx.restore();

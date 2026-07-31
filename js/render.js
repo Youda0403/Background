@@ -26,12 +26,13 @@
     return { w: w, h: h };
   }
 
-  function photoOpts(st, pal) {
-    /* Halftone prints in ONE ink. On a dark palette the dark end of the
-       duo ramp is invisible against the page, which made the photo vanish
-       entirely — pick whichever end actually contrasts with the paper. */
-    var baseL = U.luma(pal.base);
-    var ink = Math.abs(U.luma(pal.duo[0]) - baseL) >= Math.abs(U.luma(pal.duo[1]) - baseL)
+  function photoOpts(st, pal, paper) {
+    /* Halftone prints in ONE ink onto whatever stock is behind it — which
+       is the page for most layouts, but Lyric tears its photograph out of
+       a separate sheet. Pick whichever end of the duo ramp contrasts with
+       that stock, and tell the screen which way round it is printing. */
+    var paperL = U.luma(paper || pal.base);
+    var ink = Math.abs(U.luma(pal.duo[0]) - paperL) >= Math.abs(U.luma(pal.duo[1]) - paperL)
       ? pal.duo[0] : pal.duo[1];
     return {
       tone: st.tone,
@@ -43,6 +44,7 @@
       duoDark: pal.duo[0],
       duoLight: pal.duo[1],
       inkColor: ink,
+      halftoneInvert: U.luma(ink) > paperL,
       feather: st.feather,
       opacity: st.opacity,
       blend: st.blend,
@@ -95,8 +97,11 @@
 
     var shape = W.frames.make(st.photoShape, env.seedNum);
     var opts = photoOpts(st, pal);
-    env.drawPhoto = function (frame) {
-      W.photo.place(ctx, frame, shape, opts, pal);
+    /* A layout that prints its photo onto its own stock passes that colour
+       as `paper`, so the ink is chosen against the sheet the picture is
+       actually on rather than against the page behind it. */
+    env.drawPhoto = function (frame, paper) {
+      W.photo.place(ctx, frame, shape, paper ? photoOpts(st, pal, paper) : opts, pal);
     };
     return env;
   }

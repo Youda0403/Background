@@ -82,7 +82,7 @@ on the preview.
 **Two decisions, not three.** A design is a **layout** (where things sit, and
 which fonts suit that structure) and a **palette** (colour, and only colour).
 That is the whole model — there is no separate "look" concept, because
-6 layouts × 20 palettes is already 120 finished combinations. A palette never
+6 layouts × 21 palettes is already 126 finished combinations. A palette never
 touches the typography, so changing colour cannot undo a font you chose. The
 layouts own their own composition, so every remaining slider can nudge a design
 but cannot break it.
@@ -101,7 +101,7 @@ which stays local). State also persists in `localStorage`.
 | | |
 | --- | --- |
 | **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. |
-| **Lyric** | A torn photograph across the top, the caption cut into pasted paper scraps, and a huge script headline filling the paper below. |
+| **Lyric** | A torn photograph across the top, the caption cut into pasted paper scraps, and a huge script headline filling the paper below. The photograph is a piece of *printed paper*, so it carries its own stock — on a dark palette that stock stays light, and the tear reads instead of vanishing into the page. |
 | **Grid** | A crossword of highlighted cells spelling your words over a monochrome photo. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
 | **Aura** | Colour blooms and a feathered photo window. The soft one. |
@@ -112,15 +112,23 @@ which stays local). State also persists in `localStorage`.
 Star Milk · Green Wash · Sage Letter · Aura Heart · Dot Diary · Riso Blue ·
 Apple Silver · Jelly Tide · Cream Doodle · Soft Sheet · Ink & Blush ·
 Midnight Wish · Shampoo Blue · Crimson Letter · Terracotta · Lavender Haze ·
-Matcha · Peach Fizz · Butter Note · Charcoal
+Matcha · Peach Fizz · Butter Note · Inkwell · Charcoal
 
 Colour only: `base`, `soft`, `inks`, the `duo` ramp photos are toned into,
 `text`, and how much `grain` the stock carries.
 
 Halftone prints in a single ink, so it picks whichever end of the `duo` ramp
-contrasts with `base` — otherwise a dark palette printed a dark photo onto dark
-paper and the picture disappeared. All 6 × 21 combinations are audited for
-flatness and for whether the photo actually reads.
+contrasts with the stock it is printing on — otherwise a dark palette printed a
+dark photo onto dark paper and the picture disappeared. Choosing a light ink is
+only half of it: a halftone lays ink where the picture is *dark*, which reverses
+every tone the moment the ink is the lighter of the two, so coverage follows
+brightness instead when it is. Get that wrong and the sun comes out as a hole.
+
+All 6 × 21 combinations are audited three ways: for flatness, for how much
+loading a photo actually changes the pixels, and for **polarity** — the
+rendered photo region is correlated against the source photograph's own
+luminance, and negative correlation is a failure. The first two metrics both
+passed the reversed halftone, because a negative is neither flat nor invisible.
 
 ## Fonts
 
@@ -169,7 +177,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Seven things worth knowing before you edit
+### Eight things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -188,6 +196,13 @@ routine's *number* of random draws depends on the canvas's pixel size, every
 later motif shifts and the export stops matching the preview. `prim.speckle` and
 the zine barcode therefore derive a private rng from a single shared value, and
 particle counts come from size relative to the canvas, never from pixels.
+
+**Ink is chosen against the stock, not against the page.** Most layouts print
+the photo straight onto `pal.base`, but Lyric tears its photograph out of a
+separate sheet, so it passes that colour as `env.drawPhoto(frame, paper)` and
+the ink — and the halftone's polarity — are resolved against the sheet. Pitting
+a decision against `pal.base` when the pixels behind it are something else is
+how the top half of a dark-palette wallpaper went black.
 
 **Round with care.** Anything passed through `floor`/`round` must be derived
 from `env.nominalAr` (the target's true proportions) rather than the live canvas,
