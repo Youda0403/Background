@@ -450,10 +450,49 @@
     ctx.restore();
   }
 
+  /* The one thing a watch face must still say.
+
+     Every layout used to answer "too small" by drawing nothing but the
+     headline, so a Watch export lost the names, the date and the tags
+     outright. A layout may re-arrange its furniture when the canvas
+     changes shape; it may not stop carrying it. This packs whatever
+     exists onto a single fitted line at the foot. */
+  function microFoot(env, opts) {
+    opts = opts || {};
+    var ctx = env.ctx, c = env.content, st = env.st;
+    var m = opts.m || margins(env);
+    var parts = [];
+    if (st.showNames && c.names) parts.push(c.names);
+    else if (W.textstack.monogram(st)) parts.push(W.textstack.monogram(st));
+    if (c.footnote) parts.push(c.footnote);
+    if (st.showTags && c.tags.length) {
+      parts.push(c.tags.map(function (t) { return '(' + t.toLowerCase() + ')'; }).join(' '));
+    }
+    if (!parts.length) return 0;
+
+    var line = parts.join('  ·  ');
+    var size = opts.size || micro(env) * 0.62;
+    ctx.save();
+    ctx.fillStyle = opts.color || env.pal.text;
+    ctx.globalAlpha = opts.alpha == null ? 0.75 : opts.alpha;
+    /* shrink first, then drop the tail — never overflow, never truncate
+       mid-word if a smaller size would have fitted */
+    size = T.fit(ctx, line, 'dmmono', size, m.inner, 0.06, {});
+    while (parts.length > 1 && T.measure(ctx, line, size * 0.06) > m.inner) {
+      parts.pop();
+      line = parts.join('  ·  ');
+      size = T.fit(ctx, line, 'dmmono', opts.size || micro(env) * 0.62, m.inner, 0.06, {});
+    }
+    var y = opts.y == null ? env.h - Math.max(env.u(16), m.bottom * 0.34) : opts.y;
+    T.draw(ctx, line, m.left + m.inner / 2, y, { align: 'center', tracking: size * 0.06 });
+    ctx.restore();
+    return size;
+  }
+
   W.poster = {
     paper: paper, stock: stock, accentOn: accentOn, margins: margins, frame: frame, corners: corners,
     micro: micro, rail: rail, block: block, sideLabel: sideLabel,
     headlineText: headlineText, headline: headline,
-    accents: accents, tagRail: tagRail
+    accents: accents, tagRail: tagRail, microFoot: microFoot
   };
 })(window.PT = window.PT || {});

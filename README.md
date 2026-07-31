@@ -34,9 +34,12 @@ slightly different aspect ratio, which is enough to move a whole row of a grid.
 **One design, genuinely responsive.** Every dimension is expressed in per-mille
 of the canvas's short side, and composition is chosen by aspect-ratio tier —
 `tall`, `phone`, `tablet`, `square`, `wide`. A wide canvas splits into two
-columns instead of stacking; a Watch face drops the caption and enlarges the
-headline; a tablet gets a smaller photo relative to its width so the type still
-breathes. Content starts below the lock-screen clock band rather than halfway
+columns instead of stacking; a Watch face enlarges the headline and packs the
+names, date and tags onto one fitted foot line rather than dropping them; a
+tablet gets a smaller photo relative to its width so the type still breathes.
+All 6 × 36 presets × both orientations are audited automatically, with and
+without a photo — 432 renders — for content that goes missing, text drawn off
+the page, and strings colliding. Content starts below the lock-screen clock band rather than halfway
 into it, so nothing important ends up under the time.
 
 **Type that fills its measure.** Headlines are sized by binary search against
@@ -109,8 +112,8 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas puts the words in a left column and the photograph in a tall one beside them. |
-| **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a huge script headline filling the paper that is left. The photograph is a piece of *printed paper*, so it carries its own stock — on a dark palette that stock stays light, and the tear reads instead of vanishing into the page. A wide canvas tears down the side instead of across, because stacked, the script had a quarter of a desktop to fill and three quarters of empty paper under it. |
+| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. When the title is short the layout borrows the two names for extra lines — at roughly half the measure, because a name filling the measure exactly as hard as the pair name reads as two titles and the hierarchy the layout depends on disappears. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas puts the words in a left column and the photograph in a tall one beside them. |
+| **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a script headline set big enough to carry the paper it is torn onto. Three rules make it, and it was rebuilt around them: the script **straddles the tear** (type that starts tidily below the edge divides the page into two rectangles; type that climbs over it makes one page); the scraps are a **column, not a scatter** (four little boxes thrown about a photograph read as litter, aligned they read as a paste-up); and **the tear moves** — the lockup is measured first and the tear placed so the paper is exactly as tall as the type and its rule, with the picture taking everything else. A fixed tear line is what left the old version with a void under the headline. A wide canvas tears down the side instead of across. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
 | **Aura** | Colour blooms and a soft photo window. The gentle one — but the window keeps a hairline edge and only a light feather, because a faded photograph inside a wide soft aureole is the visual language of a memorial, not of a couple. A wide canvas gives the photograph and the whole type group one shared centreline. |
@@ -226,7 +229,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Ten things worth knowing before you edit
+### Twelve things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -258,11 +261,36 @@ from `env.nominalAr` (the target's true proportions) rather than the live canvas
 because a scaled preview's own aspect ratio differs slightly. `grid.js` computes
 its row count this way.
 
-**A watch face has room for one rail, not two.** Every layout is rendered at
-`wt-41`, `wt-45`, `wt-ultra` and both cover screens as part of review. Zine
-printed its credits and its tag rail on the same baseline, which is invisible
-at phone size and unreadable nonsense at 396px. `env.micro` is the switch, and
-using it is not optional.
+**Decisions come from the target, drawing comes from the canvas.** `env.u()`
+scales with the pixels being painted — that is the point of per-mille. But
+anything that *chooses a composition* must read the target's dimensions:
+`nominalAr`, and `micro`. Deciding `micro` from the canvas meant the coarse
+interactive preview drew a tall phone at 415px wide, concluded it was a watch
+face, and dropped the caption, the rails and the tags — then the settled
+full-resolution pass put them back.
+
+`micro` also looks at *both* dimensions. An X header is 1500 × 500: not a
+small screen, a wide one. Judged on its short side alone it came out as a
+watch face, which is why that preset was the most broken of the 36.
+
+**Nothing is ever silently dropped.** A layout may re-arrange its furniture
+when the canvas changes shape; it may not stop carrying it. `PO.microFoot`
+packs the names, the date and the tags onto one fitted line so a Watch export
+still says everything a phone one does. This is enforced, not remembered:
+`resp.js` renders all 6 layouts × 36 presets × both orientations, instruments
+`type.draw` and `photo.place`, and fails on any content field that appears at
+one size and vanishes at another — as well as on text drawn outside the canvas
+or crashing into other text. 432 renders, with and without a photo.
+
+Two things that audit taught the hard way: read boxes through
+`ctx.getTransform()`, because rails and spine labels are drawn inside
+`translate`+`rotate`; and take the ink height from
+`measureText().actualBoundingBoxAscent`, not from a fraction of the em, or
+every correctly seated script reads as hanging off the top of the page.
+
+**A watch face has room for one rail, not two.** Zine printed its credits and
+its tag rail on the same baseline, which is invisible at phone size and
+unreadable nonsense at 396px.
 
 **The top bar is sticky, so its height is permanent.** It used to wrap onto
 two rows on a phone — a brand line and a full-width row of buttons — costing

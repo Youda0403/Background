@@ -36,16 +36,27 @@
     var photoH = photoW;   /* the soft layout always frames a square */
     var hasPhoto = env.hasPhoto;
 
-    var capH = (c.caption && !env.micro) ? mic * 3.4 : 0;
-    /* the rails own the strip at the foot; the stack must not reach it */
-    var railBand = env.micro ? 0 : mic * 3.2;
+    /* Measured, not assumed. A fixed two-line allowance let a caption that
+       wrapped to three print straight through the tag rail on every
+       landscape tablet. */
+    var capW = m.inner * (wide ? 0.46 : 0.9);
+    var capH = (c.caption && !env.micro)
+      ? PO.block(env, 0, 0, capW, [c.caption], {
+        size: mic, lead: 1.5, measure: true, font: st.bodyFont
+      }) + mic * 1.1
+      : 0;
+    /* The rails own the strip at the foot and the stack must not reach it.
+       Two lines of rail plus the tag rail is 4.6 micro-units, not 3.2 —
+       under-reserving it let a wrapped caption print through the tags on
+       every landscape tablet. */
+    var railBand = env.micro ? 0 : mic * 4.8;
     var bandBottom = env.band.bottom - railBand;
     var avail = bandBottom - env.band.top;
 
     /* headline and photo share the band: the lockup may take at most a
        third of it, and whatever the stack still overflows comes out of
        the photo — type is never pushed into the rails */
-    var hlBox = { x: m.left, y: 0, w: m.inner * (wide ? 0.46 : 0.9) };
+    var hlBox = { x: m.left, y: 0, w: capW };
     var hlMaxH = avail * (wide ? 0.5 : 0.34);
     var hl = PO.headline(env, hlBox, { align: 'center', measure: true, style: st.headlineStyle, maxH: hlMaxH });
 
@@ -169,7 +180,9 @@
     });
 
     /* ---- rails ---- */
-    if (!env.micro) {
+    if (env.micro) {
+      PO.microFoot(env, { m: m });
+    } else {
       PO.rail(env, h - m.bottom + mic * 0.1, [c.footnote, null, W.textstack.monogram(st)],
         { m: m, size: mic * 0.9, alpha: 0.6 });
       if (!wide) PO.tagRail(env, h - m.bottom - mic * 1.4, { m: m, size: mic * 0.9, alpha: 0.5 });

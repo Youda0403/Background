@@ -1,20 +1,32 @@
-/* LYRIC — a torn photograph across the top, a huge script headline
-   filling the paper below, and the caption cut into little boxed lyric
-   scraps pasted over the picture.
-   Reference grammar: the "You'll Be In My Heart" lyric poster. */
+/* LYRIC — a torn photograph, the caption cut into pasted paper scraps,
+   and a script headline set big enough to carry the paper it is torn onto.
+
+   Reference grammar: the "You'll Be In My Heart" lyric poster and the
+   torn-collage record inserts. The previous version had the right parts
+   and no density: a picture, one word of script, and two large empty
+   fields. The rules here are the ones those references actually follow.
+
+     1. The script STRADDLES the tear. Type that begins tidily below the
+        edge divides the page into two rectangles; type that climbs over
+        it makes one page.
+     2. The scraps are a COLUMN, not a scatter — a shared left edge and a
+        steady rhythm down the picture. Scattered, four little boxes read
+        as litter; aligned, they read as a paste-up.
+     3. The paper under the script carries a rule and two lines of small
+        tracked caps. That is what stops it being a blank half.
+     4. Nothing is ever simply dropped when the canvas gets small. A watch
+        face gets fewer scraps and a packed foot line, not silence. */
 (function (W) {
   'use strict';
   var U = W.util, P = W.prim, PO = W.poster, T = W.type;
 
-  /* One point on a ragged tear: `t` runs 0..1 along the edge. */
+  /* One point on a ragged tear. */
   function jag(rand, amp) {
     return (rand() - 0.5) * amp * (rand() > 0.86 ? 2.2 : 1);
   }
 
-  /* The torn keep-region as a path: everything above a horizontal tear at
-     `at`, or everything left of a vertical one. A wide canvas tears down
-     the side — stacked, its script had a quarter of the page to fill and
-     three quarters of empty paper under it. */
+  /* The torn keep-region: everything above a horizontal tear at `at`, or
+     everything left of a vertical one. */
   function tornPath(ctx, w, h, at, vertical, rand, amp, add) {
     var steps = 44;
     if (!add) ctx.beginPath();
@@ -36,7 +48,7 @@
     ctx.closePath();
   }
 
-  /* Split the caption into 2–4 word scraps for the pasted labels. */
+  /* Cut a phrase into 2–4 word scraps. */
   function scraps(text, maxScraps) {
     var words = String(text || '').split(/\s+/).filter(Boolean);
     var out = [];
@@ -49,30 +61,36 @@
     return out;
   }
 
+  /* A pasted label: shadow, stock, hairline, text. */
   function chip(env, text, x, y, opts) {
     var ctx = env.ctx, u = env.u;
     var size = opts.size;
     T.setFont(ctx, opts.font, size, { weight: 500 });
+    var maxW = opts.maxW || Infinity;
+    /* a scrap of paper never runs off the sheet it is pasted to */
+    while (size > opts.size * 0.55
+      && T.measure(ctx, text, size * 0.03) + size * 1.1 > maxW) {
+      size *= 0.94;
+      T.setFont(ctx, opts.font, size, { weight: 500 });
+    }
     var tw = T.measure(ctx, text, size * 0.03);
     var padX = size * 0.55, padY = size * 0.42;
     var bw = tw + padX * 2, bh = size + padY * 2;
+
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(x + bw / 2, y + bh / 2);
     ctx.rotate((opts.rot || 0) * Math.PI / 180);
-    /* a pasted scrap casts a small shadow — that is what sells the collage */
     ctx.globalAlpha = 0.22;
     ctx.fillStyle = '#000';
     ctx.fillRect(-bw / 2 + u(4), -bh / 2 + u(5), bw, bh);
     ctx.globalAlpha = 1;
     ctx.fillStyle = opts.paper;
     ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
-    if (opts.rule !== false) {
-      ctx.strokeStyle = opts.ink;
-      ctx.globalAlpha = 0.55;
-      ctx.lineWidth = Math.max(1, u(1.4));
-      ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
-      ctx.globalAlpha = 1;
-    }
+    ctx.strokeStyle = opts.ink;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = Math.max(1, u(1.2));
+    ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
+    ctx.globalAlpha = 1;
     ctx.fillStyle = opts.ink;
     T.setFont(ctx, opts.font, size, { weight: 500 });
     T.draw(ctx, text, 0, size * 0.36, { align: 'center', tracking: size * 0.03 });
@@ -82,33 +100,56 @@
 
   function draw(env) {
     var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
-    var st = env.st, pal = env.pal, c = env.content, rand = env.rand;
+    var st = env.st, pal = env.pal, c = env.content;
     var mic = PO.micro(env);
     var wide = env.tier === 'wide';
-    var accent = pal.inks[0];
-    var hot = pal.accent || pal.inks[1] || accent;
+    var m = PO.margins(env);
 
-    /* The photograph is a torn-off piece of *printed paper*, not a window
-       cut into the page — so it carries its own stock. On a light palette
-       that stock is the page itself and nothing changes. On a dark one it
-       stays light, which is what makes the tear read at all: a dark
-       picture printed onto a dark page is a black rectangle above black
-       paper, and the whole top half of the wallpaper disappears. */
-    var darkPage = U.luma(pal.base) < 0.42;
-    var stock = darkPage
-      ? (U.luma(pal.duo[1]) > 0.62 ? pal.duo[1] : U.mix(pal.base, '#f2efe6', 0.86))
-      : pal.base;
+    /* The photograph is a piece of printed paper torn off the page, so it
+       carries its own stock — light even when the page is dark, or the
+       whole top of the wallpaper is a black rectangle on a black page. */
+    var sheet = PO.stock(pal);
+    var stock = sheet.paper;
+    var accent = PO.accentOn(pal, pal.base);
+    var script = pal.inks[0];
 
-    /* ---- paper ---- */
     ctx.fillStyle = pal.base;
     ctx.fillRect(0, 0, w, h);
 
-    /* ---- the photograph, torn off the page ---- */
+    /* ---------- how much paper the script actually needs ----------
+       A fixed tear line is why the old version had a void: the script was
+       whatever size its measure allowed, and the gap between it and the
+       foot rail was whatever was left over. Measure the lockup first and
+       put the tear where the paper ends up exactly as tall as the type
+       and its furniture, so the picture takes everything else. */
     var vertical = wide;
+
+    /* No eyebrow over the script: a line seated just above a lockup whose
+       ascenders deliberately climb over the tear has nowhere to be. The
+       names go on the rule instead, where they read cleanly. */
+    var eyebrowH = 0;
+    var railH = env.micro ? 0 : mic * 2.3;
+    var tagH = (!env.micro && st.showTags && c.tags.length) ? mic * 2.0 : 0;
+    var footH = railH + tagH;
+    var straddle = vertical ? 0 : mic * (env.micro ? 1.0 : 1.9);
+
+    var papW = vertical ? w * 0.5 - m.right - u(56) : m.inner;
+    var txt = PO.headlineText(env);
+    var probe = PO.headline(env, { x: 0, y: 0, w: papW - mic * 1.8 }, {
+      style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
+      align: 'center', maxH: h * 0.44, measure: true
+    });
+
+    /* Half the dock band, not all of it: the fine print at the foot is
+       exactly the sort of thing that belongs behind a row of icons, and
+       clearing the whole band left a sixth of the page visibly blank. */
+    var papBottom = h - Math.max(u(52), (h - env.band.bottom) * 0.5);
+    var need = eyebrowH + probe.h + mic * 1.1 + footH;
     var tearAt = vertical
-      ? w * 0.54
-      : h * (env.micro ? 0.44
-        : env.tier === 'tablet' || env.tier === 'square' ? 0.5 : 0.54);
+      ? w * 0.5
+      : U.clamp(papBottom - need + straddle,
+        h * (env.micro ? 0.4 : 0.44), h * (env.micro ? 0.56 : 0.72));
+
     var amp = u(22);
     var plate = vertical
       ? { x: 0, y: 0, w: tearAt + u(30), h: h }
@@ -117,25 +158,16 @@
     ctx.save();
     tornPath(ctx, w, h, tearAt, vertical, U.rng(env.seedNum + 7), amp);
     ctx.clip();
-
-    /* the sheet the picture is printed on */
     ctx.fillStyle = stock;
     ctx.fillRect(-4, -4, plate.w + 8, plate.h + 8);
-
     if (env.hasPhoto) {
       env.drawPhoto(plate, stock);
     } else {
-      /* mostly stock, faintly inked — mixed the other way round the empty
-         sheet came out nearly black, which is the very thing the stock is
-         there to prevent */
       ctx.fillStyle = U.mix(stock, pal.duo[0], 0.16);
       ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
-      P.wash(ctx, plate.w * 0.35, plate.h * 0.45, env.S * 0.8, pal.soft[0], 0.5 * st.washStrength);
-      P.wash(ctx, plate.w * 0.78, plate.h * 0.7, env.S * 0.6, pal.soft[1] || pal.soft[0], 0.4 * st.washStrength);
+      P.wash(ctx, plate.w * 0.32, plate.h * 0.4, env.S * 0.85, pal.soft[0], 0.55 * st.washStrength);
+      P.wash(ctx, plate.w * 0.8, plate.h * 0.75, env.S * 0.65, pal.soft[1] || pal.soft[0], 0.45 * st.washStrength);
     }
-    /* scrim so the pasted scraps sit on something calm — pitched against
-       the stock, not the page, or a dark palette lays black over a light
-       photograph and pulls it back into the murk */
     if (st.scrim > 0.01) {
       var g = vertical
         ? ctx.createLinearGradient(0, 0, tearAt, 0)
@@ -149,100 +181,115 @@
     }
     ctx.restore();
 
-    /* the tear's shadow — sells the collage */
+    /* the tear's shadow: the band between the edge and a copy of it shifted
+       along, both jagged from the same seed so it is of even thickness */
     ctx.save();
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = '#000';
-    /* The band *between* the tear and a copy of it shifted along: two
-       paths from the same seed jag identically, so an even-odd fill of
-       both leaves a shadow of even thickness hugging the edge — and none
-       of it lands on the photograph. */
-    var off = u(16);
-    tornPath(ctx, w, h, tearAt + off, vertical, U.rng(env.seedNum + 7), amp);
+    tornPath(ctx, w, h, tearAt + u(16), vertical, U.rng(env.seedNum + 7), amp);
     tornPath(ctx, w, h, tearAt, vertical, U.rng(env.seedNum + 7), amp, true);
     ctx.fill('evenodd');
     ctx.restore();
 
-    /* ---- lyric scraps pasted on the photo ---- */
-    var frags = scraps(c.caption, env.micro ? 0 : wide ? 5 : 4);
-    /* spread across the corners of the photo, well clear of each other */
-    var top = env.band.top / h;
-    /* spots are fractions of the photograph, never of the page — pinned to
-       the page they slid off the picture onto the paper beside the tear */
-    var spots = vertical
-      ? [[0.3, 0.16, -2], [0.66, 0.34, 2], [0.26, 0.56, 1.6], [0.62, 0.76, -1.6], [0.34, 0.92, 1]]
-          .map(function (s) { return [(tearAt / w) * s[0], s[1], s[2]]; })
-      : [[0.27, top + 0.02, -2], [0.74, top + 0.11, 2],
-         [0.24, tearAt / h - 0.14, 1.6], [0.75, tearAt / h - 0.05, -1.6]];
-    /* every other scrap is torn off a strip of coloured tape — the page,
-       the photograph and the script are all one hue by construction, so
-       this is where the palette's accent gets to exist */
-    frags.forEach(function (f, i) {
-      if (i >= spots.length) return;
-      var sp = spots[i];
-      var tape = i % 2 === 1;
-      chip(env, f, w * sp[0], h * sp[1], {
-        size: mic * 1.18, font: st.bodyFont, rot: sp[2],
-        paper: tape ? hot : pal.base, ink: tape ? U.onColor(hot) : accent
-      });
-    });
-
-    /* ---- the script headline owns whatever paper the tear left ---- */
-    var footRail = env.micro ? 0 : mic * 2.6;
-    /* the paper: below a horizontal tear, beside a vertical one */
+    /* ---------- the paper the script is torn onto ---------- */
     var pap = vertical
-      ? { x: tearAt + u(54), y: env.band.top, w: w - tearAt - u(108), h: env.band.bottom - env.band.top }
-      : {
-        x: u(44), y: tearAt + u(30), w: w - u(88),
-        h: h - footRail - u(env.micro ? 40 : 70) - tearAt
-      };
-    var chipY = pap.y + pap.h + mic * 0.6;
+      ? { x: tearAt + u(56), y: m.top, w: papW, h: env.band.bottom - m.top }
+      : { x: m.left, y: tearAt, w: papW, h: papBottom - tearAt };
 
-    var hlBox = { x: pap.x, y: pap.y, w: pap.w };
-    var hlMaxH = pap.h - (vertical ? mic * 3.4 : env.micro ? mic * 0.6 : mic * 2.6);
+    /* ---------- the script, straddling the tear ---------- */
+    var hlTop = pap.y - straddle + eyebrowH;
+    /* A script's swashes overhang its advance width, so a lockup fitted
+       exactly to the measure prints a few pixels off the page. Give it a
+       margin of its own rather than trusting the fit. */
+    var swash = mic * 0.9;
+    var hlBox = { x: pap.x + swash, y: hlTop, w: pap.w - swash * 2 };
+    var hlMaxH = Math.max(u(120), (pap.y + pap.h) - footH - mic * 0.8 - hlTop);
 
-    var txt = PO.headlineText(env);
-    /* every line in script — the reference sets the whole phrase that way */
     var hl = PO.headline(env, hlBox, {
       style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
-      align: 'center', color: accent, maxH: hlMaxH, measure: true
+      align: 'center', color: script, maxH: hlMaxH, measure: true
     });
-    /* centre the lockup in the paper area */
-    hlBox.y = pap.y + Math.max(0, (hlMaxH - hl.h) * (vertical ? 0.4 : 0.44));
+    /* seat the lockup in its share of the paper, biased up so its
+       ascenders reach across the torn edge */
+    var slack = Math.max(0, hlMaxH - hl.h);
+    hlBox.y = hlTop + slack * 0.34;
+
     PO.headline(env, hlBox, {
       style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
-      align: 'center', color: accent, maxH: hlMaxH
+      align: 'center', color: script, maxH: hlMaxH
     });
 
-    /* small pasted chips punctuating the script, like "in" "my" */
-    var chipRow = Math.min(hlBox.y + hl.h + mic * 2.2, chipY - mic * 1.4);
-    var cxA = vertical ? pap.x + pap.w * 0.28 : w * 0.27;
-    var cxB = vertical ? pap.x + pap.w * 0.74 : w * 0.73;
-    if (!env.micro && st.showNames && c.names) {
-      chip(env, c.names, cxA, chipRow, {
-        size: mic * 1.1, font: st.bodyFont, rot: -1.5, paper: hot, ink: U.onColor(hot)
+    /* ---------- the rule and the two lines of small caps ---------- */
+    if (!env.micro) {
+      var ruleY = pap.y + pap.h - footH + mic * 0.2;
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = Math.max(1, u(2));
+      ctx.beginPath();
+      ctx.moveTo(pap.x, ruleY);
+      ctx.lineTo(pap.x + pap.w, ruleY);
+      ctx.stroke();
+      ctx.restore();
+
+      PO.rail(env, ruleY + mic * 1.35, [
+        (st.showNames && c.names) || W.textstack.monogram(st) || null,
+        null, c.footnote || null
+      ], {
+        m: { left: pap.x, right: w - pap.x - pap.w, inner: pap.w },
+        size: mic * 0.8, alpha: 0.72
       });
+      if (tagH) {
+        PO.tagRail(env, ruleY + mic * (1.35 + 1.5), {
+          m: { left: pap.x, right: w - pap.x - pap.w, inner: pap.w },
+          size: mic * 0.8, alpha: 0.6
+        });
+      }
     }
-    if (!env.micro && c.footnote) {
-      chip(env, c.footnote, cxB, chipRow, {
-        size: mic * 1.1, font: st.bodyFont, rot: 1.5, paper: pal.base, ink: accent
+
+    /* ---------- the caption, cut into scraps down the picture ---------- */
+    /* A column, not a scatter: one left edge, one rhythm. Four little
+       boxes thrown about a photograph read as litter. */
+    var maxScraps = env.micro ? 2 : vertical ? 4 : 3;
+    var frags = scraps(c.caption, maxScraps);
+    if (!frags.length && c.footnote) frags = [c.footnote];
+
+    if (frags.length) {
+      var colX = vertical ? u(52) : m.left;
+      var colW = vertical ? tearAt - u(104) : m.inner * 0.62;
+      /* start below the clock band, finish clear of the tear */
+      var runTop = Math.max(env.band.top, vertical ? h * 0.16 : h * 0.08) + mic * 0.6;
+      /* stop short of the straddle zone: the script climbs back over the
+         tear, and a scrap pasted there is underneath it */
+      var runBottom = (vertical ? h * 0.9 : tearAt - straddle) - mic * 3.4;
+      /* spread down the whole picture; bunched at the top they read as a
+         caption that ran out of room */
+      var step = frags.length > 1 ? (runBottom - runTop) / (frags.length - 1) : 0;
+      var runY = runTop;
+
+      frags.forEach(function (f, i) {
+        var tape = i % 2 === 1;
+        /* a slight, alternating indent keeps the column from looking
+           mechanical without breaking its left edge */
+        var indent = (i % 2) * mic * 1.6;
+        chip(env, f, colX + indent, runY + step * i, {
+          size: mic * 1.12, font: st.bodyFont, rot: i % 2 ? 1.2 : -1.2,
+          maxW: colW - indent,
+          paper: tape ? accent : stock,
+          ink: tape ? U.onColor(accent) : sheet.ink
+        });
       });
     }
 
-    /* ---- foot rail ---- */
-    if (!env.micro) {
-      PO.tagRail(env, h - u(40), {
-        size: mic * 0.86, alpha: 0.55,
-        m: vertical ? { left: pap.x, right: w - pap.x - pap.w, inner: pap.w } : null
-      });
-    }
+    /* ---------- a watch face still says everything ---------- */
+    if (env.micro) PO.microFoot(env, { m: m });
   }
 
   W.layoutRegistry = W.layoutRegistry || [];
   W.layoutRegistry.push({
     id: 'lyric',
     label: 'Lyric',
-    blurb: '찢어 붙인 사진 + 아래를 꽉 채우는 필기체 가사.',
+    blurb: '찢어 붙인 사진 + 종이를 꽉 채우는 필기체 가사.',
     defaults: {
       titleFont: 'birthstone', scriptFont: 'playball', bodyFont: 'spacegrotesk',
       headlineStyle: 'capsScript',

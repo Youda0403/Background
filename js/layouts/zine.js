@@ -158,9 +158,7 @@
        baseline: the credits and the tags used to print straight through
        each other into nonsense. */
     if (env.micro) {
-      PO.rail(env, h - m.bottom + mic * 0.1,
-        [(c.names || W.textstack.monogram(st)).toLowerCase(), null, null],
-        { m: m, size: mic * 0.9, alpha: 0.75 });
+      PO.microFoot(env, { m: m, y: h - m.bottom + mic * 0.1, alpha: 0.8 });
     } else {
       PO.rail(env, h - m.bottom + mic * 0.1, [
         (c.names || W.textstack.monogram(st)).toLowerCase(), null, 'pairtone'

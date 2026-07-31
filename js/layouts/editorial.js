@@ -24,13 +24,21 @@
     var raw = (c.title || '').replace(/[\r\n]+/g, ' ');
     var lines = raw.split(/\s+/).filter(Boolean);
 
-    /* two words cannot carry a poster; borrow the names for more lines */
+    /* Two words cannot carry a poster; borrow the names for more lines.
+       Borrowed words are marked, because they are not the pair name and
+       must not be set at the same size as it — a name filling the measure
+       exactly as hard as the title reads as two titles, and the hierarchy
+       the whole layout depends on disappears. */
+    var borrowedFrom = lines.length;
     if (lines.length < 3 && c.names && st.showNames) {
       c.names.split(/\s+/).filter(Boolean).forEach(function (word) {
         if (lines.length < 5) lines.push(word);
       });
     }
-    if (!lines.length && c.names) lines = c.names.split(/\s+/).filter(Boolean);
+    if (!lines.length && c.names) {
+      lines = c.names.split(/\s+/).filter(Boolean);
+      borrowedFrom = lines.length;   /* nothing else to be subordinate to */
+    }
 
     /* A watch face fits two lines. Regroup the words into two rather than
        dropping the tail, so the phrase is never cut off mid-thought. */
@@ -63,12 +71,15 @@
     var sized = lines.map(function (text, i) {
       /* a lone symbol (×, &) stays a punctuation mark, not a headline */
       var isSep = text.length === 1 && !/[a-z0-9]/i.test(text);
-      var frac = isSep ? 0.2 : (i % 2 === 0 ? 0.94 : 0.84);
+      var borrowed = i >= borrowedFrom;
+      var frac = isSep ? 0.2
+        : borrowed ? (i % 2 === 0 ? 0.52 : 0.46)
+        : (i % 2 === 0 ? 0.94 : 0.84);
       var size = T.fill(ctx, text.toUpperCase(), st.titleFont,
         col.w * frac * em, -0.015, { weight: weight }, u(320));
       T.setFont(ctx, st.titleFont, size, { weight: weight });
       return {
-        text: text.toUpperCase(), size: size, isSep: isSep,
+        text: text.toUpperCase(), size: size, isSep: isSep, borrowed: borrowed,
         ink: T.inkBox(ctx, text.toUpperCase()),
         w: T.measure(ctx, text.toUpperCase(), size * -0.015)
       };
@@ -98,7 +109,8 @@
        into the palette, and everything else is one ink. Never the
        separator: a lone x set in red reads as a mistake, not a choice. */
     var hot = -1;
-    sized.forEach(function (l, i) { if (!l.isSep) hot = i; });
+    sized.forEach(function (l, i) { if (!l.isSep && !l.borrowed) hot = i; });
+    if (hot < 0) sized.forEach(function (l, i) { if (!l.isSep) hot = i; });
     ctx.save();
     sized.forEach(function (l, i) {
       y += l.ink.asc;
@@ -121,10 +133,12 @@
 
     /* ---- tiny labels in the leftover gaps ---- */
     if (!env.micro) {
+      /* the footnote has its own rail now — printing it here as well set
+         the same date twice on one page */
       var labels = [];
       if (c.names && st.showNames) labels.push(c.names.toUpperCase());
-      if (c.footnote) labels.push(c.footnote.toUpperCase());
       c.tags.slice(0, 2).forEach(function (t) { labels.push(t.toUpperCase()); });
+      if (!labels.length && c.footnote) labels.push(c.footnote.toUpperCase());
       var li = 0;
       ctx.save();
       /* the labels carry the palette's accent — on a page whose photo is
@@ -221,7 +235,17 @@
       }
     }
 
+    /* ---- foot rail: the footnote has a guaranteed home ----
+       It used to depend on a leftover gap being wide enough, which on most
+       device shapes it was not, so the date simply never appeared. */
+    if (!env.micro && c.footnote) {
+      PO.rail(env, h - m.bottom + mic * (side ? 1.1 : 0.5), [c.footnote.toUpperCase(), null, null],
+        { m: wide ? { left: col.x, right: w - col.x - col.w, inner: col.w } : m,
+          size: mic * 0.72, alpha: 0.6 });
+    }
+
     /* ---- corner micro-rails ---- */
+    if (env.micro) PO.microFoot(env, { m: m });
     if (!env.micro) {
       /* on wide the rail belongs over the word column only — run full
          width it collided with the photograph's rule */

@@ -41,7 +41,8 @@
     if (env.micro) {
       /* a watch face gets the title alone, centred on the field */
       PO.headline(env, { x: m.left, y: env.band.top + (env.band.bottom - env.band.top) * 0.34, w: m.inner },
-        { align: 'center', color: onField, maxH: h * 0.4 });
+        { align: 'center', color: onField, maxH: h * 0.34 });
+      PO.microFoot(env, { m: m, color: onField });
       return;
     }
 

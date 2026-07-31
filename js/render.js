@@ -60,6 +60,8 @@
   function buildEnv(ctx, w, h, st, nominal) {
     var pal = W.palettes.byId[st.palette] || W.palettes.list[0];
     var S = Math.min(w, h);
+    var nomShort = nominal ? Math.min(nominal.w, nominal.h) : S;
+    var nomLong = nominal ? Math.max(nominal.w, nominal.h) : Math.max(w, h);
     var tier = C.tierOf(h / w);
     var safeKey = tier === 'wide' ? 'wide' : (tier === 'tall' || tier === 'phone') ? 'phone' : 'tablet';
     var sa = W.presets.safe[safeKey];
@@ -84,10 +86,21 @@
          preview's own aspect ratio is a hair off the export's, so anything
          that rounds (grid row counts, for one) must use this instead. */
       nominalAr: nominal ? nominal.h / nominal.w : h / w,
-      /* Watch faces and cover screens cannot carry four lines of type —
-         drop the long ones and enlarge what is left. */
-      micro: S < 560,
-      typeScale: S < 560 ? 1.45 : 1
+      /* Watch faces cannot carry four lines of type — drop the long ones
+         and enlarge what is left.
+
+         Measured on the TARGET, never on the canvas being painted. The
+         coarse preview draws a tall phone at 415px wide, which made it
+         compose itself as a watch face — caption, rails and tags all
+         silently gone — and then the settled full-resolution pass put
+         them back. Same class of bug as `nominalAr`: pixels are for
+         drawing, the target's dimensions are for deciding.
+
+         And both dimensions, not the short side: an X header is
+         1500x500, which is not a small screen, it is a wide one. Judged
+         on its short side alone it came out as a watch face too. */
+      micro: nomShort < 560 && nomLong < 760,
+      typeScale: nomShort < 560 && nomLong < 760 ? 1.45 : 1
     };
 
     env.band = {
