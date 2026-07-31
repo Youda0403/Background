@@ -16,6 +16,10 @@ npx serve .              # or serve it, if you prefer localhost
 
 ## What it does
 
+**Nothing ticked by default.** The batch-export set starts empty: three
+pre-selected devices meant the button offered to save a set nobody had asked
+for.
+
 **Many sizes.** 36 device presets across iPhone (SE → 17 Pro Max), Galaxy
 (S / S Ultra / Z Flip main + cover / Z Fold main + cover), iPad and Galaxy Tab,
 desktop and MacBook, Apple Watch, plus story/square/profile crops and a custom
@@ -105,11 +109,11 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. |
+| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas puts the words in a left column and the photograph in a tall one beside them. |
 | **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a huge script headline filling the paper that is left. The photograph is a piece of *printed paper*, so it carries its own stock — on a dark palette that stock stays light, and the tear reads instead of vanishing into the page. A wide canvas tears down the side instead of across, because stacked, the script had a quarter of a desktop to fill and three quarters of empty paper under it. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
-| **Aura** | Colour blooms and a feathered photo window. The soft one. |
+| **Aura** | Colour blooms and a soft photo window. The gentle one — but the window keeps a hairline edge and only a light feather, because a faded photograph inside a wide soft aureole is the visual language of a memorial, not of a couple. A wide canvas gives the photograph and the whole type group one shared centreline. |
 | **Column** | A full-bleed photo field with a paper card of dictionary-dense small type — headword, etymology, definition — pinned along one edge. The card is a *card*: on a dark palette it stays light, where painting it in the page colour put a navy box on a navy field and lost it entirely. |
 
 ## Palettes
@@ -123,7 +127,19 @@ Colour only: `base`, `soft`, `inks`, the `duo` ramp photos are toned into,
 `text`, `accent`, and how much `grain` the stock carries.
 
 **Every palette has one loud colour, and every layout is obliged to show
-it.** This was not true before, and the swatch was lying: Apple Silver's card
+it — and it is tuned to the palette rather than trusted as typed.** A
+hand-picked "loud colour" looks pasted on: hot magenta at full chroma over
+Jelly Tide's pale blues was not a palette, it was two palettes fighting.
+Real palettes agree about how saturated they are and what light they are
+lit by, so each accent is (1) capped near the palette's own chroma
+ceiling — measured as chroma, not HSL saturation, because a pastel is 0.68
+"saturated" and 0.18 chromatic — (2) given a 14% veil of the page colour,
+the overlay that gives a set of colours a common cast, and (3) walked in
+lightness until it clears 3:1 against the page. Palettes with no second
+hue to spare (Shampoo Blue, Jelly Tide) take a deeper shade of their own
+instead of a foreign one.
+
+** This was not true before, and the swatch was lying: Apple Silver's card
 showed red and yellow, and then rendered a page of blue. The reason is
 structural — a duotone photo is monochrome by definition, and all the type
 came from `text` — so no amount of picking prettier palettes would have fixed
@@ -133,7 +149,7 @@ Column's rules and cross-reference, Lyric's pasted tape, Aura's core glow and
 twinkles. The swatch shows page / photo ink / accent / decorative ink, which
 is what the wallpaper is actually made of.
 
-The accent is checked two ways: it must clear 2.6:1 contrast against its own
+The accent is checked two ways: it must clear 3:1 contrast against its own
 page, and the rendered pixels of all 126 combinations are searched for its
 hue. Layouts resolve it against whatever they are printing on — Column's card
 is light even when the page is dark, so the same colour is deepened there
@@ -142,9 +158,20 @@ rather than swapped.
 Halftone prints in a single ink, so it picks whichever end of the `duo` ramp
 contrasts with the stock it is printing on — otherwise a dark palette printed a
 dark photo onto dark paper and the picture disappeared. Choosing a light ink is
-only half of it: a halftone lays ink where the picture is *dark*, which reverses
-every tone the moment the ink is the lighter of the two, so coverage follows
-brightness instead when it is. Get that wrong and the sun comes out as a hole.
+only the first of three things:
+
+1. a halftone lays ink where the picture is *dark*, which reverses every tone
+   the moment the ink is the lighter of the two, so coverage follows brightness
+   instead when it is — get this wrong and the sun comes out as a hole;
+2. dot radius is looked up from the **inverse of a square lattice's coverage
+   function**, not from `sqrt(tone)`. Circles on a grid start overlapping at
+   half a cell and go solid at `1/√2`, so treating ink area as `πr²` reached
+   full coverage at barely 60% tone — most of a real photograph, whose
+   luminance sits in the middle, printed as one flat slab;
+3. tone is normalised to the photograph's own 2nd–98th percentiles before it
+   is screened, the way a repro camera does. Measured at working resolution so
+   it cannot vary with the canvas, or the preview and the export would screen
+   differently.
 
 All 6 × 21 combinations are audited three ways: for flatness, for how much
 loading a photo actually changes the pixels, and for **polarity** — the
@@ -199,7 +226,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Eight things worth knowing before you edit
+### Ten things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -230,6 +257,17 @@ how the top half of a dark-palette wallpaper went black.
 from `env.nominalAr` (the target's true proportions) rather than the live canvas,
 because a scaled preview's own aspect ratio differs slightly. `grid.js` computes
 its row count this way.
+
+**A watch face has room for one rail, not two.** Every layout is rendered at
+`wt-41`, `wt-45`, `wt-ultra` and both cover screens as part of review. Zine
+printed its credits and its tag rail on the same baseline, which is invisible
+at phone size and unreadable nonsense at 396px. `env.micro` is the switch, and
+using it is not optional.
+
+**The top bar is sticky, so its height is permanent.** It used to wrap onto
+two rows on a phone — a brand line and a full-width row of buttons — costing
+about a sixth of the screen for the whole session. One row, smaller type,
+50px.
 
 **Never nest a button inside `<label for=…>`, and never let it take focus.**
 Clicking it activates the label, which focuses the field and scrolls the panel;

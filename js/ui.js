@@ -23,7 +23,9 @@
   var toastEl = document.getElementById('toast');
   var fileInput = null;
   var photoNameEl = null;
-  var batchTargets = ['ip-16pm', 'gx-ultra', 'pad-pro11'];
+  /* Nothing ticked until you tick it. Three pre-selected devices meant the
+     button offered to save a set nobody had asked for. */
+  var batchTargets = [];
 
   var TIER_KO = {
     tall: '폰 (길쭉)', phone: '폰', tablet: '패드', square: '정사각', wide: '와이드'

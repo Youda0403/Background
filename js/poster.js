@@ -137,7 +137,7 @@
     }
 
     if (left) T.draw(ctx, left, m.left, y, { align: 'left', tracking: tr });
-    if (parts[1]) T.draw(ctx, parts[1], env.w / 2, y, { align: 'center', tracking: tr });
+    if (parts[1]) T.draw(ctx, parts[1], m.left + m.inner / 2, y, { align: 'center', tracking: tr });
     if (parts[2]) T.draw(ctx, parts[2], env.w - m.right, y, { align: 'right', tracking: tr });
     ctx.restore();
     return size;

@@ -26,7 +26,7 @@
       inks: ['#8fd3a6', '#7fc4e8', '#f7d774', '#c9e7b0'],
       duo: ['#3f6b56', '#f4fbf2'],
       text: '#5d6a5f',
-      accent: '#c98a1e',
+      accent: '#c9922f',
       grain: 0.05
     },
     {
@@ -59,7 +59,7 @@
       inks: ['#f4a8bf', '#c9b6e8', '#ffe9a8', '#bfe4ef'],
       duo: ['#8a5a72', '#fdf2f6'],
       text: '#8d6577',
-      accent: '#d1547a',
+      accent: '#c15b83',
       grain: 0.05
     },
     {
@@ -70,7 +70,7 @@
       inks: ['#2b2b2b', '#9fbcd6', '#f2ddda', '#c9c9c4'],
       duo: ['#1f2933', '#f8f8f6'],
       text: '#2b2b2b',
-      accent: '#e2664f',
+      accent: '#d1573f',
       grain: 0.06
     },
     {
@@ -103,7 +103,7 @@
       inks: ['#3f7fbf', '#8fc6e8', '#f4c6d8', '#ffe8a8'],
       duo: ['#255d92', '#f7fbff'],
       text: '#6a7684',
-      accent: '#d1567f',
+      accent: '#2f6f9e',
       grain: 0.03
     },
     {
@@ -114,7 +114,7 @@
       inks: ['#5b86d6', '#f2a8c4', '#9fd4c0', '#2f4f9c'],
       duo: ['#3b5aa0', '#fbfbe8'],
       text: '#5a6285',
-      accent: '#d1548a',
+      accent: '#3d63b8',
       grain: 0.07
     },
     {
@@ -125,7 +125,7 @@
       inks: ['#f6c9a8', '#a8d3ea', '#f2b8c6', '#e8dfa8'],
       duo: ['#8a6a58', '#fdf8f2'],
       text: '#8a7566',
-      accent: '#d95f78',
+      accent: '#cf7161',
       grain: 0.05
     },
     {
@@ -136,7 +136,7 @@
       inks: ['#161616', '#8c8c8c', '#f0dcd8', '#d8d8d4'],
       duo: ['#111111', '#f6f4f2'],
       text: '#161616',
-      accent: '#c2452f',
+      accent: '#b8564a',
       grain: 0.09
     },
     {
@@ -159,7 +159,7 @@
       inks: ['#2b4f7a', '#7fb2dd', '#ffffff', '#b9cfe4'],
       duo: ['#1d3c60', '#eaf4fc'],
       text: '#1f3d5e',
-      accent: '#c2452c',
+      accent: '#1f5fa8',
       grain: 0.05
     },
     {
@@ -192,7 +192,7 @@
       inks: ['#8f7ac0', '#6d5aa0', '#e0d2f2', '#f4c9de'],
       duo: ['#5b4a86', '#f7f3fc'],
       text: '#6a5a92',
-      accent: '#8f5aa8',
+      accent: '#7a52a8',
       grain: 0.05
     },
     {
@@ -203,7 +203,7 @@
       inks: ['#5c7038', '#3f4f26', '#c3d3a0', '#e6ead6'],
       duo: ['#3a4a22', '#f0f3e5'],
       text: '#455230',
-      accent: '#c96a3c',
+      accent: '#b5623a',
       grain: 0.11
     },
     {
@@ -214,7 +214,7 @@
       inks: ['#f28f6e', '#e2694f', '#ffd9c4', '#8fc7c2'],
       duo: ['#a8543a', '#fff4ef'],
       text: '#a05a44',
-      accent: '#e2694f',
+      accent: '#d9553a',
       grain: 0.05
     },
     {
@@ -251,6 +251,66 @@
       grain: 0.13
     }
   ];
+
+  /* ---------- harmonising the accent ----------
+
+     A hand-picked "loud colour" looks pasted on. Hot magenta at full
+     chroma over Jelly Tide's pale blues was not a palette, it was two
+     palettes fighting. Real palettes agree about how saturated they are
+     and what light they are lit by, so the accent is tuned to the rest of
+     the swatch rather than trusted as typed:
+
+       1. its chroma is capped near the palette's own ceiling,
+       2. it takes a veil of the page colour — the "overlay" that gives a
+          set of colours a common cast,
+       3. then its lightness is pushed until it clears 3:1 against the
+          page, because none of that is worth anything if you cannot read
+          the word it is setting.
+  */
+  var U = W.util;
+
+  /* True chroma, not HSL saturation: a pastel like #f4c6d8 is 0.68
+     "saturated" and 0.18 chromatic, and it is the second number that says
+     how loud a colour looks on a page. */
+  function chroma(hex) {
+    var c = U.hsl(hex);
+    return c[1] * (1 - Math.abs(2 * c[2] - 1));
+  }
+
+  function withChroma(hex, target) {
+    var c = U.hsl(hex);
+    var span = 1 - Math.abs(2 * c[2] - 1);
+    return U.fromHsl(c[0], span > 0.001 ? U.clamp(target / span, 0, 1) : 0, c[2]);
+  }
+
+  function chromaCeiling(p) {
+    var hi = 0;
+    p.inks.concat(p.soft).forEach(function (c) {
+      var k = chroma(c);
+      if (k > hi) hi = k;
+    });
+    /* half again as loud as the palette's loudest ink, but never mud and
+       never neon: a quiet palette still gets a colour you can name */
+    return U.clamp(hi * 1.6, 0.3, 0.62);
+  }
+
+  function harmonise(seed, p) {
+    var col = withChroma(seed, Math.min(chroma(seed), chromaCeiling(p)));
+    col = U.mixHex(col, p.base, 0.14);
+
+    /* walk the lightness away from the page until the accent reads */
+    var dark = U.luma(p.base) > 0.5;
+    for (var i = 0; i < 24 && U.contrast(col, p.base) < 3; i++) {
+      var c = U.hsl(col);
+      col = U.fromHsl(c[0], c[1], U.clamp(c[2] + (dark ? -0.03 : 0.03), 0.06, 0.94));
+    }
+    return col;
+  }
+
+  PALETTES.forEach(function (p) {
+    p.accentSeed = p.accent;
+    p.accent = harmonise(p.accent, p);
+  });
 
   var BY_ID = {};
   PALETTES.forEach(function (p) { BY_ID[p.id] = p; });

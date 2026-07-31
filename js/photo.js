@@ -142,12 +142,80 @@
     g.putImageData(data, 0, 0);
 
     var out = blurCanvas(c, o.blur);
+    /* Tonal range of the finished photo, as percentiles. A repro camera
+       normalises before it screens, and so must we: a real photograph's
+       luminance clusters in the middle, which a halftone renders as one
+       flat mid-grey slab with no picture in it. Measured here, at working
+       resolution, so it cannot vary with the canvas the plate is printed
+       at — the preview and the export must screen identically. */
+    var range = percentiles(d);
+    out.__lo = range[0];
+    out.__hi = range[1];
     cache.key = key;
     cache.canvas = out;
     return out;
   }
 
+  /* 2nd and 98th percentile of luminance, 0..1. */
+  function percentiles(d) {
+    var hist = new Uint32Array(256);
+    var n = 0;
+    /* every 4th pixel is plenty for a percentile and keeps this cheap */
+    for (var i = 0; i < d.length; i += 16) {
+      var l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) | 0;
+      hist[l < 0 ? 0 : l > 255 ? 255 : l]++;
+      n++;
+    }
+    if (!n) return [0, 1];
+    var loCut = n * 0.02, hiCut = n * 0.98;
+    var acc = 0, lo = 0, hi = 255;
+    for (var j = 0; j < 256; j++) {
+      acc += hist[j];
+      if (acc <= loCut) lo = j;
+      if (acc < hiCut) hi = j;
+    }
+    lo /= 255; hi /= 255;
+    /* never stretch a genuinely flat image into noise */
+    if (hi - lo < 0.12) { lo = Math.max(0, lo - 0.06); hi = Math.min(1, lo + 0.12); }
+    return [lo, hi];
+  }
+
   /* ---------- halftone ---------- */
+
+  /* What fraction of the page a square lattice of circles actually inks,
+     for a radius given in cell units. Dots start overlapping at 0.5 and
+     the lattice is solid at 1/root2, so ink area is emphatically not
+     pi*r^2 — treating it as if it were is what crushed every photograph
+     into one flat slab: a dot radius proportional to root(tone) reached
+     full coverage at barely 60% tone, so most of a real photograph, whose
+     luminance sits in the middle, printed as solid ink. */
+  function latticeCoverage(rho) {
+    if (rho <= 0) return 0;
+    if (rho >= Math.SQRT1_2) return 1;
+    var a = Math.PI * rho * rho;
+    if (rho > 0.5) {
+      /* four neighbours, half of each two-circle lens belongs to this cell */
+      var lens = 2 * rho * rho * Math.acos(0.5 / rho) - 0.5 * Math.sqrt(4 * rho * rho - 1);
+      a -= 2 * lens;
+    }
+    return Math.min(1, a);
+  }
+
+  /* Inverse of the above, tabulated: coverage 0..1 -> radius in cells. */
+  var RADIUS = null;
+  function radiusFor(cov) {
+    if (!RADIUS) {
+      RADIUS = new Float32Array(257);
+      var rho = 0;
+      for (var i = 0; i <= 256; i++) {
+        var want = i / 256;
+        while (rho < Math.SQRT1_2 && latticeCoverage(rho) < want) rho += 0.0005;
+        RADIUS[i] = rho;
+      }
+    }
+    var k = cov <= 0 ? 0 : cov >= 1 ? 256 : Math.round(cov * 256);
+    return RADIUS[k];
+  }
 
   /* `invert` flips which end of the tonal range gets ink. A halftone lays
      ink where the picture is dark — correct while the ink is darker than
@@ -155,7 +223,7 @@
      negative: the sun comes out as a hole and the shadows as solid light.
      So when the ink is the lighter of the two, coverage follows brightness
      instead. */
-  function halftone(src, outW, outH, cell, ink, angle, contrast, ox, oy, zoom, invert) {
+  function halftone(src, outW, outH, cell, ink, angle, contrast, ox, oy, zoom, invert, lo, hi) {
     outW = Math.max(1, Math.round(outW));
     outH = Math.max(1, Math.round(outH));
     var out = document.createElement('canvas');
@@ -171,11 +239,14 @@
     drawCover(sg, src, 0, 0, sw, sh, ox == null ? 0.5 : ox, oy == null ? 0.5 : oy, zoom || 1);
     var sd = sg.getImageData(0, 0, sw, sh).data;
 
+    var span = (hi == null || lo == null || hi - lo < 0.05) ? 1 : hi - lo;
+    var floorL = lo == null ? 0 : lo;
     function lumAt(x, y) {
       var ix = U.clamp(Math.floor((x / outW) * sw), 0, sw - 1);
       var iy = U.clamp(Math.floor((y / outH) * sh), 0, sh - 1);
       var i = (iy * sw + ix) * 4;
       var l = (0.2126 * sd[i] + 0.7152 * sd[i + 1] + 0.0722 * sd[i + 2]) / 255;
+      l = U.clamp((l - floorL) / span, 0, 1);
       return U.clamp((l - 0.5) * contrast + 0.5, 0, 1);
     }
 
@@ -192,8 +263,8 @@
         if (x < -cell || y < -cell || x > outW + cell || y > outH + cell) continue;
         var l = lumAt(x, y);
         var cov = invert ? l : 1 - l;
-        var r = (cell * 0.72) * Math.sqrt(cov);
-        if (r < cell * 0.05) continue;
+        var r = cell * radiusFor(cov);
+        if (r < cell * 0.04) continue;
         g.beginPath();
         g.arc(x, y, r, 0, P.TAU);
         g.fill();
@@ -225,7 +296,8 @@
     if (o.tone === 'halftone') {
       var cell = Math.max(2, (Math.min(w, h) / U.clamp(o.halftoneCells, 12, 140)));
       body = halftone(src, w, h, cell, o.inkColor || palette.duo[0], -0.26,
-        1.05 + o.contrast * 0.1, o.ox, o.oy, o.zoom, o.halftoneInvert);
+        1.05 + o.contrast * 0.1, o.ox, o.oy, o.zoom, o.halftoneInvert,
+        src.__lo, src.__hi);
     } else {
       body = P.masked(w, h, function (g, cw, ch) {
         drawCover(g, src, 0, 0, cw, ch, o.ox, o.oy, o.zoom);

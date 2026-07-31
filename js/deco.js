@@ -55,11 +55,17 @@
       var fn = P.motifs[kind] || P.motifs.star;
       ctx.globalAlpha = U.range(rand, opts.alphaMin || 0.5, opts.alphaMax || 1) * env.decoAlpha;
 
-      if (opts.speckle && isBig && rand() > 0.35) {
+      /* One deliberate hero mark: filled, big, in the accent. Left to the
+         colour lottery the palette's own colour was a coin flip, and an
+         outline drawn in it is a few hundred pixels of hairline. */
+      var isHero = opts.hero && i === 0;
+      if (isHero) { color = opts.hero; ctx.globalAlpha = 0.95 * env.decoAlpha; }
+
+      if (!isHero && opts.speckle && isBig && rand() > 0.35) {
         P.speckle(ctx, fn, p[0], p[1], r, color, rand, u(1000));
         return;
       }
-      var outline = opts.outlineRatio && rand() < opts.outlineRatio;
+      var outline = !isHero && opts.outlineRatio && rand() < opts.outlineRatio;
       ctx.beginPath();
       fn(ctx, p[0], p[1], r, rand);
       if (outline) {
@@ -93,7 +99,7 @@
          at random meant a palette's accent could sit in the list and
          still never be drawn — the draws are made either way, so the
          stream stays identical between the preview and the export. */
-      if (opts.hero && i % 4 === 0) { col = opts.hero; a = Math.max(a, 0.85); }
+      if (opts.hero && i % 3 === 0) { col = opts.hero; a = Math.max(a, 0.9); r *= 1.5; }
       ctx.globalAlpha = a;
       ctx.fillStyle = col;
       P.sparkle(ctx, p[0], p[1], r, 0.14);

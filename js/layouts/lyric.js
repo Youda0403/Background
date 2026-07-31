@@ -107,7 +107,8 @@
     var vertical = wide;
     var tearAt = vertical
       ? w * 0.54
-      : h * (env.tier === 'tablet' || env.tier === 'square' ? 0.5 : 0.54);
+      : h * (env.micro ? 0.44
+        : env.tier === 'tablet' || env.tier === 'square' ? 0.5 : 0.54);
     var amp = u(22);
     var plate = vertical
       ? { x: 0, y: 0, w: tearAt + u(30), h: h }
@@ -191,11 +192,14 @@
     /* the paper: below a horizontal tear, beside a vertical one */
     var pap = vertical
       ? { x: tearAt + u(54), y: env.band.top, w: w - tearAt - u(108), h: env.band.bottom - env.band.top }
-      : { x: u(44), y: tearAt + u(30), w: w - u(88), h: h - footRail - u(70) - tearAt };
+      : {
+        x: u(44), y: tearAt + u(30), w: w - u(88),
+        h: h - footRail - u(env.micro ? 40 : 70) - tearAt
+      };
     var chipY = pap.y + pap.h + mic * 0.6;
 
     var hlBox = { x: pap.x, y: pap.y, w: pap.w };
-    var hlMaxH = pap.h - (vertical ? mic * 3.4 : mic * 2.6);
+    var hlMaxH = pap.h - (vertical ? mic * 3.4 : env.micro ? mic * 0.6 : mic * 2.6);
 
     var txt = PO.headlineText(env);
     /* every line in script — the reference sets the whole phrase that way */

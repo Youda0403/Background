@@ -61,10 +61,19 @@
     var free = Math.max(0, avail - total);
     var y = env.band.top + free * 0.42;
 
+    /* On a wide canvas the halves get a shared centreline: the photograph
+       centred in the left column, the whole type group centred in the
+       right one, at the same height. Placed independently they drifted,
+       which is what made the desktop version look like three things
+       floating on a page rather than one composition. */
+    var midY = env.band.top + (bandBottom - env.band.top) / 2;
+    var left = { x: m.left, w: m.inner * 0.46 };
+    var right = { x: w - m.right - m.inner * 0.46, w: m.inner * 0.46 };
+
     var plate = null;
     if (hasPhoto) {
       plate = wide
-        ? { x: m.left + u(40), y: env.band.top + ((bandBottom - env.band.top) - photoH) / 2, w: photoW, h: photoH }
+        ? { x: left.x + (left.w - photoW) / 2, y: midY - photoH / 2, w: photoW, h: photoH }
         : { x: (w - photoW) / 2, y: y, w: photoW, h: photoH };
     }
 
@@ -73,10 +82,12 @@
       var fn = P.motifs[st.auraShape] || P.motifs.heart;
       var hx = plate ? plate.x + plate.w / 2 : w / 2;
       var hy = plate ? plate.y + plate.h / 2 : env.band.top + (env.band.bottom - env.band.top) * 0.32;
-      /* glow hugs the photo instead of dwarfing it */
-      var hr = plate ? Math.min(plate.w, plate.h) * 0.58 : env.S * 0.32;
+      /* A bloom behind the window, not a halo around a memory. The old
+         spread put a wide soft aureole around a faded photograph, which
+         is the visual language of a memorial, not of a couple. */
+      var hr = plate ? Math.min(plate.w, plate.h) * 0.52 : env.S * 0.3;
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
-        pal.soft[0], { layers: 18, spread: 0.5, alpha: 0.6 * st.washStrength });
+        pal.soft[0], { layers: 18, spread: 0.34, alpha: 0.5 * st.washStrength });
       /* the inner core carries the accent, so the softest layout still
          shows the palette's loudest colour somewhere */
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr * 0.66,
@@ -84,17 +95,39 @@
         { layers: 12, spread: 0.34, alpha: 0.3 * st.washStrength });
     }
 
-    if (plate) env.drawPhoto(plate);
+    if (plate) {
+      env.drawPhoto(plate);
+      /* a hairline round the window: an edge is the difference between a
+         photograph placed on the page and one dissolving into it */
+      if (st.feather < 0.5) {
+        ctx.save();
+        ctx.globalAlpha = 0.5 * (1 - st.feather * 1.6);
+        ctx.strokeStyle = pal.text;
+        ctx.lineWidth = Math.max(1, u(1.8));
+        var shape = W.frames.make(st.photoShape, env.seedNum);
+        ctx.translate(plate.x, plate.y);
+        shape(ctx, plate.w, plate.h, 1);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
 
     /* ---- type ---- */
     if (wide) {
-      var tx = w - m.right - hlBox.w;
-      hlBox.x = tx;
-      hlBox.y = env.band.top + ((bandBottom - env.band.top) - (hl.h + capH)) / 2;
+      var tagH = (!env.micro && c.tags.length && st.showTags) ? mic * 2.2 : 0;
+      hlBox.x = right.x;
+      hlBox.w = right.w;
+      hlBox.y = midY - (hl.h + capH + tagH) / 2;
       PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle, maxH: hlMaxH });
       if (capH) {
         PO.block(env, hlBox.x, hlBox.y + hl.h + mic * 0.8, hlBox.w, [c.caption], {
           size: mic, lead: 1.5, align: 'center', alpha: 0.8, upper: false, font: st.bodyFont
+        });
+      }
+      if (tagH) {
+        PO.tagRail(env, hlBox.y + hl.h + capH + tagH * 0.7, {
+          m: { left: right.x, right: w - right.x - right.w, inner: right.w },
+          size: mic * 0.9, alpha: 0.5
         });
       }
     } else {
@@ -114,6 +147,9 @@
       { x: 0, y: bandBottom - u(10), w: w, h: h - bandBottom + u(10) }
     ];
     if (plate) avoid.push(plate);
+    /* the gutter between the two columns is structure, not empty space —
+       a big motif parked in it reads as something dropped on the page */
+    if (wide) avoid.push({ x: left.x + left.w, y: 0, w: right.x - (left.x + left.w), h: h });
     /* one budget, split — so "8개" really puts eight things on the page */
     var twinkleN = Math.round(env.decoBudget * 0.6);
     /* the accent rides along with the inks — the blooms are made of `soft`,
@@ -126,7 +162,7 @@
     });
     D.scatter(env, {
       count: env.decoBudget - twinkleN,
-      avoid: avoid, kinds: st.motifs, colors: inks,
+      avoid: avoid, kinds: st.motifs, colors: inks, hero: pal.accent,
       rMin: 14, rMax: 30, bigRatio: 0.24, minDist: 100,
       alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
       speckle: st.glitter
@@ -136,7 +172,7 @@
     if (!env.micro) {
       PO.rail(env, h - m.bottom + mic * 0.1, [c.footnote, null, W.textstack.monogram(st)],
         { m: m, size: mic * 0.9, alpha: 0.6 });
-      PO.tagRail(env, h - m.bottom - mic * 1.4, { m: m, size: mic * 0.9, alpha: 0.5 });
+      if (!wide) PO.tagRail(env, h - m.bottom - mic * 1.4, { m: m, size: mic * 0.9, alpha: 0.5 });
     }
   }
 
@@ -148,8 +184,8 @@
     defaults: {
       titleFont: 'instrument', scriptFont: 'gwendolyn', bodyFont: 'dmmono',
       headlineStyle: 'stack',
-      photoShape: 'circle', tone: 'wash', toneAmount: 0.55,
-      feather: 0.38, auraShape: 'heart',
+      photoShape: 'circle', tone: 'wash', toneAmount: 0.3,
+      feather: 0.12, auraShape: 'heart',
       motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
     },
     draw: draw

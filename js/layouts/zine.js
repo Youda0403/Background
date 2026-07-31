@@ -154,10 +154,19 @@
     ctx.stroke();
     ctx.restore();
 
-    PO.rail(env, h - m.bottom + mic * 0.1, [
-      (c.names || W.textstack.monogram(st)).toLowerCase(), null, 'pairtone'
-    ], { m: m, size: mic * 0.92, alpha: 0.75 });
-    PO.tagRail(env, h - m.bottom + mic * 0.1, { m: m, size: mic * 0.9, alpha: 0.55 });
+    /* A watch face has room for one rail, not two stacked on the same
+       baseline: the credits and the tags used to print straight through
+       each other into nonsense. */
+    if (env.micro) {
+      PO.rail(env, h - m.bottom + mic * 0.1,
+        [(c.names || W.textstack.monogram(st)).toLowerCase(), null, null],
+        { m: m, size: mic * 0.9, alpha: 0.75 });
+    } else {
+      PO.rail(env, h - m.bottom + mic * 0.1, [
+        (c.names || W.textstack.monogram(st)).toLowerCase(), null, 'pairtone'
+      ], { m: m, size: mic * 0.92, alpha: 0.75 });
+      PO.tagRail(env, h - m.bottom + mic * 0.1, { m: m, size: mic * 0.9, alpha: 0.55 });
+    }
   }
 
   W.layoutRegistry = W.layoutRegistry || [];
