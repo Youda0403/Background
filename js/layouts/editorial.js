@@ -1,7 +1,7 @@
-/* EDITORIAL — art-book plate. A large treated photo held inside a paper
-   margin, a display headline crossing its top edge, a micro-text column
-   at the right, and rails top and bottom.
-   Reference grammar: gallery flyers and plant/nature study posters. */
+/* EDITORIAL (Type) — the words ARE the poster: huge staggered grotesque
+   lines pushed alternately left and right, tiny labels floating in the
+   gaps they leave, and a photo strip pinned along the foot.
+   Reference grammar: "Hold Your Vision & Trust The Process". */
 (function (W) {
   'use strict';
   var U = W.util, P = W.prim, PO = W.poster, T = W.type;
@@ -9,129 +9,181 @@
   function draw(env) {
     var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
     var st = env.st, pal = env.pal, c = env.content;
-
-    PO.paper(env);
-    var m = PO.margins(env);
+    var rand = env.rand;
     var mic = PO.micro(env);
     var wide = env.tier === 'wide';
 
-    /* ---- rails ---- */
-    var topRailY = m.top + mic;
-    PO.rail(env, topRailY, [
-      (c.title || 'pairtone').toLowerCase() + (st.showNames && c.names ? ' / ' + c.names.toLowerCase() : ''),
-      null,
-      c.footnote
-    ], { m: m, size: mic, alpha: 0.7 });
+    PO.paper(env, { tint: false });
+    var m = PO.margins(env);
 
+    /* ---- the word stack ---- */
+    /* One word per line, always. Each word then fills the measure on its
+       own, so a short word is set huge and a long one smaller — that
+       size contrast is the whole idea, and it is also what makes a
+       handful of words fill a page instead of floating at the top. */
+    var raw = (c.title || '').replace(/[\r\n]+/g, ' ');
+    var lines = raw.split(/\s+/).filter(Boolean);
+
+    /* two words cannot carry a poster; borrow the names for more lines */
+    if (lines.length < 3 && c.names && st.showNames) {
+      c.names.split(/\s+/).filter(Boolean).forEach(function (word) {
+        if (lines.length < 5) lines.push(word);
+      });
+    }
+    if (!lines.length && c.names) lines = c.names.split(/\s+/).filter(Boolean);
+
+    /* A watch face fits two lines. Regroup the words into two rather than
+       dropping the tail, so the phrase is never cut off mid-thought. */
+    if (env.micro && lines.length > 2) {
+      var half = Math.ceil(lines.length / 2);
+      lines = [lines.slice(0, half).join(' '), lines.slice(half).join(' ')];
+    }
+    lines = lines.slice(0, 6);
+
+    var stripH = env.hasPhoto || !env.micro ? h * (wide ? 0.24 : 0.2) : 0;
+    var stackTop = m.top + mic * 1.6;
+    var stackBottom = h - m.bottom - stripH - mic * 2;
+    var stackH = stackBottom - stackTop;
+
+    /* Alternating column: each line fills ~82% of the measure and is
+       shoved to the opposite edge from its neighbour, so the stagger is
+       structural rather than decorative. */
+    var em = U.lerp(0.75, 1, env.emphasis) * (st.headlineScale || 1);
+    var weight = 600;
+    var sized = lines.map(function (text, i) {
+      /* a lone symbol (×, &) stays a punctuation mark, not a headline */
+      var isSep = text.length === 1 && !/[a-z0-9]/i.test(text);
+      var frac = isSep ? 0.2 : (i % 2 === 0 ? 0.94 : 0.84);
+      var size = T.fill(ctx, text.toUpperCase(), st.titleFont,
+        m.inner * frac * em, -0.015, { weight: weight }, u(320));
+      T.setFont(ctx, st.titleFont, size, { weight: weight });
+      return {
+        text: text.toUpperCase(), size: size, isSep: isSep,
+        ink: T.inkBox(ctx, text.toUpperCase()),
+        w: T.measure(ctx, text.toUpperCase(), size * -0.015)
+      };
+    });
+
+    /* tight leading, then scale the whole stack into its box */
+    var total = 0;
+    sized.forEach(function (l, i) {
+      total += (l.ink.asc + l.ink.desc) + (i ? l.size * 0.1 : 0);
+    });
+    if (total > stackH) {
+      var k = stackH / total;
+      sized.forEach(function (l) {
+        l.size *= k;
+        T.setFont(ctx, st.titleFont, l.size, { weight: weight });
+        l.ink = T.inkBox(ctx, l.text);
+        l.w = T.measure(ctx, l.text, l.size * -0.015);
+      });
+      total = stackH;
+    }
+
+    var y = stackTop + Math.max(0, stackH - total) * 0.25;
+    var gaps = [];   /* the negative space each line leaves, for labels */
     ctx.save();
-    ctx.globalAlpha = 0.3 * env.decoAlpha;
-    ctx.strokeStyle = pal.text;
-    ctx.lineWidth = Math.max(1, u(1.4));
-    ctx.beginPath();
-    ctx.moveTo(m.left, topRailY + mic * 0.9);
-    ctx.lineTo(w - m.right, topRailY + mic * 0.9);
-    ctx.stroke();
+    ctx.fillStyle = pal.text;
+    sized.forEach(function (l, i) {
+      y += l.ink.asc;
+      var left = i % 2 === 0;
+      var x = left ? m.left : w - m.right - l.w;
+      if (l.isSep) x = m.left + m.inner * 0.08;
+      T.setFont(ctx, st.titleFont, l.size, { weight: weight });
+      T.draw(ctx, l.text, x, y, { align: 'left', tracking: l.size * -0.015 });
+      gaps.push({
+        x: left ? x + l.w + u(30) : m.left,
+        w: Math.max(0, m.inner - l.w - u(30)),
+        y: y - l.ink.asc * 0.5,
+        align: left ? 'right' : 'left'
+      });
+      y += l.ink.desc + l.size * 0.1;
+    });
     ctx.restore();
 
-    /* ---- headline measured first, so the photo can meet it ---- */
-    var hasMicro = !!c.caption && !env.micro;
-    /* Portrait gets the full measure for the headline and a caption band of
-       its own under the plate; only wide canvases have room for the
-       side-by-side column the reference posters use. */
-    var hlBox = { x: m.left, y: topRailY + mic * (wide ? 2.2 : 2.6), w: m.inner };
-    /* The plate is the subject; the headline gets at most a third of the
-       page so the photo never collapses into a strip. */
-    var hlMaxH = (h - m.top - m.bottom) * (wide ? 0.42 : 0.34);
-    var hl = PO.headline(env, hlBox, { align: 'left', measure: true, maxH: hlMaxH });
-
-    var capW = wide ? m.inner * 0.4 : m.inner * 0.78;
-    var capH = hasMicro
-      ? PO.block(env, 0, 0, capW, [c.caption], { size: mic * 0.92, lead: 1.42, measure: true, font: st.bodyFont })
-      : 0;
-
-    /* ---- photo plate ---- */
-    var footH = mic * 3.2;
-    var plate;
-    if (wide) {
-      var colW = m.inner * 0.52;
-      plate = {
-        x: w - m.right - colW, y: m.top + mic * 2.4,
-        w: colW, h: h - m.bottom - footH - (m.top + mic * 2.4)
-      };
-    } else {
-      /* the headline's foot grazes the plate rather than sitting on it */
-      var overlap = env.tier === 'tall' || env.tier === 'phone' ? 0.16 : 0.28;
-      var top = hl.h ? hl.bottom - hl.h * overlap : hlBox.y;
-      var capBand = capH ? capH + mic * 1.5 : 0;
-      plate = { x: m.left, y: top, w: m.inner, h: h - m.bottom - footH - capBand - top };
-    }
-    if (plate.h > u(160)) {
-      if (env.hasPhoto) {
-        env.drawPhoto(plate);
-      } else {
-        /* no photo: a flat ink field still reads as a plate */
-        ctx.save();
-        ctx.globalAlpha = 0.5 * st.washStrength;
-        ctx.fillStyle = pal.soft[0];
-        ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
-        ctx.restore();
-      }
+    /* ---- tiny labels in the leftover gaps ---- */
+    if (!env.micro) {
+      var labels = [];
+      if (c.names && st.showNames) labels.push(c.names.toUpperCase());
+      if (c.footnote) labels.push(c.footnote.toUpperCase());
+      c.tags.slice(0, 2).forEach(function (t) { labels.push(t.toUpperCase()); });
+      var li = 0;
       ctx.save();
-      ctx.globalAlpha = 0.45 * env.decoAlpha;
-      ctx.strokeStyle = pal.text;
-      ctx.lineWidth = Math.max(1, u(1.2));
-      ctx.strokeRect(plate.x, plate.y, plate.w, plate.h);
+      ctx.fillStyle = pal.text;
+      gaps.forEach(function (g2, i) {
+        if (li >= labels.length || g2.w < u(140) || sized[i].isSep) return;
+        var size = mic * 0.78;
+        T.setFont(ctx, 'dmmono', size, {});
+        var ax = g2.align === 'right' ? w - m.right : m.left;
+        ctx.globalAlpha = 0.6;
+        T.draw(ctx, labels[li], ax, g2.y, { align: g2.align, tracking: size * 0.14 });
+        li++;
+      });
       ctx.restore();
     }
 
-    /* ---- accents hugging the plate, then the headline on top ---- */
-    PO.accents(env, plate, { rMin: 20, rMax: 52, outline: true, speckle: st.glitter });
+    /* ---- photo strip along the foot ---- */
+    if (stripH) {
+      var stripY = h - m.bottom - stripH;
+      ctx.save();
+      ctx.globalAlpha = 0.4 * env.decoAlpha;
+      ctx.strokeStyle = pal.text;
+      ctx.lineWidth = Math.max(1, u(1.4));
+      ctx.beginPath();
+      ctx.moveTo(m.left, stripY - mic * 1.1);
+      ctx.lineTo(w - m.right, stripY - mic * 1.1);
+      ctx.stroke();
+      ctx.restore();
 
-    PO.headline(env, hlBox, {
-      align: 'left', maxH: hlMaxH, scriptAlpha: 0.96, l2Weight: 500
-    });
+      var capW = m.inner * (wide ? 0.26 : 0.34);
+      var photoX = m.left + capW + u(36);
+      var photo = { x: photoX, y: stripY, w: w - m.right - photoX, h: stripH };
 
-    /* ---- caption ---- */
-    if (hasMicro) {
-      var mx = m.left;
-      var my = wide ? hl.bottom + mic * 1.6 : plate.y + plate.h + mic * 0.7;
-      PO.block(env, mx, my, capW, [c.caption], {
-        size: mic * 0.92, lead: 1.42, upper: false, alpha: 0.8, font: st.bodyFont
-      });
+      if (env.hasPhoto) {
+        env.drawPhoto(photo);
+        /* a second, small offcut on the far left, like the reference */
+        var cut = { x: m.left, y: stripY, w: capW * 0.44, h: stripH * 0.46 };
+        env.drawPhoto(cut);
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 0.4 * st.washStrength;
+        ctx.fillStyle = pal.soft[0];
+        ctx.fillRect(photo.x, photo.y, photo.w, photo.h);
+        ctx.restore();
+      }
+
+      if (c.caption && !env.micro) {
+        PO.block(env, m.left, stripY + stripH * (env.hasPhoto ? 0.5 : 0), capW,
+          [c.caption], {
+            size: mic * 0.8, lead: 1.45, upper: false, alpha: 0.75, font: st.bodyFont
+          });
+      }
     }
 
-    /* ---- foot ---- */
-    var footY = h - m.bottom - mic * 0.6;
-    ctx.save();
-    ctx.globalAlpha = 0.3 * env.decoAlpha;
-    ctx.strokeStyle = pal.text;
-    ctx.lineWidth = Math.max(1, u(1.4));
-    ctx.beginPath();
-    ctx.moveTo(m.left, footY - mic * 1.9);
-    ctx.lineTo(w - m.right, footY - mic * 1.9);
-    ctx.stroke();
-    ctx.restore();
-
-    var no = 'no.' + String(1 + (U.hashStr(String(st.seed)) % 899)).padStart(3, '0');
-    PO.rail(env, footY, [no, null, W.textstack.monogram(st)], { m: m, size: mic, alpha: 0.7 });
-    PO.tagRail(env, footY, { m: m, size: mic * 0.92, alpha: 0.6 });
-
+    /* ---- corner micro-rails ---- */
+    if (!env.micro) {
+      PO.rail(env, m.top + mic * 0.4, [
+        (c.tags[0] || 'be stronger').toUpperCase(), null,
+        W.textstack.monogram(st)
+      ], { m: m, size: mic * 0.72, alpha: 0.5 });
+    }
     if (st.sideLabel) {
-      PO.sideLabel(env, (c.title || '').toUpperCase(), { m: m, size: mic * 0.9, y: h * 0.62 });
+      PO.sideLabel(env, (c.title || '').replace(/\n/g, ' ').toUpperCase(),
+        { m: m, size: mic * 0.85, y: h * 0.5 });
     }
   }
 
   W.layoutRegistry = W.layoutRegistry || [];
   W.layoutRegistry.push({
     id: 'editorial',
-    label: 'Editorial',
-    blurb: '아트북 도판. 큰 사진 + 제목이 사진 위로 걸쳐요.',
+    label: 'Type',
+    blurb: '글자가 곧 포스터. 거대한 단어들이 지그재그로 쌓여요.',
     defaults: {
-      titleFont: 'cormorant', scriptFont: 'italianno', bodyFont: 'dmmono',
-      headlineStyle: 'scriptSans',
-      photoShape: 'rect', tone: 'wash', toneAmount: 0.7,
-      feather: 0,
-      motifs: ['burst', 'sparkle'], sideLabel: false, vignette: 0.05
+      titleFont: 'spacegrotesk', scriptFont: 'delafield', bodyFont: 'spacegrotesk',
+      headlineStyle: 'stack',
+      photoShape: 'rect', tone: 'mono', toneAmount: 1,
+      feather: 0, motifs: ['sparkle'], decoCount: 0,
+      sideLabel: false, grain: 1.1, vignette: 0.04
     },
     draw: draw
   });

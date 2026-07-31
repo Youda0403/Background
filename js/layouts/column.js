@@ -61,11 +61,13 @@
     var capH = c.caption ? PO.block(env, 0, 0, inner, [c.caption], {
       size: mic * 0.92, lead: 1.55, measure: true, font: st.bodyFont
     }) : 0;
-    var markR = st.decoCount > 0 ? Math.min(inner * 0.3, u(120)) : 0;
+    var simLine = c.tags[0] ? 'similar to ' + c.tags[0].toLowerCase() : '';
+    var simH = simLine ? mic * 1.9 : 0;
+    var divH = mic * 2.1;
     var namesH = (st.showNames && c.names) ? mic * 2.6 : 0;
 
     var contentH = pad + tSize * 1.5 + (etymH ? etymH + mic * 0.9 : 0)
-      + (markR ? markR * 1.25 : 0) + (capH ? capH + mic : 0) + namesH + pad;
+      + divH + (capH ? capH + mic : 0) + simH + namesH + pad;
     var colH = Math.min(bandH, Math.max(contentH, bandH * 0.5));
 
     var col = {
@@ -99,23 +101,47 @@
       y += etymH + mic * 0.9;
     }
 
-    /* a small inked motif, like the pressed flower in the reference */
-    if (markR) {
-      ctx.save();
-      ctx.globalAlpha = 0.9 * env.decoAlpha;
-      ctx.fillStyle = pal.duo[0];
-      var fn = P.motifs[st.motifs[0]] || P.motifs.burst;
-      fn(ctx, cx + inner / 2, y + markR * 0.6, markR * 0.55, rand);
+    /* a quiet divider: hairline, three small sparkles at its centre */
+    ctx.save();
+    ctx.strokeStyle = pal.text;
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = Math.max(1, u(1.2));
+    var dy = y + mic * 0.9;
+    var sw = mic * 2.6;
+    ctx.beginPath();
+    ctx.moveTo(cx, dy);
+    ctx.lineTo(cx + inner / 2 - sw, dy);
+    ctx.moveTo(cx + inner / 2 + sw, dy);
+    ctx.lineTo(cx + inner, dy);
+    ctx.stroke();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = pal.text;
+    [-1, 0, 1].forEach(function (k) {
+      P.sparkle(ctx, cx + inner / 2 + k * mic * 1.5, dy, mic * (k ? 0.42 : 0.6), 0.16);
       ctx.fill();
-      ctx.restore();
-      y += markR * 1.25;
-    }
+    });
+    ctx.restore();
+    y += divH;
 
     if (capH) {
       PO.block(env, cx, y, inner, [c.caption], {
         size: mic * 0.92, lead: 1.55, upper: false, alpha: 0.88, font: st.bodyFont
       });
       y += capH + mic;
+    }
+
+    if (simH) {
+      ctx.save();
+      ctx.fillStyle = pal.text;
+      ctx.globalAlpha = 0.7;
+      T.setFont(ctx, 'dmmono', mic * 0.85, {});
+      var sb = T.draw(ctx, simLine, cx, y + mic * 0.85, { align: 'left', tracking: mic * 0.06 });
+      /* underline only the borrowed word, like a cross-reference */
+      var lead = T.measure(ctx, 'similar to ', mic * 0.06);
+      T.rule(ctx, { x: sb.x + lead, y: sb.y, w: sb.w - lead }, mic * 0.3,
+        Math.max(1, u(1.2)), pal.text, 0.6);
+      ctx.restore();
+      y += simH;
     }
 
     if (namesH) {
@@ -145,7 +171,7 @@
       titleFont: 'dmserif', scriptFont: 'sacramento', bodyFont: 'spacemono',
       headlineStyle: 'stack',
       photoShape: 'rect', tone: 'duo', toneAmount: 0.95,
-      feather: 0, motifs: ['flower', 'sparkle'], decoCount: 5,
+      feather: 0, motifs: ['sparkle'], decoCount: 4,
       grain: 1.3, vignette: 0.05
     },
     draw: draw

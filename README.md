@@ -100,12 +100,12 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Editorial** | Art-book plate: big treated photo in a paper margin, display headline crossing its top edge, caption band, rails top and foot. |
-| **Lyric** | Full-bleed photo, crop marks, small-caps lyric blocks up top, huge script headline at the foot over a spiked burst. |
+| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. |
+| **Lyric** | A torn photograph across the top, the caption cut into pasted paper scraps, and a huge script headline filling the paper below. |
 | **Grid** | A crossword of highlighted cells spelling your words over a monochrome photo. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
 | **Aura** | Colour blooms and a feathered photo window. The soft one. |
-| **Column** | A full-bleed photo field with a paper column of dictionary-dense small type pinned along one edge. |
+| **Column** | A full-bleed photo field with a paper column of dictionary-dense small type — headword, etymology, definition — pinned along one edge. |
 
 ## Palettes
 
