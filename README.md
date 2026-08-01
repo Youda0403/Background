@@ -53,9 +53,9 @@ of the canvas's short side, and composition is chosen by aspect-ratio tier —
 columns instead of stacking; a very small canvas packs the names, date and tags
 onto one fitted foot line rather than dropping them; a tablet gets a smaller
 photo relative to its width so the type still breathes. All 6 × 33 presets ×
-both orientations are audited automatically, with and without a photo — 396
-renders — for content that goes missing, text drawn off the page, strings
-colliding, and dead regions. Content starts below the lock-screen clock band rather than halfway
+both orientations are audited automatically, across three content shapes and
+both photo states — six passes, 2376 renders — for content that goes missing,
+text drawn off the page, strings colliding, and dead regions. Content starts below the lock-screen clock band rather than halfway
 into it, so nothing important ends up under the time.
 
 **Type that fills its measure.** Headlines are sized by binary search against
@@ -128,7 +128,7 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Type** | The words *are* the poster: one word per line, flush left, set as large as its own measure allows, with a numbered gutter (01 02 03…) tied to each baseline, a numbered caption, and a rotated label up the right edge. The photograph is a **band inside the stack**, not a strip under it — it bites into the line above and the line below, and the last word is drawn *after* it so its ascenders climb over the picture's bottom edge. That one crossing is what makes the page read as layered rather than as two blocks taking turns; only the tips cross, so the word is always read against paper and never against an unpredictable photo. When the title is short the layout borrows the two names for extra lines, at roughly half the measure and pinned to one shared size between them. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas stands the picture beside the words instead of inside them. |
+| **Type** | The words *are* the poster: one word per line, flush left, set as large as its own measure allows, with a numbered gutter (01 02 03…) tied to each baseline, a numbered caption, and a rotated label up the right edge. The name separator is set as a small coloured mark rather than a line of its own size — a star fitted like a word came out bigger than the two names it joins and took the whole page's attention — and it is skipped when numbering, or the gutter reads 01 02 04. The photograph is a **band inside the stack**, not a strip under it — it bites into the line above and the line below, and the last word is drawn *after* it so its ascenders climb over the picture's bottom edge. That one crossing is what makes the page read as layered rather than as two blocks taking turns; only the tips cross, so the word is always read against paper and never against an unpredictable photo. When the title is short the layout borrows the two names for extra lines, at roughly half the measure and pinned to one shared size between them. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas stands the picture beside the words instead of inside them. |
 | **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a script headline set big enough to carry the paper it is torn onto. Three rules make it, and it was rebuilt around them: the script **straddles the tear** (type that starts tidily below the edge divides the page into two rectangles; type that climbs over it makes one page); the scraps are a **column, not a scatter** (four little boxes thrown about a photograph read as litter, aligned they read as a paste-up); and **the tear moves** — the lockup is measured first and the tear placed so the paper is exactly as tall as the type and its rule, with the picture taking everything else. A fixed tear line is what left the old version with a void under the headline. A wide canvas tears down the side instead of across. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
@@ -245,7 +245,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Sixteen things worth knowing before you edit
+### Twenty things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -304,6 +304,12 @@ Two things that audit taught the hard way: read boxes through
 `measureText().actualBoundingBoxAscent`, not from a fraction of the em, or
 every correctly seated script reads as hanging off the top of the page.
 
+**An audit nobody believes is an audit nobody reads.** The dead-region check
+counts the photograph's own rect as inked when no photo is loaded, taking the
+rect from the same combination rendered *with* one. Without that it reported
+every layout's empty picture area as a defect — dozens of findings, all
+benign, which is how a check stops being read.
+
 **A dead region is a defect, and it is invisible to the obvious checks.**
 "A third of the page is empty" is neither missing content, nor text off the
 canvas, nor a collision, so all three of the original audit's questions passed
@@ -319,6 +325,27 @@ caption. Give space back from the flexible element first (the picture band),
 then scale the type to what is actually left. And the band shrinks but never
 closes — collapsing it to zero when the page got tight meant the photograph
 was silently not drawn.
+
+**Whatever measures the fit must count the same gaps the layout draws.**
+Leading sits *between* lines, so n lines have n−1 of them. Type's fit counted
+`i ? leading : 0` while its layout added one after every line, so the stack
+consumed 0.08 of the largest line more than had been budgeted — invisible on a
+tall phone where slack absorbs it, and a collision with the caption on
+anything near square where there is none.
+
+**Place from what was measured, not from what was planned.** Type's picture
+column started at the notional split between words and picture. But a short
+canvas caps the type by height, and there is a hard maximum point size on top
+of that, so the words routinely end far narrower than the column they were
+fitted against — leaving a dead strip no adjustment of the nominal split could
+close. Measure where the words actually end, then place the picture there.
+
+**One content shape is one test case.** The audit ran only the default text —
+a three-word title — for a long time. A *one-word* title makes the layout
+borrow both names and the separator as extra lines, a completely different
+line structure, and that is the one a real user hit. `resp.js` now sweeps
+three content shapes (default / short title / every optional field empty)
+against both photo states: six passes, 2376 renders.
 
 **The top bar is sticky, so its height is permanent.** It used to wrap onto
 two rows on a phone — a brand line and a full-width row of buttons — costing

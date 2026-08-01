@@ -84,7 +84,12 @@
 
     function fit(text, borrowed) {
       var isSep = text.length === 1 && !/[a-z0-9]/i.test(text);
-      var frac = isSep ? 0.18 : borrowed ? 0.5 : 0.96;
+      /* A separator is punctuation between two names, not a third name.
+         Fitted at 0.18 of the measure a star glyph came out bigger than
+         the names it sits between and took the whole page's attention —
+         it is set as a small mark instead, and coloured, so it reads as
+         a join rather than as a word. */
+      var frac = isSep ? 0.055 : borrowed ? 0.5 : 0.96;
       var size = T.fill(ctx, text.toUpperCase(), st.titleFont,
         col.w * frac * em, -0.015, { weight: weight }, u(340));
       T.setFont(ctx, st.titleFont, size, { weight: weight });
@@ -94,23 +99,26 @@
         w: T.measure(ctx, text.toUpperCase(), size * -0.015)
       };
     }
-    var sized = lines.map(function (t, i) { return fit(t, i >= borrowedFrom); });
-
-    /* The two borrowed names are one unit and must read as one unit:
-       fitted independently, a four-letter and a three-letter name land on
-       different point sizes for no reason a reader could name. */
-    var bSizes = sized.filter(function (l) { return l.borrowed && !l.isSep; })
-      .map(function (l) { return l.size; });
-    if (bSizes.length > 1) {
-      var common = Math.min.apply(null, bSizes);
-      sized.forEach(function (l) {
-        if (!l.borrowed || l.isSep || l.size === common) return;
-        l.size = common;
-        T.setFont(ctx, st.titleFont, l.size, { weight: weight });
-        l.ink = T.inkBox(ctx, l.text);
-        l.w = T.measure(ctx, l.text, l.size * -0.015);
-      });
+    function buildWords() {
+      var out = lines.map(function (t, i) { return fit(t, i >= borrowedFrom); });
+      /* The two borrowed names are one unit and must read as one unit:
+         fitted independently, a four-letter and a three-letter name land
+         on different point sizes for no reason a reader could name. */
+      var bs = out.filter(function (l) { return l.borrowed && !l.isSep; })
+        .map(function (l) { return l.size; });
+      if (bs.length > 1) {
+        var common = Math.min.apply(null, bs);
+        out.forEach(function (l) {
+          if (!l.borrowed || l.isSep || l.size === common) return;
+          l.size = common;
+          T.setFont(ctx, st.titleFont, l.size, { weight: weight });
+          l.ink = T.inkBox(ctx, l.text);
+          l.w = T.measure(ctx, l.text, l.size * -0.015);
+        });
+      }
+      return out;
     }
+    var sized = buildWords();
 
     /* ---------- where the picture goes ---------- */
     /* Between the last two lines, so the band bites the line above and
@@ -120,24 +128,37 @@
     var wantBand = !wide && !env.micro;
     var gapAt = wantBand ? Math.max(0, sized.length - 2) : -1;
 
+    function measureCap(width) {
+      return (c.caption && !env.micro) ? PO.block(env, 0, 0, width, [c.caption], {
+        size: mic * 0.86, lead: 1.5, measure: true, font: st.bodyFont
+      }) : 0;
+    }
     var capW = env.micro ? 0 : (wide ? side.w : col.w * 0.72);
-    var capH = (c.caption && !env.micro) ? PO.block(env, 0, 0, capW, [c.caption], {
-      size: mic * 0.86, lead: 1.5, measure: true, font: st.bodyFont
-    }) : 0;
+    var capH = measureCap(capW);
 
     var footH = env.micro ? mic * 2.2 : mic * 3.4;
     var stackTop = m.top + (env.micro ? mic * 1.2 : mic * 2.6);
-    var stackBottom = h - m.bottom - footH - (capH ? capH + mic * 1.4 : 0);
+    /* On a wide canvas the caption lives under the picture in the side
+       column, not under the words, so it does not eat the stack's height. */
+    var stackBottom = h - m.bottom - footH - ((capH && !wide) ? capH + mic * 2.4 : 0);
     var stackH = stackBottom - stackTop;
 
     var bandH = gapAt >= 0 ? U.clamp(stackH * 0.34, u(200), h * 0.3) : 0;
     var bandPad = gapAt >= 0 ? mic * 1.1 : 0;
-
     function bandBox() { return gapAt >= 0 && bandH > 0 ? bandH + bandPad * 2 : 0; }
+
+    /* Leading sits BETWEEN lines, so there are n-1 of them and the last
+       line contributes none. Measuring `i ? …` while the layout below
+       added one after every line meant the stack consumed 0.08 of the
+       largest line more than the fit had budgeted for — invisible on a
+       tall phone, where there is slack to absorb it, and a collision with
+       the caption on anything near square, where there is not. The two
+       must count the same gaps. */
     function typeTotal() {
       var t = 0;
       sized.forEach(function (l, i) {
-        t += (l.ink.asc + l.ink.desc) + (i ? l.size * 0.08 : 0);
+        t += l.ink.asc + l.ink.desc;
+        if (i < sized.length - 1) t += l.size * 0.08;
       });
       return t;
     }
@@ -167,6 +188,26 @@
     }
     var total = typeTotal() + bandBox();
 
+    /* On a wide canvas the picture column starts where the words actually
+       END, measured, not where the notional column boundary was. A short
+       canvas caps the type by height, and there is also a hard maximum
+       point size, so the words routinely come out far narrower than the
+       column they were fitted against — leaving a dead strip between the
+       type and the picture that no amount of adjusting the nominal split
+       could close. Measure, then place. */
+    if (wide) {
+      var widest = 0;
+      sized.forEach(function (l) { if (l.w > widest) widest = l.w; });
+      col.w = U.clamp(widest, m.inner * 0.26, col.w);
+      var gutter = m.inner * 0.06;
+      side = {
+        x: col.x + col.w + gutter,
+        w: Math.max(u(200), w - m.right - col.x - col.w - gutter)
+      };
+      capW = side.w;
+      capH = measureCap(capW);
+    }
+
     /* ---------- lay the stack out ---------- */
     var y = stackTop + Math.max(0, stackH - total) * (env.micro ? 0.5 : 0.3);
     var band = null;
@@ -174,7 +215,8 @@
       y += l.ink.asc;
       l.y = y;
       l.x = col.x;
-      y += l.ink.desc + l.size * 0.08;
+      y += l.ink.desc;
+      if (i < sized.length - 1) y += l.size * 0.08;
       if (i === gapAt) {
         band = { x: col.x, y: y + bandPad, w: col.w, h: bandH };
         y += bandH + bandPad * 2;
@@ -183,7 +225,14 @@
     if (wide) {
       var top0 = sized[0].y - sized[0].ink.asc;
       var bot0 = sized[sized.length - 1].y + sized[sized.length - 1].ink.desc;
-      band = { x: side.x, y: top0, w: side.w, h: Math.max(u(220), bot0 - top0) };
+      /* the picture and its caption share the side column, and the column
+         stops above the foot rule — matched to the stack alone, a tall
+         stack pushed the caption straight through the rule */
+      var sideFloor = h - m.bottom - mic * 2.6 - (capH ? capH + mic * 1.4 : 0);
+      band = {
+        x: side.x, y: top0, w: side.w,
+        h: Math.max(u(200), Math.min(bot0, sideFloor) - top0)
+      };
     }
 
     /* the last real word crosses the picture, so it is drawn after it */
@@ -194,7 +243,7 @@
 
     function drawLine(l, i) {
       ctx.save();
-      ctx.fillStyle = (i === hot && sized.length > 1) ? accent : pal.text;
+      ctx.fillStyle = (l.isSep || (i === hot && sized.length > 1)) ? accent : pal.text;
       T.setFont(ctx, st.titleFont, l.size, { weight: weight });
       T.draw(ctx, l.text, l.x, l.y, { align: 'left', tracking: l.size * -0.015 });
       ctx.restore();
@@ -235,18 +284,25 @@
     if (crosses) drawLine(sized[hot], hot);
 
     /* ---------- the numbered gutter ---------- */
+    var capIndex = sized.length + 1;
     if (idxW) {
       ctx.save();
       ctx.fillStyle = pal.text;
       ctx.globalAlpha = 0.5;
       var nSize = mic * 0.72;
       T.setFont(ctx, 'dmmono', nSize, {});
-      sized.forEach(function (l, i) {
+      /* The separator gets no number, so the counter must skip it rather
+         than the line index doing the numbering — otherwise the gutter
+         reads 01 02 04 and looks like a missing item. */
+      var n = 0;
+      sized.forEach(function (l) {
         if (l.isSep) return;
-        T.draw(ctx, pad2(i + 1), m.left, l.y - l.ink.asc + nSize, {
+        n++;
+        T.draw(ctx, pad2(n), m.left, l.y - l.ink.asc + nSize, {
           align: 'left', tracking: nSize * 0.12
         });
       });
+      capIndex = n + 1;
       ctx.restore();
     }
 
@@ -255,14 +311,14 @@
       var capX = wide ? side.x : col.x;
       var capY = (wide ? band.y + band.h + mic * 1.4
         : stackBottom + mic * 1.4) - (wide ? 0 : capH + mic * 1.4) + mic * 0.2;
-      if (!wide) capY = stackBottom + mic * 0.2;
+      if (!wide) capY = stackBottom + mic * 1.0;
       if (idxW && !wide) {
         ctx.save();
         ctx.fillStyle = accent;
         ctx.globalAlpha = 0.85;
         var cSize = mic * 0.72;
         T.setFont(ctx, 'dmmono', cSize, {});
-        T.draw(ctx, pad2(sized.length + 1), m.left, capY + cSize, {
+        T.draw(ctx, pad2(capIndex), m.left, capY + cSize, {
           align: 'left', tracking: cSize * 0.12
         });
         ctx.restore();
