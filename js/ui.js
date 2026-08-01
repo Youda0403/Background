@@ -161,6 +161,15 @@
         S.applyPalette(st, v);
       } else {
         st[k] = v;
+        /* Picking a device should show it the way that device actually
+           is — a desktop preset landscape, a phone preset portrait —
+           without the user having to also flip the orientation toggle
+           to match. `orientation` now means the desired output shape, so
+           snap it to whichever value keeps this preset unrotated. */
+        if (k === 'presetId') {
+          var d = v === 'custom' ? { w: st.customW, h: st.customH } : W.presets.byId[v];
+          if (d) st.orientation = d.w > d.h ? 'landscape' : 'portrait';
+        }
       }
       if (panel) panel.refresh();
       draw();
@@ -570,11 +579,13 @@
     btn.disabled = true;
     var queue = batchTargets.slice();
     var original = st.presetId;
+    var originalOrientation = st.orientation;
     var done = 0;
 
     function next() {
       if (!queue.length) {
         st.presetId = original;
+        st.orientation = originalOrientation;
         btn.disabled = false;
         btn.textContent = label;
         panel.refresh();
@@ -584,6 +595,13 @@
       }
       var id = queue.shift();
       st.presetId = id;
+      /* Each device in the set gets its own native shape, exactly like
+         picking it from the dropdown would — a set that included Desktop
+         FHD while the panel was still in portrait (its default, from
+         however the user had last framed a phone) would otherwise export
+         a desktop wallpaper rotated on its side. */
+      var d = W.presets.byId[id];
+      if (d) st.orientation = d.w > d.h ? 'landscape' : 'portrait';
       btn.textContent = (done + 1) + '/' + (done + queue.length + 1) + ' 만드는 중…';
       R.toBlob(st).then(function (blob) {
         saveBlob(blob, R.slug(st) + '.png');

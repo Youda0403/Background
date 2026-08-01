@@ -85,6 +85,27 @@
       };
     });
 
+    /* The two names are one unit and must read as one unit. Each word
+       still fills its own line independently — that is the point of the
+       layout — so a four-letter name and a three-letter name landed on
+       different point sizes even though neither is more important than
+       the other. The title is still allowed to dwarf the names group;
+       only the names have to agree with each other, so pin them all to
+       whichever of the two fit their slot hardest. */
+    var borrowedSizes = sized
+      .filter(function (l) { return l.borrowed && !l.isSep; })
+      .map(function (l) { return l.size; });
+    if (borrowedSizes.length > 1) {
+      var common = Math.min.apply(null, borrowedSizes);
+      sized.forEach(function (l) {
+        if (!l.borrowed || l.isSep || l.size === common) return;
+        l.size = common;
+        T.setFont(ctx, st.titleFont, l.size, { weight: weight });
+        l.ink = T.inkBox(ctx, l.text);
+        l.w = T.measure(ctx, l.text, l.size * -0.015);
+      });
+    }
+
     /* tight leading, then scale the whole stack into its box */
     var total = 0;
     sized.forEach(function (l, i) {

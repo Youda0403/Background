@@ -22,7 +22,17 @@
       var p = W.presets.byId[st.presetId] || W.presets.byId['ip-15'];
       w = p.w; h = p.h;
     }
-    if (st.orientation === 'landscape') { var t = w; w = h; h = t; }
+    /* `orientation` means the shape the OUTPUT should end up — landscape
+       is wider than tall, portrait is taller than wide — not "swap the
+       raw pixels". A literal swap-on-landscape treated every preset as if
+       it were natively portrait: Desktop FHD (1920x1080) already IS
+       landscape, so picking "가로" swapped it into a 1080x1920 portrait
+       desktop wallpaper, and picking "세로" (the default) left it
+       landscape — the two buttons did the opposite of what they said.
+       Swap only when the desired shape disagrees with the preset's own. */
+    var nativeLandscape = w > h;
+    var wantLandscape = st.orientation === 'landscape';
+    if (wantLandscape !== nativeLandscape) { var t = w; w = h; h = t; }
     return { w: w, h: h };
   }
 

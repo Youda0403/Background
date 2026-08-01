@@ -23,7 +23,15 @@ for.
 **Many sizes.** 36 device presets across iPhone (SE → 17 Pro Max), Galaxy
 (S / S Ultra / Z Flip main + cover / Z Fold main + cover), iPad and Galaxy Tab,
 desktop and MacBook, Apple Watch, plus story/square/profile crops and a custom
-size box. Landscape toggle on everything.
+size box. Landscape toggle on everything — and picking a device shows it the
+way that device actually is, a desktop landscape and a phone portrait, without
+having to also flip the toggle to match. That used to require the toggle: the
+orientation flag meant "swap the raw pixels," so a preset that is natively
+landscape (Desktop, MacBook, X header) needed 가로 to mean "rotate away from
+landscape," which is backwards from what the label says. It now means the
+shape you want the output to end up, resolved against whatever the preset's
+own native shape is — true for the live preview, the single-file export and
+the batch-export set alike.
 
 **The preview *is* the file.** When you stop adjusting, the preview repaints at
 the real output resolution, so it is pixel-identical to the PNG you save. While
@@ -112,11 +120,11 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. When the title is short the layout borrows the two names for extra lines — at roughly half the measure, because a name filling the measure exactly as hard as the pair name reads as two titles and the hierarchy the layout depends on disappears. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas puts the words in a left column and the photograph in a tall one beside them. |
+| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. When the title is short the layout borrows the two names for extra lines — at roughly half the measure, because a name filling the measure exactly as hard as the pair name reads as two titles and the hierarchy the layout depends on disappears. The two borrowed names are pinned to one shared size, though: each word still fills its own line independently, which used to mean a four-letter name and a three-letter name landed on visibly different point sizes even though they are one unit and neither outranks the other. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas puts the words in a left column and the photograph in a tall one beside them. |
 | **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a script headline set big enough to carry the paper it is torn onto. Three rules make it, and it was rebuilt around them: the script **straddles the tear** (type that starts tidily below the edge divides the page into two rectangles; type that climbs over it makes one page); the scraps are a **column, not a scatter** (four little boxes thrown about a photograph read as litter, aligned they read as a paste-up); and **the tear moves** — the lockup is measured first and the tear placed so the paper is exactly as tall as the type and its rule, with the picture taking everything else. A fixed tear line is what left the old version with a void under the headline. A wide canvas tears down the side instead of across. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
-| **Aura** | Colour blooms and a soft photo window. The gentle one — but the window keeps a hairline edge and only a light feather, because a faded photograph inside a wide soft aureole is the visual language of a memorial, not of a couple. A wide canvas gives the photograph and the whole type group one shared centreline. |
+| **Aura** | Colour blooms and a soft photo window. The gentle one — but the window keeps a hairline edge and only a light feather, because a faded photograph inside a wide soft aureole is the visual language of a memorial, not of a couple. A wide canvas gives the photograph and the whole type group one shared centreline — the glow itself is anchored there too, to the left column's centre, rather than to wherever a photo happened to be placed. Anchoring it to the plate meant that with no photo loaded the glow fell back to the full canvas centre, drifting into the gutter between the two columns and lining up with neither the empty photo slot nor the text. |
 | **Column** | A full-bleed photo field with a paper card of dictionary-dense small type — headword, etymology, definition — pinned along one edge. The card is a *card*: on a dark palette it stays light, where painting it in the page colour put a navy box on a navy field and lost it entirely. |
 
 ## Palettes
@@ -229,7 +237,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Twelve things worth knowing before you edit
+### Fifteen things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -296,6 +304,41 @@ unreadable nonsense at 396px.
 two rows on a phone — a brand line and a full-width row of buttons — costing
 about a sixth of the screen for the whole session. One row, smaller type,
 50px.
+
+**A flag that means "swap" needs to know what it's swapping from.**
+`orientation` used to be interpreted literally — `'landscape'` swapped the
+preset's raw `w`/`h`, full stop. That is correct only for presets that are
+natively portrait, which is most of them, so nobody noticed until a preset
+that is natively landscape (Desktop, MacBook, X header) got the same
+treatment: picking 가로 rotated it *out of* landscape, and the default
+(`'portrait'`, meaning "don't swap") happened to leave it landscape by
+accident. `render.dims()` now compares the desired shape against the
+preset's own native shape and swaps only on disagreement, and `ui.js`
+snaps `orientation` to a newly picked preset's native shape the same way
+the dropdown always implicitly promised it would — including inside
+`downloadSet()`'s batch loop, which sets `presetId` directly and would
+otherwise export a landscape device rotated onto its side any time the
+panel itself was still framed as portrait.
+
+**A word that fills its own line still has to agree with its neighbour.**
+Type sizes every line independently — a short word set huge, a long one
+smaller, that contrast is the point. It is not the point for the two
+borrowed name words, which are one unit split across two lines only
+because the layout is one-word-per-line by construction; fit
+independently, a four-letter name and a three-letter name landed on
+different point sizes for no reason a reader could name. They are pinned
+to whichever of the two needed the smaller size to fill its slot, after
+the fact, rather than never being fit independently in the first place —
+cheaper than restructuring the two-pass fit/scale pipeline for one
+special case.
+
+**Anchor decoration to where content belongs, not to whether it loaded.**
+Aura's hero glow used to centre on the photo's own frame, which does not
+exist when no photo is loaded — the fallback was the *canvas* centre, which
+on a wide two-column layout is the gutter between the columns, aligned
+with neither the empty photo slot nor the text. The anchor is now the left
+column's centre unconditionally, matching where a photo would sit if there
+were one.
 
 **Never nest a button inside `<label for=…>`, and never let it take focus.**
 Clicking it activates the label, which focuses the field and scrolls the panel;

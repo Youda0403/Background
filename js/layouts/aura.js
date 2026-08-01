@@ -91,12 +91,20 @@
     /* ---- hero aura behind the window ---- */
     if (st.auraShape !== 'none') {
       var fn = P.motifs[st.auraShape] || P.motifs.heart;
-      var hx = plate ? plate.x + plate.w / 2 : w / 2;
-      var hy = plate ? plate.y + plate.h / 2 : env.band.top + (env.band.bottom - env.band.top) * 0.32;
+      /* Anchored to where the picture belongs, not to whether one happens
+         to be loaded. On a wide canvas that is the left column's centre —
+         falling back to the full canvas centre with no photo pulled the
+         glow out from under the left column into the gutter between the
+         two halves, so it lined up with neither the empty photo slot nor
+         the text sitting in the right column. */
+      var hx = wide ? left.x + left.w / 2 : (plate ? plate.x + plate.w / 2 : w / 2);
+      var hy = wide ? midY
+        : (plate ? plate.y + plate.h / 2 : env.band.top + (env.band.bottom - env.band.top) * 0.32);
       /* A bloom behind the window, not a halo around a memory. The old
          spread put a wide soft aureole around a faded photograph, which
          is the visual language of a memorial, not of a couple. */
-      var hr = plate ? Math.min(plate.w, plate.h) * 0.52 : env.S * 0.3;
+      var hr = wide ? Math.min(photoW, photoH) * 0.52
+        : (plate ? Math.min(plate.w, plate.h) * 0.52 : env.S * 0.3);
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
         pal.soft[0], { layers: 18, spread: 0.34, alpha: 0.5 * st.washStrength });
       /* the inner core carries the accent, so the softest layout still
