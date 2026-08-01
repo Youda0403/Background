@@ -122,6 +122,14 @@
   /* Ids that changed between releases, so old share links still open. */
   var LAYOUT_ALIASES = { paper: 'editorial', riso: 'zine', sticker: 'lyric' };
 
+  /* Presets that no longer exist. The Apple Watch sizes were dropped: at
+     396 x 484 there is not enough page for any of these layouts to be
+     worth exporting, and every one of them had to special-case itself
+     into something that was really a different design. A saved state or
+     a share link may still name one, so it lands on a phone instead of
+     silently rendering as the fallback preset's shape under the old id. */
+  var PRESET_ALIASES = { 'wt-41': 'ip-15', 'wt-45': 'ip-15', 'wt-ultra': 'ip-15' };
+
   function create() {
     var st = {};
     Object.keys(DEFAULTS).forEach(function (k) {
@@ -149,6 +157,11 @@
 
   function migrate(st) {
     if (LAYOUT_ALIASES[st.layout]) st.layout = LAYOUT_ALIASES[st.layout];
+    if (PRESET_ALIASES[st.presetId]) {
+      st.presetId = PRESET_ALIASES[st.presetId];
+      var pd = W.presets.byId[st.presetId];
+      if (pd) st.orientation = pd.w > pd.h ? 'landscape' : 'portrait';
+    }
     ['titleFont', 'bodyFont', 'scriptFont'].forEach(function (k) {
       if (st[k] && W.type.aliases[st[k]]) st[k] = W.type.aliases[st[k]];
       if (!W.type.byId[st[k]]) st[k] = DEFAULTS[k];

@@ -119,12 +119,11 @@
     }
     var d = info.full;
     sizeLabel.textContent = d.w + ' × ' + d.h;
-    /* The tier is an aspect-ratio band, and a watch face happens to share
-       one with a tablet — 416 × 496 is 1.19, same as an iPad. That is
-       fine for choosing a composition and nonsense to show a person, who
-       reads "패드" under a picture of a watch and reasonably concludes
-       something is broken. */
-    tierLabel.textContent = info.env.micro ? '워치' : (TIER_KO[C.tierOf(d.h / d.w)] || '');
+    /* The tier is an aspect-ratio band, so a very small custom canvas
+       lands in whichever band its proportions fall in and gets labelled
+       "패드" at 300 x 400, which reads as a bug. Only custom sizes can be
+       this small now that the Watch presets are gone. */
+    tierLabel.textContent = info.env.micro ? '작은 화면' : (TIER_KO[C.tierOf(d.h / d.w)] || '');
     canvas.classList.toggle('flat', !W.photo.has());
     stageTip.textContent = W.photo.has()
       ? '프리뷰를 드래그하면 사진 위치, 스크롤하면 확대 · 더블클릭하면 초기화'

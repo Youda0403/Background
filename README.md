@@ -20,10 +20,18 @@ npx serve .              # or serve it, if you prefer localhost
 pre-selected devices meant the button offered to save a set nobody had asked
 for.
 
-**Many sizes.** 36 device presets across iPhone (SE → 17 Pro Max), Galaxy
+**Many sizes.** 33 device presets across iPhone (SE → 17 Pro Max), Galaxy
 (S / S Ultra / Z Flip main + cover / Z Fold main + cover), iPad and Galaxy Tab,
-desktop and MacBook, Apple Watch, plus story/square/profile crops and a custom
-size box. Landscape toggle on everything — and picking a device shows it the
+desktop and MacBook, plus story/square/profile crops and a custom
+size box.
+
+There is deliberately no Apple Watch preset. At 396 × 484 there is not enough
+page for any of these layouts to be worth exporting, and every one of them had
+to special-case itself into what was really a different design to fill the
+face at all. Saved states and share links naming the old ids migrate to a
+phone.
+
+Landscape toggle on everything — and picking a device shows it the
 way that device actually is, a desktop landscape and a phone portrait, without
 having to also flip the toggle to match. That used to require the toggle: the
 orientation flag meant "swap the raw pixels," so a preset that is natively
@@ -42,12 +50,12 @@ slightly different aspect ratio, which is enough to move a whole row of a grid.
 **One design, genuinely responsive.** Every dimension is expressed in per-mille
 of the canvas's short side, and composition is chosen by aspect-ratio tier —
 `tall`, `phone`, `tablet`, `square`, `wide`. A wide canvas splits into two
-columns instead of stacking; a Watch face enlarges the headline and packs the
-names, date and tags onto one fitted foot line rather than dropping them; a
-tablet gets a smaller photo relative to its width so the type still breathes.
-All 6 × 36 presets × both orientations are audited automatically, with and
-without a photo — 432 renders — for content that goes missing, text drawn off
-the page, and strings colliding. Content starts below the lock-screen clock band rather than halfway
+columns instead of stacking; a very small canvas packs the names, date and tags
+onto one fitted foot line rather than dropping them; a tablet gets a smaller
+photo relative to its width so the type still breathes. All 6 × 33 presets ×
+both orientations are audited automatically, with and without a photo — 396
+renders — for content that goes missing, text drawn off the page, strings
+colliding, and dead regions. Content starts below the lock-screen clock band rather than halfway
 into it, so nothing important ends up under the time.
 
 **Type that fills its measure.** Headlines are sized by binary search against
@@ -120,7 +128,7 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Type** | The words *are* the poster: one word per line, set huge and shoved alternately to each edge, tiny labels in the gaps, a photo strip at the foot. When the title is short the layout borrows the two names for extra lines — at roughly half the measure, because a name filling the measure exactly as hard as the pair name reads as two titles and the hierarchy the layout depends on disappears. The two borrowed names are pinned to one shared size, though: each word still fills its own line independently, which used to mean a four-letter name and a three-letter name landed on visibly different point sizes even though they are one unit and neither outranks the other. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas puts the words in a left column and the photograph in a tall one beside them. |
+| **Type** | The words *are* the poster: one word per line, flush left, set as large as its own measure allows, with a numbered gutter (01 02 03…) tied to each baseline, a numbered caption, and a rotated label up the right edge. The photograph is a **band inside the stack**, not a strip under it — it bites into the line above and the line below, and the last word is drawn *after* it so its ascenders climb over the picture's bottom edge. That one crossing is what makes the page read as layered rather than as two blocks taking turns; only the tips cross, so the word is always read against paper and never against an unpredictable photo. When the title is short the layout borrows the two names for extra lines, at roughly half the measure and pinned to one shared size between them. One word takes the accent — never the separator, since a lone `×` set in red reads as a mistake. A wide canvas stands the picture beside the words instead of inside them. |
 | **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a script headline set big enough to carry the paper it is torn onto. Three rules make it, and it was rebuilt around them: the script **straddles the tear** (type that starts tidily below the edge divides the page into two rectangles; type that climbs over it makes one page); the scraps are a **column, not a scatter** (four little boxes thrown about a photograph read as litter, aligned they read as a paste-up); and **the tear moves** — the lockup is measured first and the tear placed so the paper is exactly as tall as the type and its rule, with the picture taking everything else. A fixed tear line is what left the old version with a void under the headline. A wide canvas tears down the side instead of across. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
@@ -237,7 +245,7 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
-### Fifteen things worth knowing before you edit
+### Sixteen things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
 Never write raw pixel numbers in a layout — they will not survive a change of
@@ -296,9 +304,21 @@ Two things that audit taught the hard way: read boxes through
 `measureText().actualBoundingBoxAscent`, not from a fraction of the em, or
 every correctly seated script reads as hanging off the top of the page.
 
-**A watch face has room for one rail, not two.** Zine printed its credits and
-its tag rail on the same baseline, which is invisible at phone size and
-unreadable nonsense at 396px.
+**A dead region is a defect, and it is invisible to the obvious checks.**
+"A third of the page is empty" is neither missing content, nor text off the
+canvas, nor a collision, so all three of the original audit's questions passed
+while a wallpaper plainly looked broken. `resp.js` now also finds the largest
+all-empty rectangle over a 24 × 24 grid of the render and fails past 35% of the
+page. A poster is allowed air and a no-photo placeholder is legitimately flat,
+which is why the bar is one *unbroken* third rather than "some empty space".
+
+**A minimum size is not a fit.** Scaling a stack by
+`max(0.4, needed / available)` and hoping is a refusal to fit: on square
+canvases Type's stack ran straight past its box and printed through the
+caption. Give space back from the flexible element first (the picture band),
+then scale the type to what is actually left. And the band shrinks but never
+closes — collapsing it to zero when the page got tight meant the photograph
+was silently not drawn.
 
 **The top bar is sticky, so its height is permanent.** It used to wrap onto
 two rows on a phone — a brand line and a full-width row of buttons — costing

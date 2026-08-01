@@ -43,15 +43,12 @@
       ]
     },
     {
-      group: '데스크탑 · 워치',
+      group: '데스크탑',
       items: [
         { id: 'dt-fhd', label: 'Desktop FHD', w: 1920, h: 1080 },
         { id: 'dt-qhd', label: 'Desktop QHD', w: 2560, h: 1440 },
         { id: 'dt-mbp14', label: 'MacBook Pro 14"', w: 3024, h: 1964 },
-        { id: 'dt-mbp16', label: 'MacBook Pro 16"', w: 3456, h: 2234 },
-        { id: 'wt-41', label: 'Apple Watch 41/42mm', w: 396, h: 484 },
-        { id: 'wt-45', label: 'Apple Watch 45/46mm', w: 416, h: 496 },
-        { id: 'wt-ultra', label: 'Apple Watch Ultra', w: 410, h: 502 }
+        { id: 'dt-mbp16', label: 'MacBook Pro 16"', w: 3456, h: 2234 }
       ]
     },
     {
