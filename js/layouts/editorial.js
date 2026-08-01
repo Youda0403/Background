@@ -40,11 +40,20 @@
       borrowedFrom = lines.length;   /* nothing else to be subordinate to */
     }
 
-    /* A watch face fits two lines. Regroup the words into two rather than
-       dropping the tail, so the phrase is never cut off mid-thought. */
-    if (env.micro && lines.length > 2) {
-      var half = Math.ceil(lines.length / 2);
-      lines = [lines.slice(0, half).join(' '), lines.slice(half).join(' ')];
+    /* A watch face fits three lines, not two. Regrouping to two was what
+       broke it: every line is fitted to the MEASURE, so folding three
+       words onto two lines makes both lines longer and therefore
+       *smaller*, and the stack then occupied barely a fifth of the face
+       with the rest dead. One word per line is the layout's whole idea
+       and it is also what fills a small square. Regroup only past three,
+       so the phrase is still never cut off mid-thought. */
+    if (env.micro && lines.length > 3) {
+      var per = Math.ceil(lines.length / 3);
+      var packed = [];
+      for (var gi = 0; gi < lines.length; gi += per) {
+        packed.push(lines.slice(gi, gi + per).join(' '));
+      }
+      lines = packed;
     }
     lines = lines.slice(0, 6);
 
@@ -122,7 +131,11 @@
       total = stackH;
     }
 
-    var y = stackTop + Math.max(0, stackH - total) * 0.25;
+    /* The stack sits high on a poster — that is the editorial look, and
+       the photo strip balances it. A watch face has no strip to balance
+       against, so the same 0.25 left a third of the face dead under the
+       type; there, centre it. */
+    var y = stackTop + Math.max(0, stackH - total) * (env.micro ? 0.5 : 0.25);
     var gaps = [];   /* the negative space each line leaves, for labels */
     /* One word of the stack is set in the accent — the oldest trick in
        Swiss poster typography, and on this layout the only place a real
