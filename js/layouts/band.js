@@ -77,12 +77,16 @@
     var ink = T.inkBox(ctx, 'H');
 
     ctx.save();
-    ctx.fillStyle = pal.text;
     lines.forEach(function (l, i) {
       /* seated on the row's optical centre — identical offset every line */
       var cy = yTitle + lineH * (i + 0.5) + (ink.asc - ink.desc) / 2;
+      /* the closing line takes the accent. Hairlines and set numerals are
+         too little area for a palette to be felt on the page — the choice
+         has to land somewhere a reader would call colour. */
+      var hot = i === lines.length - 1 && lines.length > 1;
+      ctx.fillStyle = hot ? accent : pal.text;
+      ctx.globalAlpha = hot ? 1 : 0.92;
       T.setFont(ctx, st.titleFont, size, { weight: 500 });
-      ctx.globalAlpha = i === lines.length - 1 && lines.length > 1 ? 1 : 0.92;
       T.draw(ctx, l.toUpperCase(), m.left, cy, { align: 'left', tracking: size * -0.015 });
     });
     ctx.restore();

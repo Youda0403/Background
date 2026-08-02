@@ -157,9 +157,17 @@
     ctx.globalAlpha = opts.alpha == null ? 0.82 : opts.alpha;
     T.setFont(ctx, opts.font || 'archivo', size, { weight: opts.weight || 400, italic: opts.italic });
 
+    /* Wrap the string that will actually be drawn, at the tracking it will
+       actually be drawn with. Measuring the raw lower-case string at a
+       tracking of 0.02 and then drawing it upper-cased at 0.06 makes every
+       wrapped line come out wider than the column it was fitted to — which
+       is how a narrow information cell ended up printing into its
+       neighbour. */
+    var tr = size * (opts.tracking == null ? 0.06 : opts.tracking);
     var out = [];
     lines.forEach(function (raw) {
-      T.wrap(ctx, raw, maxW, size * 0.02).forEach(function (l) { out.push(l); });
+      var src = opts.upper === false ? String(raw) : String(raw).toUpperCase();
+      T.wrap(ctx, src, maxW, tr).forEach(function (l) { out.push(l); });
     });
 
     if (opts.measure) {
@@ -169,8 +177,7 @@
 
     var yy = y + size;
     out.forEach(function (l, i) {
-      var b = T.draw(ctx, opts.upper === false ? l : l.toUpperCase(), ax, yy,
-        { align: align, tracking: size * (opts.tracking == null ? 0.06 : opts.tracking) });
+      var b = T.draw(ctx, l, ax, yy, { align: align, tracking: tr });
       if (opts.underlineFirst && i === 0) {
         T.rule(ctx, b, size * 0.34, Math.max(1, size * 0.06), opts.color || env.pal.text, 0.6);
       }
