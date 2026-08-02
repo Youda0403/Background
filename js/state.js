@@ -15,7 +15,7 @@
     customH: 2556,
 
     /* the two real choices */
-    layout: 'ladder',
+    layout: 'spine',
     palette: 'sage',
 
     /* scene */
@@ -121,7 +121,8 @@
 
   /* Ids that changed between releases, so old share links still open. */
   var LAYOUT_ALIASES = {
-    paper: 'ladder', editorial: 'ladder', riso: 'zine', sticker: 'lyric'
+    paper: 'spine', editorial: 'spine', ladder: 'spine', band: 'spine',
+    riso: 'zine', sticker: 'lyric'
   };
 
   /* Presets that no longer exist. The Apple Watch sizes were dropped: at
@@ -212,7 +213,7 @@
 
   function randomize(st) {
     var r = U.rng(Date.now() ^ (Math.random() * 1e9));
-    var layouts = Object.keys(W.layouts || { ladder: 1 });
+    var layouts = Object.keys(W.layouts || { spine: 1 });
     var next = create();
     /* keep what the user wrote and how they framed their photo */
     ['presetId', 'orientation', 'customW', 'customH', 'titleMode', 'pairName',

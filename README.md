@@ -52,9 +52,9 @@ of the canvas's short side, and composition is chosen by aspect-ratio tier —
 `tall`, `phone`, `tablet`, `square`, `wide`. A wide canvas splits into two
 columns instead of stacking; a very small canvas packs the names, date and tags
 onto one fitted foot line rather than dropping them; a tablet gets a smaller
-photo relative to its width so the type still breathes. All 8 × 33 presets ×
+photo relative to its width so the type still breathes. All 6 × 33 presets ×
 both orientations are audited automatically, across three content shapes and
-both photo states — six passes, 3168 renders — for content that goes missing,
+both photo states — six passes, 2376 renders — for content that goes missing,
 text drawn off the page, strings colliding, and dead regions. Content starts below the lock-screen clock band rather than halfway
 into it, so nothing important ends up under the time.
 
@@ -95,7 +95,7 @@ it into the palette:
 Wash and Duotone are deliberately far apart: one keeps the photograph
 recognisable, the other turns it into artwork.
 
-Grid, Spine and Band default to Duotone rather than Mono. Grey is not a palette
+Grid and Spine default to Duotone rather than Mono. Grey is not a palette
 colour: a grayscale plate sat on the page as a slab that belonged to no
 design, most obviously on the saturated palettes. Mono is still one click
 away when that is the effect you want.
@@ -110,7 +110,7 @@ on the preview.
 **Two decisions, not three.** A design is a **layout** (where things sit, and
 which fonts suit that structure) and a **palette** (colour, and only colour).
 That is the whole model — there is no separate "look" concept, because
-8 layouts × 21 palettes is already 168 finished combinations. A palette never
+6 layouts × 21 palettes is already 126 finished combinations. A palette never
 touches the typography, so changing colour cannot undo a font you chose. The
 layouts own their own composition, so every remaining slider can nudge a design
 but cannot break it.
@@ -128,9 +128,7 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
-| **Ladder** | The pair name repeated down the page, once per weight, from a hairline outline to a solid slab, with the last rung in the accent. Every rung is set at **one shared size**, fitted at the heaviest weight so the widest one still clears the measure — the lighter rungs then run short of it, flush left, which is the ladder. Below it a ruled strip of modules: the picture beside a solid accent block carrying the monogram, then equal numbered information cells. Everything on the page is a multiple of one spacing unit `g`; nothing is positioned, everything is counted. The gaps do not scale with the type — only the glyphs shrink to fit the band, because scaling the stack including its gaps leaves the total still over and the last rung printing through the picture row. With no photograph the picture cell becomes a toned plate carrying the pair's line reversed out, so the row never looks like it lost something. |
-| **Spine** | The pair name broken into single letters laid in a **table** — every letter in an identical cell, centred in it — running down a full-bleed field. A table is the one way to make letter spacing inarguably even when the layout cannot know the name in advance. The final row is centred rather than left-aligned, so the letters the name does not divide into leave a shortfall on both sides instead of a hole at the page corner. The photograph is the ground, not an object: there is no box to look out of place because there is no box. Small text sits at fixed anchors over a legibility veil, and the anchors are **measured**, not reserved at a guessed constant — that is how the letters ended up printed through the caption. With no photograph the ground becomes a deep duotone field, which is what the reference looks like anyway. |
-| **Band** | The page cut into horizontal strata on one row unit, with the picture as a **full-bleed stripe** rather than an inset box. A rectangle set inside the margins mid-page always reads as something that fell onto the design; the fix is not to shrink it but to run it edge to edge, because a stripe touching both trims files with the page rather than with the objects on it. Rail, title, band, information, foot each take a whole number of rows, and the title zone is divided exactly by its line count, so the leading *is* the unit. With no photograph the stripe does not vanish and does not become a placeholder — it becomes a toned field carrying the same monogram in the same place, so the composition is identical either way. The horizontal gutter is measured off the measure, not off the row height, or a landscape page closes it up until the cells touch. |
+| **Spine** | The pair name broken into single letters laid in a **table** — every letter in an identical cell, centred in it — running down a full-bleed field, the rows growing from a hairline outline to a solid slab as they descend. A table is the one way to make letter spacing inarguably even when the layout cannot know the name in advance, and the weight ramp is what stops an even table from reading as a flat block. The photograph is the ground, not an object: there is no box to look out of place because there is no box. The table's last cell is always the **accent module**, never a letter — which settles two things at once, since the palette gets somewhere with real area to land and the row the name does not divide into ends on a deliberate block instead of trailing off into empty cells. Every gap is one spacing unit or a multiple of it, and the information at the foot is a ruled row of equal numbered cells rather than paragraphs pinned wherever there was room. The veil over the photograph is weighted to the two ends, where the rails and the cells are set and an uploaded picture is as likely to be sky as shadow, and left alone through the centre where the picture should still be a picture. With no photograph the ground becomes a deep duotone field, which is what the reference looks like anyway. |
 | **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a script headline set big enough to carry the paper it is torn onto. Three rules make it, and it was rebuilt around them: the script **straddles the tear** (type that starts tidily below the edge divides the page into two rectangles; type that climbs over it makes one page); the scraps are a **column, not a scatter** (four little boxes thrown about a photograph read as litter, aligned they read as a paste-up); and **the tear moves** — the lockup is measured first and the tear placed so the paper is exactly as tall as the type and its rule, with the picture taking everything else. A fixed tear line is what left the old version with a void under the headline. A wide canvas tears down the side instead of across. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
@@ -164,14 +162,14 @@ instead of a foreign one.
 showed red and yellow, and then rendered a page of blue. The reason is
 structural — a duotone photo is monochrome by definition, and all the type
 came from `text` — so no amount of picking prettier palettes would have fixed
-it. Each layout now spends the accent somewhere with real area: Ladder's hot rung and rules, Spine's
-foot rule, Band's stripe trims, Grid's title cells, Zine's strike and bracket corners,
+it. Each layout now spends the accent somewhere with real area: Spine's accent module and foot
+rule, Grid's title cells, Zine's strike and bracket corners,
 Column's rules and cross-reference, Lyric's pasted tape, Aura's core glow and
 twinkles. The swatch shows page / photo ink / accent / decorative ink, which
 is what the wallpaper is actually made of.
 
 The accent is checked two ways: it must clear 3:1 contrast against its own
-page, and the rendered pixels of all 168 combinations are searched for its
+page, and the rendered pixels of all 126 combinations are searched for its
 hue. Layouts resolve it against whatever they are printing on — Column's card
 is light even when the page is dark, so the same colour is deepened there
 rather than swapped.
@@ -194,7 +192,7 @@ only the first of three things:
    it cannot vary with the canvas, or the preview and the export would screen
    differently.
 
-All 8 × 21 combinations are audited three ways: for flatness, for how much
+All 6 × 21 combinations are audited three ways: for flatness, for how much
 loading a photo actually changes the pixels, and for **polarity** — the
 rendered photo region is correlated against the source photograph's own
 luminance, and negative correlation is a failure. The first two metrics both
@@ -240,7 +238,7 @@ js/
   poster.js       poster furniture: paper, margins, frames, corner marks,
                   rails, micro-blocks, side labels, the headline lockup,
                   edge accents, tag rail
-  layouts/        ladder · spine · band · lyric · grid · zine · aura
+  layouts/        spine · lyric · grid · zine · aura · column
   state.js        defaults, palette voices, migration, share links
   render.js       builds the draw context, runs a layout, exports PNG
   controls.js     declarative control panel with help popovers
@@ -347,7 +345,7 @@ a three-word title — for a long time. A *one-word* title makes the layout
 borrow both names and the separator as extra lines, a completely different
 line structure, and that is the one a real user hit. `resp.js` now sweeps
 three content shapes (default / short title / every optional field empty)
-against both photo states: six passes, 3168 renders.
+against both photo states: six passes, 2376 renders.
 
 **The top bar is sticky, so its height is permanent.** It used to wrap onto
 two rows on a phone — a brand line and a full-width row of buttons — costing
