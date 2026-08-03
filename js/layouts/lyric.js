@@ -1,101 +1,61 @@
-/* LYRIC — a torn photograph, the caption cut into pasted paper scraps,
-   and a script headline set big enough to carry the paper it is torn onto.
+/* LYRIC — plates on a grid, with large geometry drawn straight across
+   them: one hairline circle wider than the page, one solid star, and a
+   quarter-circle arc struck from a grid corner.
 
-   Reference grammar: the "You'll Be In My Heart" lyric poster and the
-   torn-collage record inserts. The previous version had the right parts
-   and no density: a picture, one word of script, and two large empty
-   fields. The rules here are the ones those references actually follow.
+   This replaces the torn-paper collage. That design had two faults no
+   amount of tuning fixed. The tear sat at a fixed fraction of the page,
+   so a short name left the whole upper half empty; and both lines of the
+   headline were set in the same script, so pressing Enter changed the
+   line count and nothing else.
 
-     1. The script STRADDLES the tear. Type that begins tidily below the
-        edge divides the page into two rectangles; type that climbs over
-        it makes one page.
-     2. The scraps are a COLUMN, not a scatter — a shared left edge and a
-        steady rhythm down the picture. Scattered, four little boxes read
-        as litter; aligned, they read as a paste-up.
-     3. The paper under the script carries a rule and two lines of small
-        tracked caps. That is what stops it being a blank half.
-     4. Nothing is ever simply dropped when the canvas gets small. A watch
-        face gets fewer scraps and a packed foot line, not silence. */
+   The grammar here comes from the technical-collage posters: a coarse
+   grid, plates snapped to it and cropped hard against the trim, corner
+   brackets and small set numerals at the plate edges, and — the part that
+   carries the page — geometric figures drawn at a scale that ignores the
+   plates entirely. A circle that fits inside a panel is decoration. A
+   circle wider than the page, crossing type and photograph alike, is the
+   composition.
+
+   Three rules keep it from turning into litter:
+
+     1. Every plate edge lands on the grid. The figures do not — they are
+        struck from grid intersections but their radii are free, which is
+        what makes them read as drawn over the layout rather than as
+        another cell in it.
+     2. There is exactly one of each figure. One circle, one star, one
+        arc. A second of anything is a scatter.
+     3. Small text never sits on the photograph. It sits on a paper plate
+        of its own, which is also what gives the collage its second
+        surface. */
 (function (W) {
   'use strict';
   var U = W.util, P = W.prim, PO = W.poster, T = W.type;
 
-  /* One point on a ragged tear. */
-  function jag(rand, amp) {
-    return (rand() - 0.5) * amp * (rand() > 0.86 ? 2.2 : 1);
-  }
-
-  /* The torn keep-region: everything above a horizontal tear at `at`, or
-     everything left of a vertical one. */
-  function tornPath(ctx, w, h, at, vertical, rand, amp, add) {
-    var steps = 44;
-    if (!add) ctx.beginPath();
-    if (vertical) {
-      ctx.moveTo(-4, -4);
-      ctx.lineTo(at, -4);
-      for (var i = 0; i <= steps; i++) {
-        ctx.lineTo(at + jag(rand, amp), (i / steps) * (h + 8) - 4);
-      }
-      ctx.lineTo(-4, h + 4);
-    } else {
-      ctx.moveTo(-4, -4);
-      ctx.lineTo(w + 4, -4);
-      ctx.lineTo(w + 4, at);
-      for (var j = steps; j >= 0; j--) {
-        ctx.lineTo((j / steps) * (w + 8) - 4, at + jag(rand, amp));
-      }
-    }
-    ctx.closePath();
-  }
-
-  /* Cut a phrase into 2–4 word scraps. */
-  function scraps(text, maxScraps) {
-    var words = String(text || '').split(/\s+/).filter(Boolean);
-    var out = [];
-    var i = 0;
-    while (i < words.length && out.length < maxScraps) {
-      var take = 2 + ((words[i].length + i) % 2);
-      out.push(words.slice(i, i + take).join(' '));
-      i += take;
-    }
-    return out;
-  }
-
-  /* A pasted label: shadow, stock, hairline, text. */
-  function chip(env, text, x, y, opts) {
-    var ctx = env.ctx, u = env.u;
-    var size = opts.size;
-    T.setFont(ctx, opts.font, size, { weight: 500 });
-    var maxW = opts.maxW || Infinity;
-    /* a scrap of paper never runs off the sheet it is pasted to */
-    while (size > opts.size * 0.55
-      && T.measure(ctx, text, size * 0.03) + size * 1.1 > maxW) {
-      size *= 0.94;
-      T.setFont(ctx, opts.font, size, { weight: 500 });
-    }
-    var tw = T.measure(ctx, text, size * 0.03);
-    var padX = size * 0.55, padY = size * 0.42;
-    var bw = tw + padX * 2, bh = size + padY * 2;
-
+  function brackets(ctx, r, len, color, alpha, lw) {
     ctx.save();
-    ctx.translate(x + bw / 2, y + bh / 2);
-    ctx.rotate((opts.rot || 0) * Math.PI / 180);
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(-bw / 2 + u(4), -bh / 2 + u(5), bw, bh);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = opts.paper;
-    ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
-    ctx.strokeStyle = opts.ink;
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = Math.max(1, u(1.2));
-    ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = opts.ink;
-    T.setFont(ctx, opts.font, size, { weight: 500 });
-    T.draw(ctx, text, 0, size * 0.36, { align: 'center', tracking: size * 0.03 });
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, lw);
+    ctx.beginPath();
+    [[r.x, r.y, 1, 1], [r.x + r.w, r.y, -1, 1],
+      [r.x, r.y + r.h, 1, -1], [r.x + r.w, r.y + r.h, -1, -1]]
+      .forEach(function (p) {
+        ctx.moveTo(p[0], p[1] + len * p[3]);
+        ctx.lineTo(p[0], p[1]);
+        ctx.lineTo(p[0] + len * p[2], p[1]);
+      });
+    ctx.stroke();
     ctx.restore();
-    return { w: bw, h: bh };
+  }
+
+  function label(env, text, x, y, color, size, align) {
+    var ctx = env.ctx;
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.75;
+    T.setFont(ctx, 'dmmono', size, {});
+    T.draw(ctx, text, x, y, { align: align || 'left', tracking: size * 0.1 });
+    ctx.restore();
   }
 
   function draw(env) {
@@ -103,199 +63,188 @@
     var st = env.st, pal = env.pal, c = env.content;
     var mic = PO.micro(env);
     var wide = env.tier === 'wide';
+    var accent = PO.accentOn(pal, pal.base);
+
+    PO.paper(env, { tint: true });
     var m = PO.margins(env);
 
-    /* The photograph is a piece of printed paper torn off the page, so it
-       carries its own stock — light even when the page is dark, or the
-       whole top of the wallpaper is a black rectangle on a black page. */
-    var sheet = PO.stock(pal);
-    var stock = sheet.paper;
-    var accent = PO.accentOn(pal, pal.base);
-    var script = pal.inks[0];
+    /* the grid every plate edge lands on */
+    var cols = wide ? 8 : 6;
+    var cell = m.inner / cols;
+    var g = U.clamp(cell * 0.34, u(12), u(40));
+    function snap(v) { return m.left + Math.round((v - m.left) / cell) * cell; }
 
-    ctx.fillStyle = pal.base;
-    ctx.fillRect(0, 0, w, h);
+    var bandTop = m.top + (env.micro ? mic * 0.9 : mic * 1.9);
+    var bandBottom = h - m.bottom - (env.micro ? mic * 0.6 : mic * 2.6);
 
-    /* ---------- how much paper the script actually needs ----------
-       A fixed tear line is why the old version had a void: the script was
-       whatever size its measure allowed, and the gap between it and the
-       foot rail was whatever was left over. Measure the lockup first and
-       put the tear where the paper ends up exactly as tall as the type
-       and its furniture, so the picture takes everything else. */
-    var vertical = wide;
+    /* ---------- the caption plate, measured before anything is placed --- */
+    var capW = cell * 3;
+    var pad = g * 0.62;
+    var capH = 0;
+    if (c.caption && !env.micro) {
+      capH = PO.block(env, 0, 0, capW - pad * 2, [c.caption], {
+        size: mic * 0.8, lead: 1.55, upper: false, measure: true, font: st.bodyFont
+      }) + pad * 2 + mic * 1.1;
+    }
 
-    /* No eyebrow over the script: a line seated just above a lockup whose
-       ascenders deliberately climb over the tear has nowhere to be. The
-       names go on the rule instead, where they read cleanly. */
-    var eyebrowH = 0;
-    var railH = env.micro ? 0 : mic * 2.3;
-    var tagH = (!env.micro && st.showTags && c.tags.length) ? mic * 2.0 : 0;
-    var footH = railH + tagH;
-    var straddle = vertical ? 0 : mic * (env.micro ? 1.0 : 1.9);
-
-    var papW = vertical ? w * 0.5 - m.right - u(56) : m.inner;
-    var txt = PO.headlineText(env);
-    var probe = PO.headline(env, { x: 0, y: 0, w: papW - mic * 1.8 }, {
-      style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
-      align: 'center', maxH: h * 0.44, measure: true
+    /* ---------- the headline ---------- */
+    var headBox = { x: m.left, y: bandTop, w: wide ? m.inner * 0.44 : m.inner };
+    var headMax = wide ? (bandBottom - bandTop) * 0.8 : (bandBottom - bandTop) * 0.4;
+    var head = PO.headline(env, headBox, {
+      style: st.headlineStyle, align: 'left', maxH: headMax, measure: true
     });
 
-    /* Half the dock band, not all of it: the fine print at the foot is
-       exactly the sort of thing that belongs behind a row of icons, and
-       clearing the whole band left a sixth of the page visibly blank. */
-    var papBottom = h - Math.max(u(52), (h - env.band.bottom) * 0.5);
-    var need = eyebrowH + probe.h + mic * 1.1 + footH;
-    var tearAt = vertical
-      ? w * 0.5
-      : U.clamp(papBottom - need + straddle,
-        h * (env.micro ? 0.4 : 0.44), h * (env.micro ? 0.56 : 0.72));
-
-    var amp = u(22);
-    var plate = vertical
-      ? { x: 0, y: 0, w: tearAt + u(30), h: h }
-      : { x: 0, y: 0, w: w, h: tearAt + u(30) };
-
-    ctx.save();
-    tornPath(ctx, w, h, tearAt, vertical, U.rng(env.seedNum + 7), amp);
-    ctx.clip();
-    ctx.fillStyle = stock;
-    ctx.fillRect(-4, -4, plate.w + 8, plate.h + 8);
-    if (env.hasPhoto) {
-      env.drawPhoto(plate, stock);
+    /* ---------- the photograph plate ---------- */
+    var plate;
+    if (wide) {
+      var px = snap(m.left + m.inner * 0.46);
+      plate = { x: px, y: bandTop, w: w - px, h: bandBottom - bandTop };
     } else {
-      ctx.fillStyle = U.mix(stock, pal.duo[0], 0.16);
-      ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
-      P.wash(ctx, plate.w * 0.32, plate.h * 0.4, env.S * 0.85, pal.soft[0], 0.55 * st.washStrength);
-      P.wash(ctx, plate.w * 0.8, plate.h * 0.75, env.S * 0.65, pal.soft[1] || pal.soft[0], 0.45 * st.washStrength);
+      var pTop = bandTop + head.h + g * 1.5;
+      plate = {
+        x: snap(m.left + cell),
+        y: pTop,
+        /* cropped hard against the trim — a plate that stops inside the
+           margin reads as an inset picture, not as a plate */
+        w: w - snap(m.left + cell),
+        h: Math.max(u(200), bandBottom - pTop - capH * 0.34)
+      };
     }
-    if (st.scrim > 0.01) {
-      var g = vertical
-        ? ctx.createLinearGradient(0, 0, tearAt, 0)
-        : ctx.createLinearGradient(0, 0, 0, tearAt);
-      var sc = U.luma(stock) < 0.5 ? '#101018' : '#ffffff';
-      g.addColorStop(0, U.rgba(sc, st.scrim * 0.5));
-      g.addColorStop(0.5, U.rgba(sc, 0));
-      g.addColorStop(1, U.rgba(sc, st.scrim * 0.4));
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, plate.w, plate.h);
-    }
-    ctx.restore();
 
-    /* the tear's shadow: the band between the edge and a copy of it shifted
-       along, both jagged from the same seed so it is of even thickness */
+    var deep = U.mix(pal.duo[0], pal.duo[1], 0.34);
     ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#000';
-    tornPath(ctx, w, h, tearAt + u(16), vertical, U.rng(env.seedNum + 7), amp);
-    tornPath(ctx, w, h, tearAt, vertical, U.rng(env.seedNum + 7), amp, true);
-    ctx.fill('evenodd');
+    ctx.beginPath();
+    ctx.rect(plate.x, plate.y, plate.w, plate.h);
+    ctx.clip();
+    if (env.hasPhoto) {
+      env.drawPhoto(plate);
+    } else {
+      ctx.fillStyle = deep;
+      ctx.fillRect(plate.x, plate.y, plate.w, plate.h);
+      P.wash(ctx, plate.x + plate.w * 0.3, plate.y + plate.h * 0.28,
+        Math.max(plate.w, plate.h) * 0.8, pal.soft[0], 0.6 * st.washStrength);
+      P.wash(ctx, plate.x + plate.w * 0.8, plate.y + plate.h * 0.74,
+        Math.max(plate.w, plate.h) * 0.66, pal.soft[1] || pal.soft[0], 0.5 * st.washStrength);
+    }
     ctx.restore();
 
-    /* ---------- the paper the script is torn onto ---------- */
-    var pap = vertical
-      ? { x: tearAt + u(56), y: m.top, w: papW, h: env.band.bottom - m.top }
-      : { x: m.left, y: tearAt, w: papW, h: papBottom - tearAt };
+    /* ---------- the geometry: struck from the grid, not bound by it ----- */
+    /* Wider than the plate, but not so much wider that only two stray
+       arcs show inside the trim — a circle has to read as a circle to be
+       the composition rather than a scuff. */
+    var gx = snap(m.left + cell * (wide ? 4 : 3));
+    var gy = plate.y + plate.h * 0.46;
+    var R = Math.min(m.inner * 0.66, (bandBottom - bandTop) * 0.62);
 
-    /* ---------- the script, straddling the tear ---------- */
-    var hlTop = pap.y - straddle + eyebrowH;
-    /* A script's swashes overhang its advance width, so a lockup fitted
-       exactly to the measure prints a few pixels off the page. Give it a
-       margin of its own rather than trusting the fit. */
-    var swash = mic * 0.9;
-    var hlBox = { x: pap.x + swash, y: hlTop, w: pap.w - swash * 2 };
-    var hlMaxH = Math.max(u(120), (pap.y + pap.h) - footH - mic * 0.8 - hlTop);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, w, h);
+    ctx.clip();
+    ctx.globalAlpha = 0.5 * env.decoAlpha;
+    ctx.strokeStyle = pal.text;
+    ctx.lineWidth = Math.max(1, u(2.2));
+    P.circle(ctx, gx, gy, R);
+    ctx.stroke();
 
-    var hl = PO.headline(env, hlBox, {
-      style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
-      align: 'center', color: script, maxH: hlMaxH, measure: true
-    });
-    /* seat the lockup in its share of the paper, biased up so its
-       ascenders reach across the torn edge */
-    var slack = Math.max(0, hlMaxH - hl.h);
-    hlBox.y = hlTop + slack * 0.34;
+    ctx.globalAlpha = 0.36 * env.decoAlpha;
+    ctx.lineWidth = Math.max(1, u(1.6));
+    ctx.beginPath();
+    ctx.arc(m.left, bandBottom, R * 0.8, -Math.PI / 2, 0);
+    ctx.stroke();
+    ctx.restore();
 
-    PO.headline(env, hlBox, {
-      style: 'capsScript', text: { lines: txt.lines, eyebrow: '' },
-      align: 'center', color: script, maxH: hlMaxH
-    });
+    /* The star, solid, sitting astride the plate's top edge. Fat-armed
+       rather than spiked: a thin eight-pointed burst at this size reads as
+       a sparkle dropped on the page, and the figure has to hold its own
+       against a photograph. */
+    var starR = cell * (wide ? 1.5 : 1.7);
+    /* It straddles the edge the plate shares with the open field — the top
+       edge on a portrait page, the left edge on a wide one. Keeping it on
+       the top edge of a wide plate put it against the trim, where all that
+       showed was the two bottom arms. */
+    var starX = wide ? plate.x : plate.x + plate.w * 0.26;
+    var starY = wide ? plate.y + plate.h * 0.3 : plate.y;
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = accent;
+    P.star(ctx, starX, starY, starR, 8, 0.44, 0.39);
+    ctx.fill();
+    ctx.restore();
 
-    /* ---------- the rule and the two lines of small caps ---------- */
-    if (!env.micro) {
-      var ruleY = pap.y + pap.h - footH + mic * 0.2;
+    var onPlate = U.onColor(deep);
+    brackets(ctx, plate, cell * 0.42, onPlate, 0.8 * env.decoAlpha, u(2));
+
+    /* ---------- the headline, drawn over the geometry ---------- */
+    PO.headline(env, headBox, { style: st.headlineStyle, align: 'left', maxH: headMax });
+
+    if (env.micro) {
+      PO.microFoot(env, { m: m });
+      return;
+    }
+
+    /* ---------- the caption plate: the collage's second surface -------- */
+    if (capH) {
+      var stock = PO.stock(pal);
+      /* On a portrait page it laps the plate's lower-left corner, which is
+         what makes the two surfaces read as a collage. On a wide one the
+         left column is already open, so it sits under the headline rather
+         than hanging off the plate into the foot rail. */
+      var capPlate = {
+        x: m.left,
+        y: wide ? bandTop + head.h + g * 1.6
+          : Math.min(plate.y + plate.h - capH * 0.62, bandBottom - capH),
+        w: capW, h: capH
+      };
       ctx.save();
-      ctx.globalAlpha = 0.95;
-      ctx.strokeStyle = accent;
-      ctx.lineWidth = Math.max(1, u(2));
-      ctx.beginPath();
-      ctx.moveTo(pap.x, ruleY);
-      ctx.lineTo(pap.x + pap.w, ruleY);
-      ctx.stroke();
+      ctx.globalAlpha = 0.97;
+      ctx.fillStyle = stock.paper;
+      ctx.fillRect(capPlate.x, capPlate.y, capPlate.w, capPlate.h);
       ctx.restore();
+      brackets(ctx, capPlate, cell * 0.22, stock.ink, 0.5, u(1.4));
 
-      PO.rail(env, ruleY + mic * 1.35, [
-        (st.showNames && c.names) || W.textstack.monogram(st) || null,
-        null, c.footnote || null
-      ], {
-        m: { left: pap.x, right: w - pap.x - pap.w, inner: pap.w },
-        size: mic * 0.8, alpha: 0.72
-      });
-      if (tagH) {
-        PO.tagRail(env, ruleY + mic * (1.35 + 1.5), {
-          m: { left: pap.x, right: w - pap.x - pap.w, inner: pap.w },
-          size: mic * 0.8, alpha: 0.6
+      label(env, '01', capPlate.x + pad, capPlate.y + pad + mic * 0.66, accent, mic * 0.66);
+      PO.block(env, capPlate.x + pad, capPlate.y + pad + mic * 1.05, capW - pad * 2,
+        [c.caption], {
+          size: mic * 0.8, lead: 1.55, upper: false, alpha: 0.85,
+          font: st.bodyFont, color: stock.ink
         });
-      }
     }
 
-    /* ---------- the caption, cut into scraps down the picture ---------- */
-    /* A column, not a scatter: one left edge, one rhythm. Four little
-       boxes thrown about a photograph read as litter. */
-    var maxScraps = env.micro ? 2 : vertical ? 4 : 3;
-    var frags = scraps(c.caption, maxScraps);
-    if (!frags.length && c.footnote) frags = [c.footnote];
+    /* ---------- set numerals at the plate edges ---------- */
+    label(env, 'ø ' + Math.round(R / u(1)), plate.x + cell * 0.5,
+      plate.y + cell * 0.5 + mic * 0.5, onPlate, mic * 0.62);
 
-    if (frags.length) {
-      var colX = vertical ? u(52) : m.left;
-      var colW = vertical ? tearAt - u(104) : m.inner * 0.62;
-      /* start below the clock band, finish clear of the tear */
-      var runTop = Math.max(env.band.top, vertical ? h * 0.16 : h * 0.08) + mic * 0.6;
-      /* stop short of the straddle zone: the script climbs back over the
-         tear, and a scrap pasted there is underneath it */
-      var runBottom = (vertical ? h * 0.9 : tearAt - straddle) - mic * 3.4;
-      /* spread down the whole picture; bunched at the top they read as a
-         caption that ran out of room */
-      var step = frags.length > 1 ? (runBottom - runTop) / (frags.length - 1) : 0;
-      var runY = runTop;
+    /* ---------- the foot ---------- */
+    var railY = h - m.bottom - mic * 0.9;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(1, u(2));
+    ctx.beginPath();
+    ctx.moveTo(m.left, railY - mic * 1.15);
+    ctx.lineTo(w - m.right, railY - mic * 1.15);
+    ctx.stroke();
+    ctx.restore();
 
-      frags.forEach(function (f, i) {
-        var tape = i % 2 === 1;
-        /* a slight, alternating indent keeps the column from looking
-           mechanical without breaking its left edge */
-        var indent = (i % 2) * mic * 1.6;
-        chip(env, f, colX + indent, runY + step * i, {
-          size: mic * 1.12, font: st.bodyFont, rot: i % 2 ? 1.2 : -1.2,
-          maxW: colW - indent,
-          paper: tape ? accent : stock,
-          ink: tape ? U.onColor(accent) : sheet.ink
-        });
-      });
-    }
-
-    /* ---------- a watch face still says everything ---------- */
-    if (env.micro) PO.microFoot(env, { m: m });
+    PO.rail(env, railY, [
+      (st.showNames && c.names) || W.textstack.monogram(st) || null,
+      st.showTags && c.tags.length
+        ? c.tags.map(function (t) { return '(' + t.toLowerCase() + ')'; }).join('  ') : null,
+      c.footnote || 'pairtone'
+    ], { m: m, size: mic * 0.78, alpha: 0.75 });
   }
 
   W.layoutRegistry = W.layoutRegistry || [];
   W.layoutRegistry.push({
     id: 'lyric',
     label: 'Lyric',
-    blurb: '찢어 붙인 사진 + 종이를 꽉 채우는 필기체 가사.',
+    blurb: '격자에 맞춘 사진판 위로 페이지보다 큰 원과 별을 그어요. 줄바꿈하면 둘째 줄 폰트가 바뀝니다.',
     defaults: {
-      titleFont: 'birthstone', scriptFont: 'playball', bodyFont: 'spacegrotesk',
-      headlineStyle: 'capsScript',
-      photoShape: 'rect', tone: 'halftone', halftoneCells: 78,
-      feather: 0, bleed: false, burst: false, scrim: 0.24,
-      motifs: ['sparkle'], decoCount: 0, grain: 1.5, vignette: 0.04
+      titleFont: 'bricolage', scriptFont: 'playball', bodyFont: 'dmmono',
+      headlineStyle: 'scriptSans',
+      photoShape: 'rect', tone: 'duo', toneAmount: 0.92,
+      feather: 0, bleed: false, burst: false, scrim: 0.2,
+      motifs: ['sparkle'], decoCount: 0, grain: 1.4, vignette: 0.05
     },
     draw: draw
   });

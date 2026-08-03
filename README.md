@@ -139,7 +139,7 @@ which stays local). State also persists in `localStorage`.
 | | |
 | --- | --- |
 | **Spine** | The pair name set as one **justified block** over a full-bleed field, closed by a solid accent square, with the two names tracked out beneath it to the same measure. The evenness comes from the edges, not from cells: every line is justified to the same measure, so the block is a true rectangle — one left edge, one right edge, one size, one weight. This replaced a table of single letters, one letter per cell with a fixed column count per aspect tier, which guaranteed even spacing and nothing else — a four-letter name was broken across two rows for no reason, every letter floated alone in a cell far wider than itself, and the per-row weight ramp read as the second line being set in a different font. Even, but not a word. **The name is never broken inside a word.** Lines are whole words, split by a balancer that minimises the widest line, and an arrangement is only offered if no line needs more than half an em of tracking to reach the measure — fitting the band is not enough on its own, since three words give three lines and a two-letter word alone on a line has one gap to absorb the whole shortfall. The line count is the largest that still passes both tests, which is what lets one design carry a two-letter name and a four-word one; a one-word name is always one line however tall the band is, because filling space is not a reason to cut a word in half. The block is anchored to the foot so it grows upward and the picture keeps the top of the page, and the accent square is set as the final glyph of the last line rather than beside it. The veil over the photograph is weighted to the two ends, where the rail and the cells are set and an uploaded picture is as likely to be sky as shadow, and left alone through the centre. |
-| **Lyric** | A torn photograph, the caption cut into pasted paper scraps, and a script headline set big enough to carry the paper it is torn onto. Three rules make it, and it was rebuilt around them: the script **straddles the tear** (type that starts tidily below the edge divides the page into two rectangles; type that climbs over it makes one page); the scraps are a **column, not a scatter** (four little boxes thrown about a photograph read as litter, aligned they read as a paste-up); and **the tear moves** — the lockup is measured first and the tear placed so the paper is exactly as tall as the type and its rule, with the picture taking everything else. A fixed tear line is what left the old version with a void under the headline. A wide canvas tears down the side instead of across. |
+| **Lyric** | Plates on a coarse grid with large geometry drawn straight across them: one hairline circle, one solid eight-pointed star straddling the plate's edge, and a quarter-circle arc struck from a grid corner. A circle that fits inside a panel is decoration; a circle wider than the plate, crossing type and photograph alike, is the composition. This replaced a torn-paper collage that had two faults no tuning fixed — the tear sat at a fixed fraction of the page, so a short name left the whole upper half empty, and both lines of the headline were set in the same script, so pressing Enter changed the line count and nothing else. The headline now sets its second line in a different face, and it is seated at the top of the band so there is no empty half to begin with. Three rules keep the collage from turning into litter: every plate edge lands on the grid while the figures do not, which is what makes them read as drawn *over* the layout rather than as another cell in it; there is exactly one of each figure, because a second of anything is a scatter; and small text never sits on the photograph — it sits on a paper plate of its own, which is also what gives the collage its second surface. A wide canvas moves the star to the plate's left edge and the caption plate under the headline, since on a landscape page the top edge is against the trim and the left column is the open field. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
 | **Zine** | Photocopied record sleeve: heavy grain, halftone plate, barcode and numeral rails, struck-through title, rotated date. |
 | **Aura** | Colour blooms and a soft photo window. The gentle one — but the window keeps a hairline edge and only a light feather, because a faded photograph inside a wide soft aureole is the visual language of a memorial, not of a couple. A wide canvas gives the photograph and the whole type group one shared centreline — the glow itself is anchored there too, to the left column's centre, rather than to wherever a photo happened to be placed. Anchoring it to the plate meant that with no photo loaded the glow fell back to the full canvas centre, drifting into the gutter between the two columns and lining up with neither the empty photo slot nor the text. |
@@ -172,9 +172,9 @@ instead of a foreign one.
 showed red and yellow, and then rendered a page of blue. The reason is
 structural — a duotone photo is monochrome by definition, and all the type
 came from `text` — so no amount of picking prettier palettes would have fixed
-it. Each layout now spends the accent somewhere with real area: Spine's accent module and foot
+it. Each layout now spends the accent somewhere with real area: Spine's accent square and foot
 rule, Grid's title cells, Zine's strike and bracket corners,
-Column's rules and cross-reference, Lyric's pasted tape, Aura's core glow and
+Column's rules and cross-reference, Lyric's star, Aura's core glow and
 twinkles. The swatch shows page / photo ink / accent / decorative ink, which
 is what the wallpaper is actually made of.
 
@@ -276,9 +276,9 @@ the zine barcode therefore derive a private rng from a single shared value, and
 particle counts come from size relative to the canvas, never from pixels.
 
 **Ink is chosen against the stock, not against the page.** Most layouts print
-the photo straight onto `pal.base`, but Lyric tears its photograph out of a
-separate sheet, so it passes that colour as `env.drawPhoto(frame, paper)` and
-the ink — and the halftone's polarity — are resolved against the sheet. Pitting
+the photo straight onto `pal.base`, but a layout that lays its photograph on a
+sheet of its own passes that colour as `env.drawPhoto(frame, paper)` so the ink
+— and the halftone's polarity — are resolved against the sheet. Pitting
 a decision against `pal.base` when the pixels behind it are something else is
 how the top half of a dark-palette wallpaper went black.
 

@@ -90,7 +90,16 @@
 
     var initials = W.textstack.monogram(st) || 'PT';
     var namesLine = (st.showNames && c.names) ? c.names.toUpperCase() : '';
-    var titleRaw = (c.title || 'pairtone').replace(/\s+/g, ' ').trim();
+    var titleRaw = (c.title || 'pairtone').replace(/\r/g, '');
+    /* Enter in the main field is a hard break and overrides the balancer.
+       Collapsing all white space, newlines included, meant the one piece
+       of layout control the field offers did nothing. */
+    var hardLines = titleRaw.indexOf('\n') >= 0
+      ? titleRaw.split('\n').map(function (s) { return s.trim().toUpperCase(); })
+        .filter(Boolean).slice(0, 4)
+      : null;
+    if (hardLines && hardLines.length < 2) hardLines = null;
+    titleRaw = titleRaw.replace(/\s+/g, ' ').trim();
     var words = titleRaw.toUpperCase().split(' ').filter(Boolean);
     if (!words.length) words = ['PAIRTONE'];
 
@@ -141,6 +150,10 @@
     T.setFont(ctx, st.titleFont, REF, { weight: TITLE_WEIGHT });
     var capAt1 = T.inkBox(ctx, 'H').asc / REF;
     var spaceAt1 = ctx.measureText(' ').width / REF;
+    /* the accent square rides the last line with a gap of its own, so the
+       final word never touches it */
+    var sqGapAt1 = capAt1 * 0.34;
+    var tailAt1 = sqGapAt1 + capAt1;
     var wordAt1 = words.map(function (s) { return T.measure(ctx, s, 0) / REF; });
 
     function segAt1(i, j) {
@@ -148,18 +161,52 @@
       for (var k = i; k < j; k++) { t += wordAt1[k]; if (k > i) t += spaceAt1; }
       return t;
     }
+    function textAt1(line) {
+      T.setFont(ctx, st.titleFont, REF, { weight: TITLE_WEIGHT });
+      return T.measure(ctx, line, 0) / REF;
+    }
+
+    /* How hard a set of lines has to be stretched to reach the measure.
+       A line of several words is justified on its WORD gaps, which leaves
+       the letters at their natural fit — that is what keeps a line reading
+       as words rather than as spaced-out capitals. Only a line that is one
+       word has to open its letters, and that is the expensive kind of
+       stretch, so the two are judged against different limits. */
+    var LETTER_CAP = 1.1, WORD_CAP = 2.6;
+    function stretchOf(lines, maxW1) {
+      var bad = 0;
+      lines.forEach(function (line, i) {
+        var slack = maxW1 - textAt1(line) - (i === lines.length - 1 ? tailAt1 : 0);
+        var parts = line.split(' ').filter(Boolean);
+        if (parts.length > 1) {
+          bad = Math.max(bad, (spaceAt1 + slack / (parts.length - 1)) / WORD_CAP);
+        } else if (line.length > 1) {
+          bad = Math.max(bad, (slack / (line.length - 1)) / LETTER_CAP);
+        } else if (slack > 0.02) {
+          bad = Infinity;
+        }
+      });
+      return bad;
+    }
+
+    function measureSet(lines) {
+      var maxW1 = 0;
+      lines.forEach(function (line, i) {
+        maxW1 = Math.max(maxW1, textAt1(line) + (i === lines.length - 1 ? tailAt1 : 0));
+      });
+      return { lines: lines, max: maxW1, stretch: stretchOf(lines, maxW1) };
+    }
 
     /* Split the words into L lines so the WIDEST line is as narrow as it
-       can be. Balanced lines are what keep the justification tracking
-       small, and small tracking is what makes the block read as a word
-       rather than as letters that happen to share a row. The final line
-       carries the accent square, so it is measured one cap wider. */
+       can be. Balanced lines are what keep the justification small, and
+       small justification is what makes the block read as one mass. The
+       final line carries the accent square, so it is measured wider. */
     function balance(L) {
       var memo = {};
       function best(i, k) {
         var key = i + '|' + k;
         if (memo[key]) return memo[key];
-        if (k === 1) return (memo[key] = { max: segAt1(i, words.length) + capAt1, cuts: [words.length] });
+        if (k === 1) return (memo[key] = { max: segAt1(i, words.length) + tailAt1, cuts: [words.length] });
         var out = null;
         for (var j = i + 1; j <= words.length - (k - 1); j++) {
           var sub = best(j, k - 1);
@@ -172,24 +219,7 @@
       if (!r) return null;
       var lines = [], prev = 0;
       r.cuts.forEach(function (cut) { lines.push(words.slice(prev, cut).join(' ')); prev = cut; });
-
-      /* How hard each line has to be stretched to reach the measure, as a
-         fraction of the type size. Fitting the band is not enough on its
-         own: three words give three lines, and a two-letter word like "of"
-         alone on a line has one gap to absorb the whole shortfall, which
-         blows it apart. Two balanced lines are better than three ragged
-         ones, so an arrangement that needs more than half an em of
-         tracking anywhere is not offered. */
-      var worst = 0;
-      T.setFont(ctx, st.titleFont, REF, { weight: TITLE_WEIGHT });
-      lines.forEach(function (line, i) {
-        var isLast = i === lines.length - 1;
-        var natural = T.measure(ctx, line, 0) / REF + (isLast ? capAt1 : 0);
-        var gaps = line.length - (isLast ? 0 : 1);
-        if (gaps <= 0) { if (natural < r.max * 0.98) worst = Infinity; return; }
-        worst = Math.max(worst, (r.max - natural) / gaps);
-      });
-      return { lines: lines, max: r.max, stretch: worst };
+      return measureSet(lines);
     }
 
     /* More lines means shorter lines, which means a larger shared size and
@@ -197,18 +227,42 @@
        the largest line count that still fits the band. A single word can
        only ever be one line: filling space is not a reason to cut a word
        in half, which is how a four-letter name ended up broken in two. */
-    var maxL = Math.min(words.length, env.micro ? 2 : 4);
-    var pick = null;
-    for (var L = 1; L <= maxL; L++) {
-      var b = balance(L);
-      if (!b) break;
-      var size = m.inner / b.max;
+    function seat(set) {
+      var size = m.inner / set.max;
       var capH = capAt1 * size;
       var lineH = capH * 1.26;
-      var blockH = capH + (L - 1) * lineH;
-      var ok = blockH <= titleBand && b.stretch <= 0.5;
-      if (L === 1 || ok) pick = { lines: b.lines, size: size, capH: capH, lineH: lineH, h: blockH };
-      if (L > 1 && blockH > titleBand) break;
+      return {
+        lines: set.lines, size: size, capH: capH, lineH: lineH,
+        h: capH + (set.lines.length - 1) * lineH
+      };
+    }
+
+    var pick;
+    if (hardLines) {
+      /* An explicit line break is the one instruction the layout must not
+         second-guess. It used to be flattened away with the rest of the
+         white space, so pressing Enter did nothing at all. */
+      pick = seat(measureSet(hardLines));
+    } else {
+      var maxL = Math.min(words.length, env.micro ? 2 : 4);
+      var oneLine = balance(1);
+      pick = seat(oneLine);
+      for (var L = 2; L <= maxL; L++) {
+        var b = balance(L);
+        if (!b) break;
+        var cand = seat(b);
+        if (cand.h > titleBand) break;
+        /* Loose justification is a cost and a bigger setting is the
+           payoff, so the two are weighed against each other rather than
+           the cost being judged alone. "Aefi Syndrome" on one line is
+           thirteen characters across the measure and comes out small; two
+           lines set it half again as large, which is worth opening the
+           four letters of the short line further than would otherwise be
+           allowed. Three words giving a line of "of" earns nothing and is
+           refused at any size. */
+        var gain = oneLine.max / b.max;
+        if (b.stretch <= 1 || (b.stretch <= 2 && gain >= 1.35)) pick = cand;
+      }
     }
 
     /* only a single line can overflow the band — nothing shorter to fall
@@ -218,31 +272,60 @@
       pick.size *= k; pick.capH *= k; pick.lineH *= k; pick.h = titleBand;
     }
 
+    /* Seating the lockup at the foot is right when the open half of the
+       page is the top and a photograph is filling it. On a header the page
+       is three times wider than it is tall, there is no top half to give
+       away, and the same anchor just reads as the type sliding off the
+       bottom edge. So a wide page centres the lockup in its band. */
+    var lockH = pick.h + namesH;
+    var anchor = env.tier === 'wide'
+      ? bandTop + (bandBottom - bandTop + lockH) / 2
+      : bandBottom;
+    titleBottom = anchor - namesH;
+
     /* ---------- the block ---------- */
     var square = pick.capH;
     var last = pick.lines.length - 1;
     T.setFont(ctx, st.titleFont, pick.size, { weight: TITLE_WEIGHT });
 
+    /* Justify one line to `target`. Several words open their word gaps and
+       keep their letters at natural fit; a single word has no choice but
+       to open its letters. Both are capped, so a line that cannot reach
+       the measure runs short rather than falling apart. */
+    function justify(line, x, base, target) {
+      T.setFont(ctx, st.titleFont, pick.size, { weight: TITLE_WEIGHT });
+      var parts = line.split(' ').filter(Boolean);
+      var slack = target - T.measure(ctx, line, 0);
+      if (parts.length > 1) {
+        var sw = ctx.measureText(' ').width;
+        var gap = sw + Math.max(0, Math.min(slack / (parts.length - 1), pick.size * WORD_CAP));
+        var cx = x;
+        parts.forEach(function (word) {
+          T.draw(ctx, word, cx, base, { align: 'left', tracking: 0 });
+          cx += T.measure(ctx, word, 0) + gap;
+        });
+        return;
+      }
+      var track = line.length > 1
+        ? U.clamp(slack / (line.length - 1), 0, pick.size * LETTER_CAP) : 0;
+      T.draw(ctx, line, x, base, { align: 'left', tracking: track });
+    }
+
     pick.lines.forEach(function (line, i) {
       var isLast = i === last;
-      T.setFont(ctx, st.titleFont, pick.size, { weight: TITLE_WEIGHT });
-      var natW = T.measure(ctx, line, 0) + (isLast ? square : 0);
-      var gaps = line.length - (isLast ? 0 : 1);
-      var track = gaps > 0 ? U.clamp((m.inner - natW) / gaps, 0, pick.size * 0.9) : 0;
       var base = titleBottom - (last - i) * pick.lineH;
+      var target = m.inner - (isLast ? square + pick.capH * 0.34 : 0);
 
       ctx.save();
       ctx.fillStyle = onField;
       ctx.globalAlpha = 0.96;
-      T.setFont(ctx, st.titleFont, pick.size, { weight: TITLE_WEIGHT });
-      T.draw(ctx, line, m.left, base, { align: 'left', tracking: track });
+      justify(line, m.left, base, target);
       ctx.restore();
 
       if (!isLast) return;
-      /* the accent square, set as the final glyph of the last line: same
-         height as the capitals, sitting on the same baseline */
-      T.setFont(ctx, st.titleFont, pick.size, { weight: TITLE_WEIGHT });
-      var sx = m.left + T.measure(ctx, line, track) + track;
+      /* the accent square closes the last line, flush with the right edge
+         the rest of the block is justified to */
+      var sx = m.left + m.inner - square;
       ctx.save();
       ctx.fillStyle = accent;
       ctx.globalAlpha = 0.95;
@@ -264,7 +347,7 @@
       ctx.fillStyle = onField;
       ctx.globalAlpha = 0.85;
       T.setFont(ctx, st.bodyFont, nameSize, { weight: 500 });
-      T.draw(ctx, namesLine, m.left, bandBottom, { align: 'left', tracking: nameTrack });
+      T.draw(ctx, namesLine, m.left, anchor, { align: 'left', tracking: nameTrack });
       ctx.restore();
     }
 
