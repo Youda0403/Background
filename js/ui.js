@@ -186,7 +186,7 @@
     layout: '사진과 글자를 어디에 놓을지 정하는 「짜임새」예요. 여섯 개가 각각 완전히 다른 성격이고, 어울리는 폰트도 같이 정해져요.',
     palette: '색 조합이에요. 배경, 장식, 사진 보정 색이 전부 여기서 나와요. 글꼴은 건드리지 않으니 마음껏 바꿔봐도 돼요.',
     subtlety: '올릴수록 제목이 작아지고 장식이 옅어져요. 최대로 올리면 그냥 전시 포스터처럼 보여서 밖에서 열어도 티가 안 나요.',
-    pairName: '엔터를 치면 그 자리에서 줄이 바뀌어요. 두 줄로 나누면 첫 줄은 필기체, 둘째 줄은 굵은 글씨처럼 서로 다른 폰트로 짜여요.',
+    pairName: '가장 큰 글자로 들어갈 문장이에요. 엔터를 치면 그 자리에서 줄이 바뀌고, 비워두면 큰 글자 없이 짜여요.',
     headlineStyle: '페어명 두 줄을 어떻게 배치할지 정해요. 폰트는 아래에서 따로 고르면 돼요.',
     headlineScale: '제목 글자 크기. 레이아웃이 여백에 맞춰주니까 키워도 안 넘쳐요.',
     microScale: '작은 글자(캡션·날짜·태그) 크기를 한 번에 조절해요.',
@@ -209,14 +209,13 @@
     safeShift: '잠금화면 시계와 아래 독 버튼이 가리는 영역을 비워두고 배치해요.',
     tags: '(love) 처럼 괄호에 담겨 아래쪽 줄에 작게 들어가요. 쉼표로 여러 개 넣을 수 있어요.',
     sep: '두 이름 사이에 들어갈 기호.',
-    titleMode: '가장 큰 글자로 무엇을 넣을지 정해요.',
     caption: '사진 옆이나 아래에 작게 들어가는 문장.',
     footnote: '날짜나 기념일처럼 아주 작게 들어가는 한 줄.',
     strike: '제목 위로 줄을 그어 인쇄물 느낌을 줘요.',
     burst: '제목 뒤에 가시 모양 별을 크게 깔아요.',
     sideLabel: '오른쪽 세로 방향으로 작은 글자를 넣어요.',
     batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.',
-    titleFontHelp: '페어명(가장 큰 글자)에 쓰이는 폰트예요. 필기체를 고르면 제목 전체가 필기체가 돼요.',
+    titleFontHelp: '메인 문구(가장 큰 글자)에 쓰이는 폰트예요. 필기체를 고르면 제목 전체가 필기체가 돼요.',
     firstLineFont: '「첫 줄만 다른 폰트」를 골랐을 때, 첫 줄에만 쓰이는 폰트예요.',
     bodyFontHelp: '캡션·날짜·태그 같은 작은 글자 전부에 쓰여요.',
     fonts: '레이아웃마다 어울리는 폰트가 기본으로 정해져 있어요. 바꾸고 싶을 때만 건드리면 돼요.'
@@ -287,13 +286,7 @@
       {
         title: '문구', hint: '영문 추천 · 전부 선택사항',
         items: [
-          {
-            t: 'chips', key: 'titleMode', label: '메인 문구', help: HELP.titleMode, options: [
-              { v: 'pair', l: '페어명' }, { v: 'names', l: '두 이름' },
-              { v: 'monogram', l: '이니셜' }, { v: 'none', l: '없음' }
-            ]
-          },
-          { t: 'textarea', key: 'pairName', label: '페어명 (엔터 = 줄바꿈)', help: HELP.pairName, rows: 2, ph: 'Spirit\nof Nature' },
+          { t: 'textarea', key: 'pairName', label: '메인 문구 (엔터 = 줄바꿈)', help: HELP.pairName, rows: 2, ph: 'Spirit\nof Nature' },
           {
             t: 'row', items: [
               { t: 'text', key: 'nameA', label: '이름 A', ph: 'Aki', maxlength: 24 },

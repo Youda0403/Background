@@ -42,12 +42,20 @@
     var out = { title: '', names: '', caption: '', footnote: '', tags: [] };
     var joined = joinNames(st);
 
-    if (st.titleMode === 'pair') out.title = st.pairName.trim();
-    else if (st.titleMode === 'names') out.title = joined;
-    else if (st.titleMode === 'monogram') out.title = monogram(st);
+    /* One field, drawn as written. There used to be a mode chip deciding
+       whether the big type was the pair name, the two names or the
+       initials — three ways to say the same thing, and it made the field
+       below it mean something different depending on a setting elsewhere.
+       Whatever is typed in the main field is what gets set large; the
+       names are their own line, and the initials are furniture. */
+    out.title = String(st.pairName || '').trim();
+    if (st.showNames && joined) out.names = joined;
 
-    if (st.showNames && st.titleMode !== 'names' && joined) out.names = joined;
-    if (st.titleMode === 'names' && st.pairName.trim() && st.showNames) out.names = st.pairName.trim();
+    /* Clearing the main field is now something a user can do — it used to
+       need the "없음" chip. Rather than leave every layout to fall back to
+       the word "pairtone", the names move up and take the big type, and
+       the names line steps aside so the same string is not set twice. */
+    if (!out.title && out.names) { out.title = out.names; out.names = ''; }
 
     out.caption = st.caption.trim();
     out.footnote = st.footnote.trim();

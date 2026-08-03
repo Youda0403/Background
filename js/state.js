@@ -42,7 +42,6 @@
     sideLabel: false,
 
     /* words */
-    titleMode: 'pair',
     pairName: 'Spirit\nof Nature',
     nameA: 'Aki',
     nameB: 'Ren',
@@ -170,6 +169,17 @@
       if (!W.type.byId[st[k]]) st[k] = DEFAULTS[k];
     });
     if (!W.palettes.byId[st.palette]) st.palette = DEFAULTS.palette;
+    /* The main text used to be chosen by a mode chip: the pair name, the
+       two names, or the initials. The chip is gone and the field is drawn
+       as written, so a saved state that pointed the big type at something
+       other than the pair name has that string folded into the field —
+       otherwise reopening an old link silently changes what it says. */
+    if (st.titleMode && st.titleMode !== 'pair') {
+      st.pairName = st.titleMode === 'names' ? W.textstack.joinNames(st)
+        : st.titleMode === 'monogram' ? W.textstack.monogram(st) : '';
+    }
+    delete st.titleMode;
+
     st.motifs = (st.motifs || []).filter(function (m) { return !!W.prim.motifs[m]; });
     if (!st.motifs.length) st.motifs = DEFAULTS.motifs.slice();
     return st;
@@ -216,7 +226,7 @@
     var layouts = Object.keys(W.layouts || { spine: 1 });
     var next = create();
     /* keep what the user wrote and how they framed their photo */
-    ['presetId', 'orientation', 'customW', 'customH', 'titleMode', 'pairName',
+    ['presetId', 'orientation', 'customW', 'customH', 'pairName',
       'nameA', 'nameB', 'sep', 'showNames', 'caption', 'footnote', 'tags',
       'showTags', 'zoom', 'ox', 'oy', 'brightness', 'contrast', 'saturation',
       'safeShift', 'showGuides'].forEach(function (k) { next[k] = st[k]; });

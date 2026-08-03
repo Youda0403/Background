@@ -53,8 +53,8 @@ of the canvas's short side, and composition is chosen by aspect-ratio tier —
 columns instead of stacking; a very small canvas packs the names, date and tags
 onto one fitted foot line rather than dropping them; a tablet gets a smaller
 photo relative to its width so the type still breathes. All 6 × 33 presets ×
-both orientations are audited automatically, across three content shapes and
-both photo states — six passes, 2376 renders — for content that goes missing,
+both orientations are audited automatically, across four content shapes and
+both photo states — eight passes, 3168 renders — for content that goes missing,
 text drawn off the page, strings colliding, and dead regions. Content starts below the lock-screen clock band rather than halfway
 into it, so nothing important ends up under the time.
 
@@ -63,13 +63,23 @@ the available width and seated using real ink boxes (`actualBoundingBoxAscent`),
 not em-box guesses — which is why a headline can graze the top edge of a photo
 without colliding with it. Nothing is scaled after being fitted.
 
-**English-first words.** Pair name, both names with a choice of nine separators
-(`×  ♡  &  ·  +  /  ✦  —  space`), initials-only monogram, caption, footnote,
-and bracket tags like `(love)` set along the foot rail. Every field is optional.
+**English-first words.** One main text field, both names with a choice of nine
+separators (`×  ♡  &  ·  +  /  ✦  —  space`), caption, footnote, and bracket
+tags like `(love)` set along the foot rail. Every field is optional.
 
-The pair-name field takes a line break: press Enter and the headline splits
-there, setting the first line in one face and the second in another — the trick
-that gives the reference posters their voice. A single-line name falls back to
+There is no chip deciding *what* the big type is. There used to be — pair name,
+both names, or initials — three ways to say the same thing, and it made the
+field underneath mean something different depending on a setting above it.
+Whatever is typed in the main field is what gets set large. The names are their
+own line, and the initials are furniture. Clear the main field and the names
+move up to take the big type, with the names line stepping aside so the same
+string is never set twice. Saved links that pointed the big type at the names
+or the initials have that string folded into the field, so reopening one does
+not silently change what it says.
+
+The main field takes a line break: press Enter and the headline splits there,
+setting the first line in one face and the second in another — the trick that
+gives the reference posters their voice. A single-line entry falls back to
 splitting at the first space, so `Sunrise Duo` becomes **Sunrise** / **Duo**.
 
 **Plain-language help.** Every piece of jargon — duotone, halftone, scrim,
@@ -345,7 +355,7 @@ a three-word title — for a long time. A *one-word* title makes the layout
 borrow both names and the separator as extra lines, a completely different
 line structure, and that is the one a real user hit. `resp.js` now sweeps
 three content shapes (default / short title / every optional field empty)
-against both photo states: six passes, 2376 renders.
+against both photo states: eight passes, 3168 renders.
 
 **The top bar is sticky, so its height is permanent.** It used to wrap onto
 two rows on a phone — a brand line and a full-width row of buttons — costing
