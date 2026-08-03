@@ -23,12 +23,20 @@
    line, however tall the band is — filling space is not a reason to cut a
    word in half.
 
-   The block is anchored to the foot, so it grows upward and the picture
-   keeps the top of the page whatever the name does. The names line is set
-   to the same measure underneath, which is what stops a short title from
-   leaving the lockup stranded, and the accent square closes the last line
-   as if it were the final glyph — the palette gets area to land on, and it
-   lands inside the type rather than beside it. */
+   The block is anchored to the foot and the picture takes the rest — the
+   whole band above it on a portrait page, the whole right column on a wide
+   one. It is a defined region rather than the full bleed it used to be,
+   but it still touches three trims, so it reads as one of the page's two
+   fields and not as a rectangle set down on top of one. The type then sits
+   on the palette's own paper instead of on the photograph, which is what
+   lets the page colour be seen at all and takes small text off an
+   unpredictable ground.
+
+   The names line is set to the same measure underneath, which is what
+   stops a short title from leaving the lockup stranded, and the accent
+   square closes the last line as if it were the final glyph — the palette
+   gets area to land on, and it lands inside the type rather than beside
+   it. */
 (function (W) {
   'use strict';
   var U = W.util, P = W.prim, PO = W.poster, T = W.type;
@@ -45,48 +53,21 @@
     /* THE spacing unit. Every gap on this page is g or a multiple. */
     var g = U.clamp(m.inner * 0.035, u(14), u(46));
 
-    /* ---------- the ground ---------- */
+    /* A wide page splits side to side and a tall one top to bottom, so the
+       type has a column of its own either way and never has to share a
+       measure with the picture. */
+    var wide = env.tier === 'wide';
+    var splitX = m.left + m.inner * 0.5;
+    var colX = m.left;
+    var colW = wide ? splitX - g * 1.6 - m.left : m.inner;
+    var colM = { left: colX, right: w - colX - colW, inner: colW };
+
+    /* ---------- the page ---------- */
     var deep = U.mix(pal.duo[0], pal.duo[1], 0.32);
-    if (env.hasPhoto) {
-      env.drawPhoto({ x: 0, y: 0, w: w, h: h });
-    } else {
-      /* The block is anchored to the foot, so on a one-word name the open
-         half of the page is the top. That is where a field with no
-         photograph in it needs its incident — washes placed low would sit
-         behind the type and leave the void flat. */
-      ctx.fillStyle = U.mix(pal.duo[0], pal.base, 0.22);
-      ctx.fillRect(0, 0, w, h);
-      P.wash(ctx, w * 0.28, h * 0.22, env.S * 1.05, pal.soft[0], 0.62 * st.washStrength);
-      P.wash(ctx, w * 0.82, h * 0.46, env.S * 0.9, pal.soft[1] || pal.soft[0], 0.5 * st.washStrength);
-    }
+    PO.paper(env, { tint: false });
 
-    ctx.save();
-    ctx.globalAlpha = U.clamp(0.18 + st.scrim * 0.5, 0.18, 0.6);
-    ctx.fillStyle = deep;
-    ctx.fillRect(0, 0, w, h);
-    ctx.restore();
-
-    /* The veil is weighted to the two ends, where the rail and the cells
-       are set and an uploaded photograph is as likely to be sky as it is
-       to be shadow. The middle is left alone: that is where the picture
-       should still be a picture. */
-    if (env.hasPhoto) {
-      ctx.save();
-      var top = ctx.createLinearGradient(0, 0, 0, h * 0.3);
-      top.addColorStop(0, U.rgba(deep, 0.42));
-      top.addColorStop(1, U.rgba(deep, 0));
-      ctx.fillStyle = top;
-      ctx.fillRect(0, 0, w, h * 0.3);
-      var bot = ctx.createLinearGradient(0, h * 0.55, 0, h);
-      bot.addColorStop(0, U.rgba(deep, 0));
-      bot.addColorStop(1, U.rgba(deep, 0.6));
-      ctx.fillStyle = bot;
-      ctx.fillRect(0, h * 0.55, w, h * 0.45);
-      ctx.restore();
-    }
-
-    var onField = U.onColor(deep);
-    var accent = PO.accentOn(pal, deep);
+    var onField = U.onColor(deep);      /* reads on the picture */
+    var accent = PO.accentOn(pal, pal.base);
 
     var initials = W.textstack.monogram(st) || 'PT';
     var namesLine = (st.showNames && c.names) ? c.names.toUpperCase() : '';
@@ -115,7 +96,7 @@
     cells = cells.slice(0, 3);
 
     var n = cells.length;
-    var footCellW = (m.inner - g * (n - 1)) / n;
+    var footCellW = (colW - g * (n - 1)) / n;
     var footBodyH = 0;
     if (!env.micro) {
       cells.forEach(function (body) {
@@ -138,13 +119,18 @@
       T.setFont(ctx, st.bodyFont, nameSize, { weight: 500 });
       var natural = T.measure(ctx, namesLine, 0);
       nameTrack = namesLine.length > 1
-        ? U.clamp((m.inner - natural) / (namesLine.length - 1), 0, nameSize * 2.4) : 0;
+        ? U.clamp((colW - natural) / (namesLine.length - 1), 0, nameSize * 2.4) : 0;
       nameCap = T.inkBox(ctx, namesLine).asc;
       namesH = nameCap + g * 1.3;
     }
 
     var titleBottom = bandBottom - namesH;
-    var titleBand = Math.max(titleBottom - bandTop, u(70));
+    /* On a tall page the picture takes the band above the lockup, so the
+       lockup is not allowed to eat all of it — a four-word name would
+       otherwise leave the photograph a sliver. */
+    var titleBand = Math.max(
+      wide ? titleBottom - bandTop : Math.min(titleBottom - bandTop, (bandBottom - bandTop) * 0.54),
+      u(70));
 
     /* ---------- natural widths, measured once at a reference size ------- */
     T.setFont(ctx, st.titleFont, REF, { weight: TITLE_WEIGHT });
@@ -228,7 +214,7 @@
        only ever be one line: filling space is not a reason to cut a word
        in half, which is how a four-letter name ended up broken in two. */
     function seat(set) {
-      var size = m.inner / set.max;
+      var size = colW / set.max;
       var capH = capAt1 * size;
       var lineH = capH * 1.26;
       return {
@@ -283,6 +269,33 @@
       : bandBottom;
     titleBottom = anchor - namesH;
 
+    /* ---------- the picture's region ---------- */
+    var last0 = pick.lines.length - 1;
+    var blockTop = titleBottom - last0 * pick.lineH - pick.capH;
+    var region = wide
+      ? { x: splitX, y: 0, w: w - splitX, h: h }
+      : { x: 0, y: 0, w: w, h: U.clamp(blockTop - g * 1.8, h * 0.24, h * 0.74) };
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(region.x, region.y, region.w, region.h);
+    ctx.clip();
+    if (env.hasPhoto) {
+      env.drawPhoto(region);
+    } else {
+      ctx.fillStyle = U.mix(deep, pal.base, 0.12);
+      ctx.fillRect(region.x, region.y, region.w, region.h);
+      P.wash(ctx, region.x + region.w * 0.3, region.y + region.h * 0.3,
+        Math.max(region.w, region.h) * 0.9, pal.soft[0], 0.6 * st.washStrength);
+      P.wash(ctx, region.x + region.w * 0.8, region.y + region.h * 0.72,
+        Math.max(region.w, region.h) * 0.75, pal.soft[1] || pal.soft[0], 0.5 * st.washStrength);
+    }
+    /* only enough veil for the rail that sits on it */
+    ctx.globalAlpha = U.clamp(0.1 + st.scrim * 0.28, 0.1, 0.34);
+    ctx.fillStyle = deep;
+    ctx.fillRect(region.x, region.y, region.w, region.h);
+    ctx.restore();
+
     /* ---------- the block ---------- */
     var square = pick.capH;
     var last = pick.lines.length - 1;
@@ -314,18 +327,18 @@
     pick.lines.forEach(function (line, i) {
       var isLast = i === last;
       var base = titleBottom - (last - i) * pick.lineH;
-      var target = m.inner - (isLast ? square + pick.capH * 0.34 : 0);
+      var target = colW - (isLast ? square + pick.capH * 0.34 : 0);
 
       ctx.save();
-      ctx.fillStyle = onField;
-      ctx.globalAlpha = 0.96;
-      justify(line, m.left, base, target);
+      ctx.fillStyle = pal.text;
+      ctx.globalAlpha = 0.98;
+      justify(line, colX, base, target);
       ctx.restore();
 
       if (!isLast) return;
       /* the accent square closes the last line, flush with the right edge
          the rest of the block is justified to */
-      var sx = m.left + m.inner - square;
+      var sx = colX + colW - square;
       ctx.save();
       ctx.fillStyle = accent;
       ctx.globalAlpha = 0.95;
@@ -344,48 +357,38 @@
 
     if (showNamesLine) {
       ctx.save();
-      ctx.fillStyle = onField;
-      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = pal.text;
+      ctx.globalAlpha = 0.72;
       T.setFont(ctx, st.bodyFont, nameSize, { weight: 500 });
-      T.draw(ctx, namesLine, m.left, anchor, { align: 'left', tracking: nameTrack });
+      T.draw(ctx, namesLine, colX, anchor, { align: 'left', tracking: nameTrack });
       ctx.restore();
     }
 
     if (env.micro) {
-      PO.microFoot(env, { m: m, color: onField });
+      PO.microFoot(env, { m: m });
       return;
     }
 
     /* ---------- furniture ---------- */
-    PO.rail(env, m.top + mic * 1.0, [initials, null, 'pairtone'],
-      { m: m, size: mic * 0.76, alpha: 0.7, color: onField });
-
-    /* A ceiling on the same measure as the foot rule. A short name leaves
-       the top of the page open by design, and two rules turn that opening
-       into a framed field instead of into the space left over after the
-       type was placed. */
-    ctx.save();
-    ctx.globalAlpha = 0.4;
-    ctx.strokeStyle = onField;
-    ctx.lineWidth = Math.max(1, u(1.2));
-    ctx.beginPath();
-    ctx.moveTo(m.left, bandTop);
-    ctx.lineTo(w - m.right, bandTop);
-    ctx.stroke();
-    ctx.restore();
+    /* The rail sits on whichever surface its tier gives it: on a tall page
+       the picture reaches the top trim, on a wide one the type column is
+       paper all the way up. */
+    PO.rail(env, m.top + mic * 1.0, [initials, null, 'pairtone'], wide
+      ? { m: colM, size: mic * 0.76, alpha: 0.55 }
+      : { m: m, size: mic * 0.76, alpha: 0.72, color: onField });
 
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.strokeStyle = accent;
     ctx.lineWidth = Math.max(1, u(2.5));
     ctx.beginPath();
-    ctx.moveTo(m.left, footTop);
-    ctx.lineTo(w - m.right, footTop);
+    ctx.moveTo(colX, footTop);
+    ctx.lineTo(colX + colW, footTop);
     ctx.stroke();
     ctx.restore();
 
     cells.forEach(function (body, i) {
-      var x = m.left + (footCellW + g) * i;
+      var x = colX + (footCellW + g) * i;
       ctx.save();
       ctx.fillStyle = accent;
       ctx.globalAlpha = 0.95;
@@ -393,8 +396,7 @@
       T.draw(ctx, '0' + (i + 1), x, footTop + mic * 1.3, { align: 'left', tracking: mic * 0.08 });
       ctx.restore();
       PO.block(env, x, footTop + mic * 1.9, footCellW, [body], {
-        size: mic * 0.78, lead: 1.5, upper: false, alpha: 0.8,
-        font: st.bodyFont, color: onField
+        size: mic * 0.78, lead: 1.5, upper: false, alpha: 0.78, font: st.bodyFont
       });
     });
   }
@@ -403,7 +405,7 @@
   W.layoutRegistry.push({
     id: 'spine',
     label: 'Spine',
-    blurb: '페어명을 폭에 꽉 맞춘 한 덩어리로 짜고, 사진은 배경으로 꽉 채워요. 이름이 길든 짧든 좌우가 딱 맞습니다.',
+    blurb: '페어명을 폭에 꽉 맞춘 한 덩어리로 짜고, 사진은 위쪽(가로에선 오른쪽) 한 면을 통째로 씁니다.',
     defaults: {
       titleFont: 'didone', scriptFont: 'delafield', bodyFont: 'spacegrotesk',
       headlineStyle: 'stack',
