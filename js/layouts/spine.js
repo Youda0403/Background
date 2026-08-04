@@ -59,15 +59,22 @@
       /* A — the monogram, set huge in outline and cropped by the band.
          The same two letters the accent square carries, at the other end
          of the page and at the other end of the scale. */
-      var size = T.fit(ctx, o.initials, st.titleFont, band * 1.5, m.inner * 0.86, 0.04, { weight: 500 });
+      /* Seated inside the band, not cropped by it. Letting the picture's
+         edge cut the letters looked better but put the glyph's box over
+         the rail below, and a clip only hides that — the two are the same
+         two letters, so where they overlap they are illegible rather than
+         layered. */
+      var size = T.fit(ctx, o.initials, st.titleFont, band * 1.15, m.inner * 0.86, 0.04, { weight: 500 });
       T.setFont(ctx, st.titleFont, size, { weight: 500 });
       var ink = T.inkBox(ctx, o.initials);
+      if (ink.asc + ink.desc > band) {
+        size *= band / (ink.asc + ink.desc);
+        T.setFont(ctx, st.titleFont, size, { weight: 500 });
+        ink = T.inkBox(ctx, o.initials);
+      }
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, o.top, w, band);
-      ctx.clip();
       ctx.globalAlpha = 0.5;
-      T.draw(ctx, o.initials, m.left, o.bottom + ink.desc, {
+      T.draw(ctx, o.initials, m.left, o.bottom - ink.desc, {
         align: 'left', tracking: size * 0.04,
         stroke: pal.text, strokeWidth: Math.max(1, u(2.2)), fill: false
       });
