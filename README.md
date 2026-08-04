@@ -163,7 +163,7 @@ which stays local). State also persists in `localStorage`.
 
 Sandstone · Green Wash · Sage Letter · Aura Heart · Dot Diary · Riso Blue ·
 Apple Silver · Tide Pool · Olive Note · Soft Sheet · Ink & Blush ·
-Midnight Wish · Shampoo Blue · Crimson Letter · Terracotta · Lavender Haze ·
+Midnight Wish · Shampoo Blue · Crimson Letter · Plum Ink · Lavender Haze ·
 Forest Room · Coral Set · Butter Note · Inkwell · Charcoal
 
 Colour only: `base`, `soft`, `inks`, the `duo` ramp photos are toned into,
@@ -178,6 +178,16 @@ sand one. Dark pages went from one to five, and they are now a navy, a
 royal blue, a forest, a black and a warm coral rather than four shades of
 the same decision. A palette whose character changed that far is renamed,
 and the old id migrates.
+
+**A soft edge is ramped, not stacked.** The feather laid between three and
+twenty-six copies of the photo's shape on top of each other, every one at
+an alpha of 0.32. Both faults were visible: the outermost ring started at
+32% opacity, so the edge began with a step rather than from nothing, and
+at a couple of dozen fills the rings are far enough apart to be read
+individually — it looked like contour lines on a map. The step count now
+comes from how many pixels the fade actually spans, so the rings land
+under a pixel apart whatever the canvas size, and the per-step alpha is
+solved from the step count rather than fixed.
 
 **No palette is one colour.** Eleven of them used to be: the accent was a
 deeper mix of the very hue the page was already made of, so Lavender Haze

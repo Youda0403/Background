@@ -44,6 +44,94 @@
   var REF = 200;              /* the size natural widths are measured at */
   var TITLE_WEIGHT = 500;
 
+
+  /* Three candidates for the paper above the picture band. A tall page
+     leaves it open by construction — the lockup is seated at the foot and
+     the band is capped so the picture cannot take the page — and open is
+     not the same as empty. */
+  function drawHead(env, variant, o) {
+    var ctx = env.ctx, w = env.w, u = env.u;
+    var st = env.st, pal = env.pal, c = env.content;
+    var m = o.m, band = o.bottom - o.top;
+    if (band < u(60)) return;
+
+    if (variant === 'a') {
+      /* A — the monogram, set huge in outline and cropped by the band.
+         The same two letters the accent square carries, at the other end
+         of the page and at the other end of the scale. */
+      var size = T.fit(ctx, o.initials, st.titleFont, band * 1.5, m.inner * 0.86, 0.04, { weight: 500 });
+      T.setFont(ctx, st.titleFont, size, { weight: 500 });
+      var ink = T.inkBox(ctx, o.initials);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, o.top, w, band);
+      ctx.clip();
+      ctx.globalAlpha = 0.5;
+      T.draw(ctx, o.initials, m.left, o.bottom + ink.desc, {
+        align: 'left', tracking: size * 0.04,
+        stroke: pal.text, strokeWidth: Math.max(1, u(2.2)), fill: false
+      });
+      ctx.restore();
+      return;
+    }
+
+    if (variant === 'b') {
+      /* B — a specification table. The same numbered grammar as the foot
+         cells, turned on its side: label left, value right, a hairline
+         under each row. */
+      var rows = [
+        ['pair', (st.showNames && c.names) ? c.names : o.initials],
+        ['date', c.footnote || ''],
+        ['tags', st.showTags && c.tags.length ? c.tags.join(' · ') : '']
+      ].filter(function (r) { return r[1]; });
+      if (!rows.length) return;
+      var rh = Math.min(band / rows.length, o.mic * 2.6);
+      var y0 = o.bottom - rh * rows.length;
+      rows.forEach(function (r, i) {
+        var y = y0 + rh * (i + 1);
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        ctx.strokeStyle = pal.text;
+        ctx.lineWidth = Math.max(1, u(1.2));
+        ctx.beginPath();
+        ctx.moveTo(m.left, y);
+        ctx.lineTo(w - m.right, y);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = o.accent;
+        ctx.globalAlpha = 0.95;
+        T.setFont(ctx, 'dmmono', o.mic * 0.66, {});
+        T.draw(ctx, '0' + (i + 1), m.left, y - rh * 0.32, { align: 'left', tracking: o.mic * 0.08 });
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = pal.text;
+        ctx.globalAlpha = 0.55;
+        T.setFont(ctx, st.bodyFont, o.mic * 0.72, { weight: 500 });
+        T.draw(ctx, r[0].toUpperCase(), m.left + o.mic * 2.6, y - rh * 0.32,
+          { align: 'left', tracking: o.mic * 0.14 });
+        ctx.globalAlpha = 0.85;
+        T.draw(ctx, String(r[1]).toUpperCase(), w - m.right, y - rh * 0.32,
+          { align: 'right', tracking: o.mic * 0.1 });
+        ctx.restore();
+      });
+      return;
+    }
+
+    /* C — a third stratum. The head becomes a flat field of its own, so
+       the page is colour / picture / paper rather than paper with a
+       picture in it. */
+    var fieldTop = 0, fieldBot = o.region.y;
+    ctx.save();
+    ctx.fillStyle = U.mix(o.accent, pal.base, 0.55);
+    ctx.fillRect(0, fieldTop, w, fieldBot - fieldTop);
+    ctx.globalAlpha = 0.5 * st.washStrength;
+    P.wash(ctx, w * 0.72, fieldBot * 0.4, env.S * 0.7, pal.soft[0], 0.6);
+    ctx.restore();
+  }
+
   function draw(env) {
     var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
     var st = env.st, pal = env.pal, c = env.content;
@@ -303,27 +391,23 @@
     ctx.fillRect(region.x, region.y, region.w, region.h);
     ctx.restore();
 
-    /* The region's own edges, in the accent. On a palette whose page and
-       whose photo ink are near neighbours — Charcoal is grey paper toned
-       into grey ink — the picture and the paper met with nothing between
-       them and the region simply could not be seen. A hairline is not
-       decoration here; it is what makes the page read as two fields. */
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = Math.max(1.5, u(3.2));
-    ctx.beginPath();
-    if (wide) {
-      ctx.moveTo(region.x, 0);
-      ctx.lineTo(region.x, h);
-    } else {
-      ctx.moveTo(0, region.y);
-      ctx.lineTo(w, region.y);
-      ctx.moveTo(0, region.y + region.h);
-      ctx.lineTo(w, region.y + region.h);
+    /* ---------- the head: what fills the paper above the band --------- */
+    if (!wide && !env.micro) {
+      /* The whole top of the page, not the sliver under the rail. On a
+         phone `m.top` IS the lock-screen clock reserve, so measuring the
+         head band from it left about nothing — which is why the area the
+         eye reads as empty is exactly the area the layout thought it did
+         not have. */
+      var headTop = u(48);
+      /* clear of the rail that now sits on the band's top edge — the big
+         monogram and the rail's small one are the same two letters, and
+         they were landing on each other */
+      var headBot = region.y - mic * 2.0;
+      drawHead(env, W.spineHead || 'a', {
+        m: m, g: g, mic: mic, top: headTop, bottom: headBot,
+        accent: accent, initials: initials, region: region
+      });
     }
-    ctx.stroke();
-    ctx.restore();
 
     /* ---------- the block ---------- */
     var square = pick.capH;
@@ -402,7 +486,8 @@
     /* The rail is on paper on both tiers now that the picture no longer
        reaches the top trim. It used to be drawn in the colour that reads
        on the photograph, which on a pale stock is invisible ink. */
-    PO.rail(env, m.top + mic * 1.0, [initials, null, 'pairtone'],
+    PO.rail(env, wide ? m.top + mic * 1.0 : region.y - mic * 0.85,
+      [initials, null, 'pairtone'],
       { m: wide ? colM : m, size: mic * 0.76, alpha: 0.55 });
 
     ctx.save();

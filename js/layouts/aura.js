@@ -118,24 +118,11 @@
 
     if (plate) {
       env.drawPhoto(plate);
-      /* a hairline round the window: an edge is the difference between a
-         photograph placed on the page and one dissolving into it */
-      if (st.feather < 0.5) {
-        ctx.save();
-        ctx.globalAlpha = 0.7 * (1 - st.feather * 1.6);
-        /* In the accent, not the text colour. A glow is a soft blend and
-           cannot shift the hue of a saturated page — on Coral Set the core
-           bloom darkened the page and left no trace of the palette's
-           colour anywhere. A hard edge is the one mark in this layout that
-           always carries. */
-        ctx.strokeStyle = PO.accentOn(pal, pal.base);
-        ctx.lineWidth = Math.max(1.5, u(3.2));
-        var shape = W.frames.make(st.photoShape, env.seedNum);
-        ctx.translate(plate.x, plate.y);
-        shape(ctx, plate.w, plate.h, 1);
-        ctx.stroke();
-        ctx.restore();
-      }
+      /* No outline. An edge was there to stop the photograph dissolving
+         into the page, but a ring drawn round a feathered window is the
+         one hard line in the softest layout in the set, and it read as a
+         sticker rather than as a window. The feather itself is the edge
+         now that it ramps smoothly. */
     }
 
     /* ---- type ---- */

@@ -175,14 +175,19 @@
     },
     {
       id: 'terracotta',
-      label: 'Terracotta',
-      base: '#f3e6d8',
-      soft: ['#dcae8c', '#bcdcd8', '#c98f6b'],
-      inks: ['#b4643c', '#8a4a2e', '#e0bb9b', '#4a3326'],
-      duo: ['#7a4429', '#f6ebdd'],
-      text: '#6b4130',
-      accent: '#2f8f88',
-      grain: 0.12
+      label: 'Plum Ink',
+      /* Crimson Letter and Terracotta were both a light warm paper with a
+         red-brown ink, a hand's breadth apart on the wheel and the same
+         decision twice. One of them had to go somewhere else, and a deep
+         plum is the gap the set had: the only violet in it was a pale
+         one. */
+      base: '#2e1d33',
+      soft: ['#463049', '#3a2440', '#5c4260'],
+      inks: ['#efe6ee', '#e0b46a', '#c9a8d6', '#8f6f96'],
+      duo: ['#1a0f1e', '#f2e9f0'],
+      text: '#f0e7ef',
+      accent: '#e0b46a',
+      grain: 0.11
     },
     {
       id: 'lavender',
@@ -217,10 +222,15 @@
          both contrasts and keeps its hue. */
       base: '#7a2418',
       soft: ['#a83a28', '#5c1810', '#c9503a'],
-      inks: ['#ffe6da', '#6ee8b0', '#ffc98f', '#e0614a'],
+      inks: ['#ffe6da', '#7fae9c', '#ffc98f', '#e0614a'],
       duo: ['#3d0f08', '#ffe6da'],
       text: '#ffeae2',
-      accent: '#6ee8b0',
+      /* A soft sea green rather than a bright mint. On a page this deep a
+         fully saturated green is a highlighter stripe — but taken all the
+         way down to a tint it stops being a colour at all and the palette
+         is back to one hue. Keep the hue far from the page and the chroma
+         only a little above it. */
+      accent: '#7fae9c',
       grain: 0.11
     },
     {

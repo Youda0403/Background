@@ -186,8 +186,8 @@
     layout: '사진과 글자를 어디에 놓을지 정하는 「짜임새」예요. 여섯 개가 각각 완전히 다른 성격이고, 어울리는 폰트도 같이 정해져요.',
     palette: '색 조합이에요. 배경, 장식, 사진 보정 색이 전부 여기서 나와요. 글꼴은 건드리지 않으니 마음껏 바꿔봐도 돼요.',
     pairName: '가장 큰 글자로 들어갈 문장이에요. 엔터를 치면 그 자리에서 줄이 바뀌고, 비워두면 큰 글자 없이 짜여요.',
-    headlineStyle: '페어명 두 줄을 어떻게 배치할지 정해요. 폰트는 아래에서 따로 고르면 돼요.',
-    headlineScale: '제목 글자 크기. 레이아웃이 여백에 맞춰주니까 키워도 안 넘쳐요.',
+    headlineStyle: '메인 문구가 두 줄이 될 때 각 줄을 어떤 글씨로 짤지 정해요. 폰트는 아래에서 따로 고르면 돼요.',
+    headlineScale: '메인 문구 글자 크기. 레이아웃이 여백에 맞춰주니까 키워도 안 넘쳐요.',
     microScale: '작은 글자(캡션·날짜·태그) 크기를 한 번에 조절해요.',
     tone: '사진을 어떤 인쇄 방식으로 바꿀지 정해요.\n· 원본: 그대로\n· 빛바램: 원래 색은 살리고 종이 색으로 바래게\n· 듀오톤: 색을 버리고 팔레트 두 색으로만 다시 칠하기\n· 흑백\n· 망점: 신문처럼 점으로 인쇄\n빛바램은 「원본에 가깝게」, 듀오톤은 「완전히 그림처럼」이에요.',
     toneAmount: '위에서 고른 방식을 얼마나 세게 적용할지.',
@@ -356,9 +356,11 @@
       {
         title: '글자 다듬기', hint: '폰트 · 크기', open: false,
         items: [
-          { t: 'chips', key: 'headlineStyle', label: '페어명 배치', help: HELP.headlineStyle, options: idLabel(S.headlineStyles) },
+          /* Spine sets its own two lines and Zine fixes its style, so
+             neither reads this — the chips moved and nothing happened. */
+          { t: 'chips', key: 'headlineStyle', label: '메인 문구 짜임', help: HELP.headlineStyle, options: idLabel(S.headlineStyles), when: function (s) { return !/spine|zine/.test(s.layout); } },
           { t: 'select', key: 'titleFont', label: '페어명 폰트', help: HELP.titleFontHelp, options: fontOptions },
-          { t: 'select', key: 'scriptFont', label: '첫 줄 폰트', help: HELP.firstLineFont, options: fontOptions, when: function (s) { return s.headlineStyle === 'scriptSans'; } },
+          { t: 'select', key: 'scriptFont', label: '첫 줄 폰트', help: HELP.firstLineFont, options: fontOptions, when: function (s) { return s.headlineStyle === 'scriptSans' && !/spine/.test(s.layout); } },
           { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', help: HELP.bodyFontHelp, options: fontOptions },
           { t: 'note', text: '「(반듯)」이 붙은 필기체는 기울지 않고 똑바로 서 있어서 제목으로 쓰기 좋아요.' },
           {

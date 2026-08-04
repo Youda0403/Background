@@ -484,17 +484,42 @@
 
   /* Feathered edge: concentric fills that accumulate into a soft ramp,
      with an opaque core so the middle of the photo stays solid. */
+  /* A soft edge, ramped rather than stacked.
+
+     This used to lay between three and twenty-six copies of the shape on
+     top of each other, every one at an alpha of 0.32. Two problems, and
+     both of them were visible: the outermost ring started at 32% opacity,
+     so the edge began with a step rather than from nothing, and at a
+     couple of dozen fills the rings are far enough apart to be read
+     individually. It looked like contour lines on a map.
+
+     The step count now comes from how many pixels the fade actually
+     spans, so the rings land under a pixel apart whatever the canvas
+     size, and the per-step alpha is solved from the step count rather
+     than fixed — `1 - (1-a)^steps` is the coverage a stack of `steps`
+     fills reaches, so `a` is chosen to make that land just under one. */
   function featherMask(ctx, pathFn, cx, cy, r, feather) {
-    var steps = U.clamp(Math.round(feather * 22), 3, 26);
+    feather = U.clamp(feather, 0, 0.95);
+    var band = r * feather;
+    if (band < 1) {
+      ctx.save();
+      ctx.fillStyle = '#000';
+      pathFn(ctx, cx, cy, r);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    var steps = U.clamp(Math.round(band), 12, 96);
+    var a = 1 - Math.pow(0.03, 1 / steps);
     ctx.save();
     ctx.fillStyle = '#000';
+    ctx.globalAlpha = a;
     for (var i = 0; i < steps; i++) {
-      ctx.globalAlpha = 0.32;
-      pathFn(ctx, cx, cy, r * (1 - feather * (i / steps)));
+      pathFn(ctx, cx, cy, r - band * (1 - (i + 1) / steps));
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    pathFn(ctx, cx, cy, r * (1 - feather));
+    pathFn(ctx, cx, cy, r - band);
     ctx.fill();
     ctx.restore();
   }
