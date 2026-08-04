@@ -63,19 +63,31 @@
          edge cut the letters looked better but put the glyph's box over
          the rail below, and a clip only hides that — the two are the same
          two letters, so where they overlap they are illegible rather than
-         layered. */
-      var size = T.fit(ctx, o.initials, st.titleFont, band * 1.15, m.inner * 0.86, 0.04, { weight: 500 });
+         layered.
+
+         And JUSTIFIED to the measure, like every other line on the page.
+         Fitted to a fraction of the measure instead, it stopped wherever
+         its own advance widths happened to end — 945 of 1092 on a phone —
+         while the title block, the rails and the foot cells all reached
+         the right margin. One element short of an edge everything else
+         holds does not read as a different element; it reads as the page
+         being out of true. */
+      var size = band * 1.15;
       T.setFont(ctx, st.titleFont, size, { weight: 500 });
       var ink = T.inkBox(ctx, o.initials);
       if (ink.asc + ink.desc > band) {
         size *= band / (ink.asc + ink.desc);
-        T.setFont(ctx, st.titleFont, size, { weight: 500 });
-        ink = T.inkBox(ctx, o.initials);
       }
+      /* never wider than the measure at zero tracking */
+      size = T.fit(ctx, o.initials, st.titleFont, size, m.inner, 0, { weight: 500 });
+      T.setFont(ctx, st.titleFont, size, { weight: 500 });
+      ink = T.inkBox(ctx, o.initials);
+      var gaps = o.initials.length - 1;
+      var track = gaps > 0 ? (m.inner - T.measure(ctx, o.initials, 0)) / gaps : 0;
       ctx.save();
       ctx.globalAlpha = 0.5;
       T.draw(ctx, o.initials, m.left, o.bottom - ink.desc, {
-        align: 'left', tracking: size * 0.04,
+        align: 'left', tracking: Math.max(0, track),
         stroke: pal.text, strokeWidth: Math.max(1, u(2.2)), fill: false
       });
       ctx.restore();
@@ -214,7 +226,7 @@
       T.setFont(ctx, st.bodyFont, nameSize, { weight: 500 });
       var natural = T.measure(ctx, namesLine, 0);
       nameTrack = namesLine.length > 1
-        ? U.clamp((colW - natural) / (namesLine.length - 1), 0, nameSize * 2.4) : 0;
+        ? U.clamp((colW - natural) / (namesLine.length - 1), 0, nameSize * 4.6) : 0;
       nameCap = T.inkBox(ctx, namesLine).asc;
       namesH = nameCap + g * 1.3;
     }
