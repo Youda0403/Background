@@ -15,7 +15,7 @@
     customH: 2556,
 
     /* the two real choices */
-    layout: 'spine',
+    layout: 'portal',
     palette: 'sage',
 
     /* scene */

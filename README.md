@@ -52,9 +52,9 @@ of the canvas's short side, and composition is chosen by aspect-ratio tier —
 `tall`, `phone`, `tablet`, `square`, `wide`. A wide canvas splits into two
 columns instead of stacking; a very small canvas packs the names, date and tags
 onto one fitted foot line rather than dropping them; a tablet gets a smaller
-photo relative to its width so the type still breathes. All 6 × 33 presets ×
+photo relative to its width so the type still breathes. All 7 × 33 presets ×
 both orientations are audited automatically, across four content shapes and
-both photo states — eight passes, 3168 renders — for content that goes missing,
+both photo states — eight passes, 3696 renders — for content that goes missing,
 text drawn off the page, strings colliding, and dead regions. Content starts below the lock-screen clock band rather than halfway
 into it, so nothing important ends up under the time.
 
@@ -134,7 +134,7 @@ on the preview.
 **Two decisions, not three.** A design is a **layout** (where things sit, and
 which fonts suit that structure) and a **palette** (colour, and only colour).
 That is the whole model — there is no separate "look" concept, because
-6 layouts × 21 palettes is already 126 finished combinations. A palette never
+7 layouts × 21 palettes is already 147 finished combinations. A palette never
 touches the typography, so changing colour cannot undo a font you chose. The
 layouts own their own composition, so every remaining slider can nudge a design
 but cannot break it.
@@ -152,6 +152,7 @@ which stays local). State also persists in `localStorage`.
 
 | | |
 | --- | --- |
+| **Portal** | The photograph cut into an **arch**, with the name written across its shoulder so the letters change colour where they cross onto it. This is the photo-first layout: the other six compose around a picture and stay standing without one, this one is built for a picture and the picture is the middle of the page. Two things the reference boards agree about are the whole design. The photograph is **not a rectangle** — every one of them cuts it into a shape, and the shape is what the eye reads first. And the type **crosses** the picture rather than sitting beside it, which is the difference between a page with a photograph on it and one scene: a band of picture with a headline underneath reads as two blocks however carefully the two are aligned. So the name is drawn twice, at the same size in the same place — once in the page's ink and once more clipped to the arch, in the ink that reads on the toned photograph. One line of type, two materials, and no seam because there is no second element. The rest is the boards' furniture: rules that run to both trims broken by a diamond at each end, tracked capitals set vertically down the margins *outside the measure* so they can never meet the display line however long the name is, and a few sparkles — all of it on the page rather than in the picture, so a busy photograph never has to carry small text. The arch's radius is capped against its height as well as its width, so a wide canvas gets a shallow arch rather than a semicircle taller than the band it has to fit in. With no photograph the arch fills with the **mid point of the duotone ramp** — what a picture toned into this palette actually averages to, so the empty arch carries the same weight on the page as a full one; tinting the page colour instead left it a shade off its own background on any palette whose page is already deep. |
 | **Spine** | The pair name set as one **justified block** on the palette's own paper, closed by a solid accent square, with the two names tracked out beneath it to the same measure; the photograph is a band across the middle of the page, and above it the pair's initials are set large in outline. The band touches both side trims, so it reads as a stratum with paper closing the page above and below rather than as a rectangle set down on one — and it is a band rather than everything above the block because running it to the top trim made it most of the page, at which point the wallpaper is a photograph with a caption. Putting the type on paper instead of on the picture is what lets the page colour be seen at all and takes small text off an unpredictable ground. **Every full-width element is justified to the same measure**, and that is the whole of the design: the head monogram, both title lines, the names line and the rails all start and end on the same two verticals. It is worth being strict about — the monogram was once fitted to 86% of the measure and the names line's tracking capped a little tight, and two elements stopping short of an edge the rest of the page held did not read as two different elements, it read as the page being out of true. Lines of several words are justified on their **word gaps**, which leaves the letters at natural fit; only a line that is one word has to open its letters. **The name is never broken inside a word.** An explicit line break wins outright; otherwise a balancer minimises the widest line, and an arrangement is offered only if the justification it needs is worth what it buys — `Aefi Syndrome` on one line is thirteen characters across the measure and comes out small, two lines set it half again as large, and that is worth opening the four letters of the short line further than would normally be allowed, while three words giving a line of `of` earns nothing and is refused at any size. A one-word name is always one line however tall the band. A wide page splits side to side instead: type in the left column, picture in the right, and the lockup centred rather than seated at the foot, since on a header there is no top half to give away. |
 | **Lyric** | Plates on a coarse grid with large geometry drawn straight across them: one hairline circle, one solid eight-pointed star straddling the plate's edge, and a quarter-circle arc struck from a grid corner. A circle that fits inside a panel is decoration; a circle wider than the plate, crossing type and photograph alike, is the composition. This replaced a torn-paper collage that had two faults no tuning fixed — the tear sat at a fixed fraction of the page, so a short name left the whole upper half empty, and both lines of the headline were set in the same script, so pressing Enter changed the line count and nothing else. The headline now sets its second line in a different face, and it is seated at the top of the band so there is no empty half to begin with. Three rules keep the collage from turning into litter: every plate edge lands on the grid while the figures do not, which is what makes them read as drawn *over* the layout rather than as another cell in it; there is exactly one of each figure, because a second of anything is a scatter; and small text never sits on the photograph — it sits on a paper plate of its own, which is also what gives the collage its second surface. A wide canvas moves the star to the plate's left edge and the caption plate under the headline, since on a landscape page the top edge is against the trim and the left column is the open field. |
 | **Grid** | A crossword of highlighted cells spelling your words over the photo. The pair's own name gets the accent cells; everything else stays a quiet tint. The most deniable of the set. |
@@ -226,7 +227,7 @@ twinkles. The swatch shows page / photo ink / accent / decorative ink, which
 is what the wallpaper is actually made of.
 
 The accent is checked two ways: it must clear 3:1 contrast against its own
-page, and the rendered pixels of all 126 combinations are searched for its
+page, and the rendered pixels of all 147 combinations are searched for its
 hue. Layouts resolve it against whatever they are printing on — Column's card
 is light even when the page is dark, so the same colour is deepened there
 rather than swapped.
@@ -249,7 +250,7 @@ only the first of three things:
    it cannot vary with the canvas, or the preview and the export would screen
    differently.
 
-All 6 × 21 combinations are audited three ways: for flatness, for how much
+All 7 × 21 combinations are audited three ways: for flatness, for how much
 loading a photo actually changes the pixels, and for **polarity** — the
 rendered photo region is correlated against the source photograph's own
 luminance, and negative correlation is a failure. The first two metrics both
@@ -295,7 +296,7 @@ js/
   poster.js       poster furniture: paper, margins, frames, corner marks,
                   rails, micro-blocks, side labels, the headline lockup,
                   edge accents, tag rail
-  layouts/        spine · lyric · grid · zine · aura · column
+  layouts/        portal · spine · lyric · grid · zine · aura · column
   state.js        defaults, palette voices, migration, share links
   render.js       builds the draw context, runs a layout, exports PNG
   controls.js     declarative control panel with help popovers
@@ -350,7 +351,7 @@ watch face, which is why that preset was the most broken of the 36.
 when the canvas changes shape; it may not stop carrying it. `PO.microFoot`
 packs the names, the date and the tags onto one fitted line so a Watch export
 still says everything a phone one does. This is enforced, not remembered:
-`resp.js` renders all 6 layouts × 36 presets × both orientations, instruments
+`resp.js` renders all 7 layouts × 36 presets × both orientations, instruments
 `type.draw` and `photo.place`, and fails on any content field that appears at
 one size and vanishes at another — as well as on text drawn outside the canvas
 or crashing into other text. 432 renders, with and without a photo.
@@ -402,7 +403,7 @@ a three-word title — for a long time. A *one-word* title makes the layout
 borrow both names and the separator as extra lines, a completely different
 line structure, and that is the one a real user hit. `resp.js` now sweeps
 three content shapes (default / short title / every optional field empty)
-against both photo states: eight passes, 3168 renders.
+against both photo states: eight passes, 3696 renders.
 
 **The top bar is sticky, so its height is permanent.** It used to wrap onto
 two rows on a phone — a brand line and a full-width row of buttons — costing
