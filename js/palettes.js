@@ -20,14 +20,14 @@
   var PALETTES = [
     {
       id: 'starmilk',
-      label: 'Star Milk',
-      base: '#fdfefb',
-      soft: ['#bfe6c4', '#a8d8ef', '#ffe89a'],
-      inks: ['#8fd3a6', '#7fc4e8', '#f7d774', '#c9e7b0'],
-      duo: ['#3f6b56', '#f4fbf2'],
-      text: '#5d6a5f',
-      accent: '#c9922f',
-      grain: 0.05
+      label: 'Sandstone',
+      base: '#e6d6b8',
+      soft: ['#cbb489', '#a8dcd6', '#d9c6a0'],
+      inks: ['#4a3a26', '#2f9c94', '#e8dcc2', '#7a6244'],
+      duo: ['#3f3020', '#f2e8d4'],
+      text: '#4a3a26',
+      accent: '#2f9c94',
+      grain: 0.12
     },
     {
       id: 'greenwash',
@@ -97,25 +97,25 @@
     },
     {
       id: 'jelly',
-      label: 'Jelly Tide',
-      base: '#fbfcfe',
-      soft: ['#cfe2f5', '#fbdcc8', '#f2f6fd'],
-      inks: ['#3f7fbf', '#8fc6e8', '#f4c6d8', '#ffe8a8'],
-      duo: ['#255d92', '#f7fbff'],
-      text: '#6a7684',
+      label: 'Tide Pool',
+      base: '#dfeeea',
+      soft: ['#8fc4bc', '#ffd2bc', '#b6dcd4'],
+      inks: ['#2f7a72', '#1d5a54', '#ffc4a8', '#a8d6cd'],
+      duo: ['#17544e', '#eaf6f2'],
+      text: '#1f5f58',
       accent: '#e0764f',
-      grain: 0.03
+      grain: 0.07
     },
     {
       id: 'cream',
-      label: 'Cream Doodle',
-      base: '#fbfbe6',
-      soft: ['#dfeefb', '#fbdcc4', '#eef7dd'],
-      inks: ['#5b86d6', '#f2a8c4', '#9fd4c0', '#2f4f9c'],
-      duo: ['#3b5aa0', '#fbfbe8'],
-      text: '#5a6285',
-      accent: '#cf6a3f',
-      grain: 0.07
+      label: 'Olive Note',
+      base: '#e8e4cd',
+      soft: ['#c2bd93', '#d9c2d2', '#b0aa7c'],
+      inks: ['#6b6a3c', '#4d4c28', '#cfc9a2', '#8f6f92'],
+      duo: ['#45441f', '#efecd9'],
+      text: '#54522c',
+      accent: '#8f5f96',
+      grain: 0.1
     },
     {
       id: 'kawaii',
@@ -197,25 +197,31 @@
     },
     {
       id: 'matcha',
-      label: 'Matcha',
-      base: '#eef1e2',
-      soft: ['#b6c98e', '#d4dfb8', '#9bb26e'],
-      inks: ['#5c7038', '#3f4f26', '#c3d3a0', '#e6ead6'],
-      duo: ['#3a4a22', '#f0f3e5'],
-      text: '#455230',
-      accent: '#b5623a',
-      grain: 0.11
+      label: 'Forest Room',
+      base: '#1e3226',
+      soft: ['#2f4a37', '#26402f', '#3d5c46'],
+      inks: ['#e6e2cf', '#b6c9a8', '#e0b46a', '#8fa88a'],
+      duo: ['#0f1e16', '#e8e6d2'],
+      text: '#e8e6d2',
+      accent: '#e0b46a',
+      grain: 0.12
     },
     {
-      id: 'peach',
-      label: 'Peach Fizz',
-      base: '#fff2ec',
-      soft: ['#ffd0bc', '#bfe2dc', '#ffc0b0'],
-      inks: ['#f28f6e', '#e2694f', '#ffd9c4', '#8fc7c2'],
-      duo: ['#a8543a', '#fff4ef'],
-      text: '#a05a44',
-      accent: '#2f8f80',
-      grain: 0.05
+      id: 'coral',
+      label: 'Coral Set',
+      /* Deep, not mid. A saturated page at half luminance is the one case
+         no accent can serve: reaching a readable contrast forces the
+         colour almost to black, and a dark colour blended over a
+         saturated ground comes back muddy brown rather than the hue the
+         swatch promised. Take the page down instead, and a bright accent
+         both contrasts and keeps its hue. */
+      base: '#7a2418',
+      soft: ['#a83a28', '#5c1810', '#c9503a'],
+      inks: ['#ffe6da', '#6ee8b0', '#ffc98f', '#e0614a'],
+      duo: ['#3d0f08', '#ffe6da'],
+      text: '#ffeae2',
+      accent: '#6ee8b0',
+      grain: 0.11
     },
     {
       id: 'butter',
@@ -298,13 +304,29 @@
     var col = withChroma(seed, Math.min(chroma(seed), chromaCeiling(p)));
     col = U.mixHex(col, p.base, 0.14);
 
-    /* walk the lightness away from the page until the accent reads */
-    var dark = U.luma(p.base) > 0.5;
-    for (var i = 0; i < 24 && U.contrast(col, p.base) < 3; i++) {
-      var c = U.hsl(col);
-      col = U.fromHsl(c[0], c[1], U.clamp(c[2] + (dark ? -0.03 : 0.03), 0.06, 0.94));
+    /* Walk the lightness away from the page until the accent reads — but
+       in whichever direction gets there first. It used to pick the
+       direction from the page alone: lighter for any page under half
+       luminance. On a page that IS about half — a saturated coral — that
+       meant climbing all the way to 0.93 before the contrast came good,
+       and a colour dragged that close to white has no chroma left. The
+       swatch promised mint and the wallpaper printed off-white. */
+    function walk(from, step) {
+      var c = from;
+      for (var i = 0; i < 30 && U.contrast(c, p.base) < 3; i++) {
+        var h = U.hsl(c);
+        c = U.fromHsl(h[0], h[1], U.clamp(h[2] + step, 0.06, 0.94));
+      }
+      return c;
     }
-    return col;
+    if (U.contrast(col, p.base) >= 3) return col;
+    var up = walk(col, 0.03), down = walk(col, -0.03);
+    /* keep whichever kept more colour, and only fall back to the one that
+       actually reached contrast if the other did not */
+    var upOk = U.contrast(up, p.base) >= 3, downOk = U.contrast(down, p.base) >= 3;
+    if (upOk && !downOk) return up;
+    if (downOk && !upOk) return down;
+    return chroma(down) >= chroma(up) ? down : up;
   }
 
   PALETTES.forEach(function (p) {

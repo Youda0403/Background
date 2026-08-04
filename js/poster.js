@@ -44,9 +44,31 @@
      keep the hue rather than reaching for a different colour. */
   function accentOn(pal, bg) {
     var a = pal.accent || pal.inks[0];
-    var lb = U.luma(bg);
-    if (Math.abs(U.luma(a) - lb) >= 0.3) return a;
-    return U.mix(a, lb > 0.5 ? '#141412' : '#ffffff', 0.5);
+    /* The same sufficiency test the palette's own harmoniser uses. These
+       two used to disagree — the palette walked its accent until the
+       CONTRAST RATIO reached 3, and this then re-judged the result on a
+       raw luma gap of 0.3 and mixed it half way to white when it fell
+       short. On a saturated mid-luminance page nothing can satisfy both,
+       so a mint accent left the palette as a dark green and reached the
+       canvas as grey. */
+    if (U.contrast(a, bg) >= 2.8) return a;
+    /* keep the hue and the saturation; move only the lightness, and in
+       whichever direction reaches the contrast first */
+    function walk(step) {
+      var c = a;
+      for (var i = 0; i < 30 && U.contrast(c, bg) < 2.8; i++) {
+        var h = U.hsl(c);
+        c = U.fromHsl(h[0], h[1], U.clamp(h[2] + step, 0.05, 0.95));
+      }
+      return c;
+    }
+    var up = walk(0.03), down = walk(-0.03);
+    var upOk = U.contrast(up, bg) >= 2.8, downOk = U.contrast(down, bg) >= 2.8;
+    if (upOk && !downOk) return up;
+    if (downOk && !upOk) return down;
+    /* both work — take the smaller move, so the accent stays the colour
+       the swatch showed */
+    return Math.abs(U.luma(down) - U.luma(a)) <= Math.abs(U.luma(up) - U.luma(a)) ? down : up;
   }
 
   /* ---------- geometry ---------- */
@@ -394,7 +416,9 @@
       [anchor.x + anchor.w, anchor.y, 0.8], [anchor.x, anchor.y + anchor.h, 0.75]
     ];
     var spots = corners.slice();
-    var ring = Math.max(4, n);
+    /* Twice as many candidates as marks, so the greedy pass below has
+       somewhere else to go when a spot is too close to one already taken. */
+    var ring = Math.max(8, n * 2);
     for (var q = 0; q < ring; q++) {
       var t = (q + 0.5) / ring;
       var per = t * 4;
@@ -407,20 +431,42 @@
       spots.push([px, py, 0.5 + (q % 3) * 0.18]);
     }
 
+    /* Marks used to be dropped on the first n spots regardless of size,
+       and the four corner spots sit on the ring as well, so at twenty the
+       perimeter carried marks closer together than their own radii — the
+       measured worst pair was 0.47 of the sum of the two. Sizes are drawn
+       first and a spot is only taken if it clears every mark already
+       placed by their combined radii, jitter included. Fewer marks than
+       asked for is the right answer when the anchor cannot hold them. */
+    var jitter = u(46);
+    var rBase = [];
+    for (var b = 0; b < n; b++) rBase.push(u(U.lerp(opts.rMin || 22, opts.rMax || 56, rand())));
+
+    var placed = [];
+    for (var s = 0; s < spots.length && placed.length < n; s++) {
+      var cand = spots[s];
+      var ri = rBase[placed.length];
+      var ok = true;
+      for (var k = 0; k < placed.length; k++) {
+        var need = (ri + placed[k].r) * 0.9 + jitter;
+        if (Math.hypot(cand[0] - placed[k].x, cand[1] - placed[k].y) < need) { ok = false; break; }
+      }
+      if (ok) placed.push({ x: cand[0], y: cand[1], w: cand[2], r: ri });
+    }
+
     ctx.save();
-    for (var i = 0; i < n && i < spots.length; i++) {
-      var sp = spots[i];
-      var jx = (rand() - 0.5) * u(70), jy = (rand() - 0.5) * u(70);
-      var r = u(U.lerp(opts.rMin || 22, opts.rMax || 56, rand())) * sp[2];
+    placed.forEach(function (sp) {
+      var jx = (rand() - 0.5) * jitter, jy = (rand() - 0.5) * jitter;
+      var r = sp.r * sp.w;
       var kind = U.pick(rand, kinds);
       var fn = P.motifs[kind] || P.motifs.burst;
       ctx.globalAlpha = U.range(rand, 0.6, 1) * env.decoAlpha;
       var col = U.pick(rand, colors);
       if (opts.speckle && rand() > 0.5) {
-        P.speckle(ctx, fn, sp[0] + jx, sp[1] + jy, r, col, rand, env.u(1000));
+        P.speckle(ctx, fn, sp.x + jx, sp.y + jy, r, col, rand, env.u(1000));
       } else {
         ctx.beginPath();
-        fn(ctx, sp[0] + jx, sp[1] + jy, r, rand);
+        fn(ctx, sp.x + jx, sp.y + jy, r, rand);
         if (opts.outline && rand() < 0.45) {
           ctx.lineWidth = Math.max(1, u(2.4));
           ctx.strokeStyle = col;
@@ -430,7 +476,7 @@
           ctx.fill();
         }
       }
-    }
+    });
     ctx.restore();
   }
 

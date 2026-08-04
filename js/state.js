@@ -24,7 +24,6 @@
     grain: 1,
     vignette: 0.06,
     decoCount: 6,
-    subtlety: 0.3,
     motifs: ['burst', 'sparkle'],
     glitter: false,
     auraShape: 'heart',
@@ -35,11 +34,8 @@
     headlineStyle: 'scriptSans',
     headlineScale: 1,
     microScale: 1,
-    bleed: false,
-    burst: true,
     scrim: 0.4,
     strike: true,
-    sideLabel: false,
 
     /* words */
     pairName: 'Spirit\nof Nature',
@@ -124,6 +120,11 @@
     riso: 'zine', sticker: 'lyric'
   };
 
+  /* Palettes that were retuned so far that keeping the old name would be
+     a lie: Peach Fizz was a third warm orange next to Terracotta and
+     Crimson, and became a saturated coral page instead. */
+  var PALETTE_ALIASES = { peach: 'coral' };
+
   /* Presets that no longer exist. The Apple Watch sizes were dropped: at
      396 x 484 there is not enough page for any of these layouts to be
      worth exporting, and every one of them had to special-case itself
@@ -168,6 +169,7 @@
       if (st[k] && W.type.aliases[st[k]]) st[k] = W.type.aliases[st[k]];
       if (!W.type.byId[st[k]]) st[k] = DEFAULTS[k];
     });
+    if (PALETTE_ALIASES[st.palette]) st.palette = PALETTE_ALIASES[st.palette];
     if (!W.palettes.byId[st.palette]) st.palette = DEFAULTS.palette;
     /* The main text used to be chosen by a mode chip: the pair name, the
        two names, or the initials. The chip is gone and the field is drawn
@@ -179,6 +181,10 @@
         : st.titleMode === 'monogram' ? W.textstack.monogram(st) : '';
     }
     delete st.titleMode;
+    delete st.subtlety;
+    delete st.burst;
+    delete st.sideLabel;
+    delete st.bleed;
 
     st.motifs = (st.motifs || []).filter(function (m) { return !!W.prim.motifs[m]; });
     if (!st.motifs.length) st.motifs = DEFAULTS.motifs.slice();

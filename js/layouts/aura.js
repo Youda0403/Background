@@ -107,11 +107,13 @@
         : (plate ? Math.min(plate.w, plate.h) * 0.52 : env.S * 0.3);
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
         pal.soft[0], { layers: 18, spread: 0.34, alpha: 0.5 * st.washStrength });
-      /* the inner core carries the accent, so the softest layout still
-         shows the palette's loudest colour somewhere */
+      /* The inner core carries the accent, so the softest layout still
+         shows the palette's loudest colour somewhere. Resolved against the
+         page, not taken raw: a glow is a soft blend, and an accent within
+         a hair of the page's own luminance blends into nothing at all. */
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr * 0.66,
-        pal.accent || pal.inks[1] || pal.soft[1],
-        { layers: 12, spread: 0.34, alpha: 0.3 * st.washStrength });
+        PO.accentOn(pal, pal.base) || pal.inks[1] || pal.soft[1],
+        { layers: 12, spread: 0.42, alpha: 0.42 * st.washStrength });
     }
 
     if (plate) {
@@ -120,9 +122,14 @@
          photograph placed on the page and one dissolving into it */
       if (st.feather < 0.5) {
         ctx.save();
-        ctx.globalAlpha = 0.5 * (1 - st.feather * 1.6);
-        ctx.strokeStyle = pal.text;
-        ctx.lineWidth = Math.max(1, u(1.8));
+        ctx.globalAlpha = 0.7 * (1 - st.feather * 1.6);
+        /* In the accent, not the text colour. A glow is a soft blend and
+           cannot shift the hue of a saturated page — on Coral Set the core
+           bloom darkened the page and left no trace of the palette's
+           colour anywhere. A hard edge is the one mark in this layout that
+           always carries. */
+        ctx.strokeStyle = PO.accentOn(pal, pal.base);
+        ctx.lineWidth = Math.max(1.5, u(3.2));
         var shape = W.frames.make(st.photoShape, env.seedNum);
         ctx.translate(plate.x, plate.y);
         shape(ctx, plate.w, plate.h, 1);
@@ -174,14 +181,14 @@
     /* the accent rides along with the inks — the blooms are made of `soft`,
        which is deliberately pale, so without this the loudest colour in
        the palette never appears on the softest layout */
-    var inks = [pal.accent].concat(pal.inks).filter(Boolean);
+    var inks = [PO.accentOn(pal, pal.base)].concat(pal.inks).filter(Boolean);
     D.twinkles(env, {
       count: twinkleN, avoid: avoid, colors: inks.concat(pal.soft),
-      hero: pal.accent, rMin: 5, rMax: 15
+      hero: PO.accentOn(pal, pal.base), rMin: 5, rMax: 15
     });
     D.scatter(env, {
       count: env.decoBudget - twinkleN,
-      avoid: avoid, kinds: st.motifs, colors: inks, hero: pal.accent,
+      avoid: avoid, kinds: st.motifs, colors: inks, hero: PO.accentOn(pal, pal.base),
       rMin: 14, rMax: 30, bigRatio: 0.24, minDist: 100,
       alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
       speckle: st.glitter
@@ -202,6 +209,7 @@
     id: 'aura',
     label: 'Aura',
     blurb: '뿌연 빛무리 + 부드러운 사진창. 제일 은은해요.',
+    deco: true,
     defaults: {
       titleFont: 'instrument', scriptFont: 'gwendolyn', bodyFont: 'dmmono',
       headlineStyle: 'stack',

@@ -185,7 +185,6 @@
   var HELP = {
     layout: '사진과 글자를 어디에 놓을지 정하는 「짜임새」예요. 여섯 개가 각각 완전히 다른 성격이고, 어울리는 폰트도 같이 정해져요.',
     palette: '색 조합이에요. 배경, 장식, 사진 보정 색이 전부 여기서 나와요. 글꼴은 건드리지 않으니 마음껏 바꿔봐도 돼요.',
-    subtlety: '올릴수록 제목이 작아지고 장식이 옅어져요. 최대로 올리면 그냥 전시 포스터처럼 보여서 밖에서 열어도 티가 안 나요.',
     pairName: '가장 큰 글자로 들어갈 문장이에요. 엔터를 치면 그 자리에서 줄이 바뀌고, 비워두면 큰 글자 없이 짜여요.',
     headlineStyle: '페어명 두 줄을 어떻게 배치할지 정해요. 폰트는 아래에서 따로 고르면 돼요.',
     headlineScale: '제목 글자 크기. 레이아웃이 여백에 맞춰주니까 키워도 안 넘쳐요.',
@@ -201,7 +200,6 @@
     vignette: '네 가장자리를 살짝 어둡게 해서 시선을 가운데로 모아요.',
     washStrength: '배경에 깔리는 색 번짐의 진하기.',
     scrim: '사진 아래쪽을 덮어서 그 위 글자가 읽히게 해줘요.',
-    bleed: '켜면 사진이 여백 없이 꽉 차요. 끄면 종이 여백과 모서리 표시가 생겨요.',
     motifs: '여백에 흩뿌릴 작은 그림들. 여러 개 골라도 돼요.',
     decoCount: '흩뿌릴 장식을 몇 개 놓을지. 0이면 아예 없어요.',
     glitter: '큰 별 안을 반짝이는 은박 질감으로 채워요.',
@@ -212,8 +210,6 @@
     caption: '사진 옆이나 아래에 작게 들어가는 문장.',
     footnote: '날짜나 기념일처럼 아주 작게 들어가는 한 줄.',
     strike: '제목 위로 줄을 그어 인쇄물 느낌을 줘요.',
-    burst: '제목 뒤에 가시 모양 별을 크게 깔아요.',
-    sideLabel: '오른쪽 세로 방향으로 작은 글자를 넣어요.',
     batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.',
     titleFontHelp: '메인 문구(가장 큰 글자)에 쓰이는 폰트예요. 필기체를 고르면 제목 전체가 필기체가 돼요.',
     firstLineFont: '「첫 줄만 다른 폰트」를 골랐을 때, 첫 줄에만 쓰이는 폰트예요.',
@@ -228,11 +224,6 @@
         items: [
           { t: 'cards', key: 'layout', label: '1. 짜임새 (레이아웃)', help: HELP.layout, options: layoutCards },
           { t: 'cards', key: 'palette', label: '2. 분위기 (팔레트)', help: HELP.palette, options: paletteCards, grid: 'palGrid' },
-          { t: 'note', text: '짜임새가 구조와 폰트를, 팔레트가 색을 정해요. 6 × 20 = 120가지 조합이라 눌러보다 마음에 드는 게 나오면 그대로 저장하면 됩니다.' },
-          {
-            t: 'slider', key: 'subtlety', label: '일코 농도', min: 0, max: 1, step: 0.01, help: HELP.subtlety,
-            fmt: function (v) { return v < 0.25 ? '당당하게' : v < 0.55 ? '적당히' : v < 0.8 ? '은은하게' : '아무도 몰라'; }
-          }
         ]
       },
       {
@@ -380,6 +371,10 @@
       },
       {
         title: '장식 다듬기', hint: '개수 · 모양', open: false,
+        when: function (s) {
+          var L = (W.layoutRegistry || []).filter(function (x) { return x.id === s.layout; })[0];
+          return !!(L && L.deco);
+        },
         items: [
           { t: 'slider', key: 'decoCount', label: '장식 개수', min: 0, max: 20, step: 1, help: HELP.decoCount, fmt: function (v) { return Math.round(v) + '개'; } },
           { t: 'chips', key: 'motifs', label: '모티프', help: HELP.motifs, options: idLabel(S.motifKinds), multi: true },
@@ -410,11 +405,9 @@
             },
             update: function (s, node) { node._v.textContent = 'seed ' + s.seed; }
           },
-          { t: 'note', text: '아래는 지금 고른 레이아웃에만 있는 옵션이에요.', when: function (s) { return /lyric|zine|editorial|aura/.test(s.layout); } },
-          { t: 'toggle', key: 'burst', label: '제목 뒤 가시별', help: HELP.burst, when: function (s) { return s.layout === 'lyric'; } },
-          { t: 'slider', key: 'scrim', label: '사진 위 그늘', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'lyric'; } },
+          { t: 'note', text: '아래는 지금 고른 레이아웃에만 있는 옵션이에요.', when: function (s) { return /zine|aura|spine/.test(s.layout); } },
+          { t: 'slider', key: 'scrim', label: '사진 위 그늘', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'spine'; } },
           { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
-          { t: 'toggle', key: 'sideLabel', label: '세로 측면 글자', help: HELP.sideLabel, when: function (s) { return s.layout === 'editorial'; } },
           { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } }
         ]
       },

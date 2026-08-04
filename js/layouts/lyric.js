@@ -238,12 +238,12 @@
   W.layoutRegistry.push({
     id: 'lyric',
     label: 'Lyric',
-    blurb: '격자에 맞춘 사진판 위로 페이지보다 큰 원과 별을 그어요. 줄바꿈하면 둘째 줄 폰트가 바뀝니다.',
+    blurb: '사진판 위로 큰 원과 별을 겹쳐 그은 콜라주. 제일 대담한 쪽.',
     defaults: {
       titleFont: 'bricolage', scriptFont: 'playball', bodyFont: 'dmmono',
       headlineStyle: 'scriptSans',
       photoShape: 'rect', tone: 'duo', toneAmount: 0.92,
-      feather: 0, bleed: false, burst: false, scrim: 0.2,
+      feather: 0, scrim: 0.2,
       motifs: ['sparkle'], decoCount: 0, grain: 1.4, vignette: 0.05
     },
     draw: draw

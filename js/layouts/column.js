@@ -178,6 +178,7 @@
     id: 'column',
     label: 'Column',
     blurb: '사전 같은 종이 칼럼 + 꽉 찬 사진. 차분하고 지적인 무드.',
+    deco: true,
     defaults: {
       titleFont: 'dmserif', scriptFont: 'petitformal', bodyFont: 'spacemono',
       headlineStyle: 'stack',

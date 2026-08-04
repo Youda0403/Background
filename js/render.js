@@ -75,7 +75,12 @@
     var tier = C.tierOf(h / w);
     var safeKey = tier === 'wide' ? 'wide' : (tier === 'tall' || tier === 'phone') ? 'phone' : 'tablet';
     var sa = W.presets.safe[safeKey];
-    var sub = U.clamp(st.subtlety, 0, 1);
+    /* What the "일코 농도" slider used to set. Every value it offered was
+       either the same page slightly greyer or a page with the headline too
+       small to be the headline, so it was a control that could only make
+       the design worse; the one setting worth having is now the only
+       setting. */
+    var sub = 0.3;
 
     var env = {
       ctx: ctx, w: w, h: h, S: S, ar: h / w, tier: tier,
@@ -86,9 +91,10 @@
       content: TS.build(st),
       emphasis: 1 - sub,
       decoAlpha: U.lerp(1, 0.5, sub),
-      /* Literally the number of decorations drawn. Discretion changes how
-         loud they are, never how many — a control labelled "6개" that
-         quietly drew four is worse than no control. */
+      /* Literally the number of decorations asked for. The scatter may
+         still place fewer if the canvas cannot hold that many without
+         them touching — a count honoured by ruining the scatter is not
+         worth honouring. */
       decoBudget: Math.round(U.clamp(st.decoCount, 0, 24)),
       hasPhoto: W.photo.has(),
       safe: sa,

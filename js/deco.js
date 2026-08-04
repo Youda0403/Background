@@ -12,23 +12,66 @@
     return false;
   }
 
-  /* Poisson-ish rejection sampling: tries hard, gives up gracefully. */
-  function points(env, count, avoid, minDist, pad) {
+  /* Poisson-ish rejection sampling with a floor under the spacing.
+
+     It used to relax the minimum distance by 0.7 per pass over five
+     passes, on the principle that the count is a promise the UI makes.
+     By the last pass the floor was a quarter of the intended spacing, so
+     asking for twenty marks on a phone did not give twenty scattered
+     marks — it gave a stipple, several of them touching. A count that is
+     honoured by ruining the scatter is not worth honouring.
+
+     So the spacing never drops below 62% of what was asked, and the count
+     is capped first by what the canvas can actually hold: the free area
+     divided by the disc each mark needs, times a slack factor for random
+     rather than hexagonal packing. Both terms are in per-mille units, so
+     the ceiling rises with the canvas on its own — a desktop page takes
+     far more marks than a phone before it starts to crowd. */
+  function capacity(env, avoid, radii, minDist, sep, pad) {
+    var free = (env.w - pad * 2) * (env.h - pad * 2);
+    (avoid || []).forEach(function (b) { free -= Math.max(0, b.w) * Math.max(0, b.h); });
+    free = Math.max(0, free) / 3.2;          /* slack for random packing */
+    if (!radii) {
+      var disc = Math.PI * (minDist / 2) * (minDist / 2);
+      return Math.max(1, Math.floor(free / disc));
+    }
+    /* biggest first, so the ones that get dropped are the small ones the
+       eye would miss rather than the hero mark */
+    var used = 0, n = 0;
+    for (var i = 0; i < radii.length; i++) {
+      used += Math.PI * Math.pow(radii[i] * sep, 2);
+      if (used > free && n) break;
+      n++;
+    }
+    return Math.max(1, n);
+  }
+
+  function points(env, count, avoid, minDist, pad, radii, sep) {
     var rand = env.rand, w = env.w, h = env.h;
     var out = [];
     pad = pad == null ? env.u(24) : pad;
-    /* Relax the spacing in passes rather than returning fewer points than
-       asked for: the count is a promise the UI makes to the user. */
+    sep = sep || 0.85;
+
+    /* How far apart mark i and mark j have to be. With radii known this is
+       a property of the PAIR — one flat distance cannot serve a field
+       whose big marks are three times its small ones, which is how twenty
+       marks came out overlapping at half the sum of their radii. */
+    function need(i, j, relax) {
+      var d = radii ? (radii[i] + radii[j]) * sep : minDist;
+      return d * relax;
+    }
+
+    count = Math.min(count, capacity(env, avoid, radii, minDist, sep, pad));
     for (var pass = 0; pass < 5 && out.length < count; pass++) {
-      var dist = minDist * Math.pow(0.7, pass);
-      var tries = count * 40;
+      var relax = Math.max(0.62, Math.pow(0.85, pass));
+      var tries = count * 60;
       while (out.length < count && tries-- > 0) {
         var x = U.lerp(pad, w - pad, rand());
         var y = U.lerp(pad, h - pad, rand());
         if (pass < 4 && inAny(avoid, x, y, pad * 0.5)) continue;
         var ok = true;
         for (var i = 0; i < out.length; i++) {
-          if (Math.hypot(out[i][0] - x, out[i][1] - y) < dist) { ok = false; break; }
+          if (Math.hypot(out[i][0] - x, out[i][1] - y) < need(out.length, i, relax)) { ok = false; break; }
         }
         if (ok) out.push([x, y]);
       }
@@ -43,13 +86,28 @@
     var colors = opts.colors;
     var n = Math.max(0, Math.round(opts.count == null ? env.decoBudget : opts.count));
     if (!n) return;
-    var pts = points(env, n, opts.avoid || [], u(opts.minDist || 70), opts.pad);
-    var big = Math.max(1, Math.round(pts.length * (opts.bigRatio == null ? 0.18 : opts.bigRatio)));
+
+    /* The radii are drawn BEFORE the positions, because the spacing has to
+       know how big each mark is. It used to be one flat distance — 70
+       per-mille whatever was being drawn — while a mark's radius runs to
+       `rMax` and the big ones are multiplied by up to 3.1 on top. Twenty
+       marks placed 70 apart could each be 200 across, and the field closed
+       into a stipple however well the sampler behaved: measured, the
+       closest pair sat at 0.47 of the sum of their two radii. Now each
+       pair is kept apart in proportion to its own two radii. */
+    var bigRatio = opts.bigRatio == null ? 0.18 : opts.bigRatio;
+    var big = Math.max(1, Math.round(n * bigRatio));
+    var radii = [];
+    for (var q = 0; q < n; q++) {
+      radii.push(u(U.lerp(opts.rMin, opts.rMax, rand())) * (q < big ? U.range(rand, 1.9, 3.1) : 1));
+    }
+    var pts = points(env, n, opts.avoid || [],
+      u(opts.minDist || 70), opts.pad, radii, opts.sep);
 
     ctx.save();
     pts.forEach(function (p, i) {
       var isBig = i < big;
-      var r = u(U.lerp(opts.rMin, opts.rMax, rand())) * (isBig ? U.range(rand, 1.9, 3.1) : 1);
+      var r = radii[i];
       var kind = U.pick(rand, kinds);
       var color = U.pick(rand, colors);
       var fn = P.motifs[kind] || P.motifs.star;

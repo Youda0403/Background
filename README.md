@@ -86,10 +86,24 @@ splitting at the first space, so `Sunrise Duo` becomes **Sunrise** / **Duo**.
 overprint, bleed, vignette — has a `?` next to it that opens a short note in
 Korean explaining what it does. Nothing in the panel is unexplained.
 
-**Discretion.** The *Discretion* slider shrinks the headline, thins the motif
-scatter and drops decoration opacity in one move — from "loud and proud" to
-"nobody will know". Combined with the Grid or Zine layout it produces something
-that reads as a typographic experiment or an exhibition flyer from arm's length.
+**Controls that do nothing are not offered.** The decoration group only
+appears on the three layouts that actually scatter motifs; on the other
+three the sliders moved and the page did not change, which reads as a
+broken control rather than as one that does not apply. The *Discretion*
+slider is gone entirely — every value it offered was either the same page
+slightly greyer or a page with the headline too small to be the headline,
+so it was a control that could only make the design worse. The one setting
+worth having is now the only setting.
+
+**Decoration cannot pile up.** The scatter used to relax its minimum
+spacing by 30% per pass over five passes, on the principle that the count
+is a promise; by the last pass the floor was a quarter of the intended
+spacing, so twenty marks on a phone came out as a stipple with several of
+them touching. The spacing now never drops below 62% of what was asked,
+and the count is capped first by what the canvas can hold — free area
+divided by the disc each mark needs, times a slack factor for random
+rather than hexagonal packing. Both terms are in per-mille units, so the
+ceiling rises with the canvas on its own.
 
 **Photos that belong to the artwork.** Upload, drop or paste an image, then tone
 it into the palette:
@@ -147,13 +161,23 @@ which stays local). State also persists in `localStorage`.
 
 ## Palettes
 
-Star Milk · Green Wash · Sage Letter · Aura Heart · Dot Diary · Riso Blue ·
-Apple Silver · Jelly Tide · Cream Doodle · Soft Sheet · Ink & Blush ·
+Sandstone · Green Wash · Sage Letter · Aura Heart · Dot Diary · Riso Blue ·
+Apple Silver · Tide Pool · Olive Note · Soft Sheet · Ink & Blush ·
 Midnight Wish · Shampoo Blue · Crimson Letter · Terracotta · Lavender Haze ·
-Matcha · Peach Fizz · Butter Note · Inkwell · Charcoal
+Forest Room · Coral Set · Butter Note · Inkwell · Charcoal
 
 Colour only: `base`, `soft`, `inks`, the `duo` ramp photos are toned into,
 `text`, `accent`, and how much `grain` the stock carries.
+
+**No two palettes are the same palette.** Counting them is not the test —
+five of the twenty-one were a warm orange page and eight were a blue one,
+so a set that looked varied in the list came out as two families in use.
+Five have been retuned into territory nothing else occupied: a saturated
+coral page, a sea-green one, an olive one, a dark forest one, and a warm
+sand one. Dark pages went from one to five, and they are now a navy, a
+royal blue, a forest, a black and a warm coral rather than four shades of
+the same decision. A palette whose character changed that far is renamed,
+and the old id migrates.
 
 **No palette is one colour.** Eleven of them used to be: the accent was a
 deeper mix of the very hue the page was already made of, so Lavender Haze
@@ -442,7 +466,7 @@ W.layoutRegistry.push({
 `draw(env)` gets `ctx`, `w`, `h`, `u()`, `tier`, `nominalAr`, `pal`, `st`,
 `rand` (seeded), `content` (resolved text), `band` (the space left after the
 clock and dock), `micro` / `typeScale` (tiny canvases), `emphasis` /
-`decoAlpha` / `decoDensity` (the Discretion slider), and `drawPhoto(frame)`.
+`decoAlpha` / `decoBudget`, and `drawPhoto(frame)`.
 Build it out of `poster.*` — `margins`, `rail`, `block`, `headline`, `accents`,
 `tagRail` — and it is responsive, discreet and type-consistent for free.
 

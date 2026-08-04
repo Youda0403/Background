@@ -133,14 +133,21 @@
       rMin: 22, rMax: 62, outline: true, kinds: st.motifs, speckle: st.glitter
     });
 
-    /* ---- foot: caption seated above the rule, credits below it ---- */
+    /* ---- caption: at the foot on a tall page, beside the headline on a
+       wide one. A sleeve headline takes only the left half of a wide
+       canvas and the plate starts below it, which leaves the whole top
+       right of a 3:1 header empty — a third of the page in one unbroken
+       rectangle, which stops reading as air and starts reading as
+       something that failed to draw. ---- */
     var ruleY = h - m.bottom - mic * 1.7;
     if (c.caption && !env.micro) {
-      var capW = m.inner * (wide ? 0.5 : 0.72);
+      var capW = wide ? m.inner - hlBox.w - u(60) : m.inner * 0.72;
       var capH = PO.block(env, 0, 0, capW, [c.caption], {
         size: mic * 0.98, lead: 1.45, measure: true, font: st.bodyFont
       });
-      PO.block(env, m.left, ruleY - mic * 0.9 - capH, capW, [c.caption], {
+      var capX = wide ? m.left + hlBox.w + u(60) : m.left;
+      var capY = wide ? hl.y + hl.h - capH : ruleY - mic * 0.9 - capH;
+      PO.block(env, capX, capY, capW, [c.caption], {
         size: mic * 0.98, lead: 1.45, alpha: 0.85, font: st.bodyFont, upper: false
       });
     }
@@ -172,6 +179,7 @@
     id: 'zine',
     label: 'Zine',
     blurb: '복사기 감성 레코드 슬리브. 망점 + 바코드.',
+    deco: true,
     defaults: {
       titleFont: 'bricolage', scriptFont: 'parisienne', bodyFont: 'dmmono',
       headlineStyle: 'scriptSans',

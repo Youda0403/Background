@@ -121,6 +121,12 @@
       });
       wrap.appendChild(body);
       root.appendChild(wrap);
+
+      /* A whole section can be conditional, not just a field. Decoration
+         is drawn by three of the six layouts; on the others the sliders
+         moved and nothing happened, which reads as a broken control
+         rather than as one that does not apply. */
+      if (sec.when) updaters.push(function (st) { wrap.hidden = !sec.when(st); });
     });
 
     document.addEventListener('click', function () {

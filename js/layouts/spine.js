@@ -272,9 +272,17 @@
     /* ---------- the picture's region ---------- */
     var last0 = pick.lines.length - 1;
     var blockTop = titleBottom - last0 * pick.lineH - pick.capH;
+    /* A tall page gives the picture a BAND across the middle rather than
+       everything above the lockup. Running it to the top trim made it most
+       of the page — the wallpaper became a photograph with a caption. The
+       band still touches both side trims, so it reads as a stratum and not
+       as an inset rectangle, and paper closes the page above and below. */
+    var bandFoot = blockTop - g * 1.8;
+    var bandHead = m.top + mic * 2.4;
+    var bandH = U.clamp(bandFoot - bandHead, h * 0.18, h * 0.42);
     var region = wide
       ? { x: splitX, y: 0, w: w - splitX, h: h }
-      : { x: 0, y: 0, w: w, h: U.clamp(blockTop - g * 1.8, h * 0.24, h * 0.74) };
+      : { x: 0, y: bandFoot - bandH, w: w, h: bandH };
 
     ctx.save();
     ctx.beginPath();
@@ -290,10 +298,31 @@
       P.wash(ctx, region.x + region.w * 0.8, region.y + region.h * 0.72,
         Math.max(region.w, region.h) * 0.75, pal.soft[1] || pal.soft[0], 0.5 * st.washStrength);
     }
-    /* only enough veil for the rail that sits on it */
-    ctx.globalAlpha = U.clamp(0.1 + st.scrim * 0.28, 0.1, 0.34);
+    ctx.globalAlpha = U.clamp(0.06 + st.scrim * 0.2, 0.06, 0.26);
     ctx.fillStyle = deep;
     ctx.fillRect(region.x, region.y, region.w, region.h);
+    ctx.restore();
+
+    /* The region's own edges, in the accent. On a palette whose page and
+       whose photo ink are near neighbours — Charcoal is grey paper toned
+       into grey ink — the picture and the paper met with nothing between
+       them and the region simply could not be seen. A hairline is not
+       decoration here; it is what makes the page read as two fields. */
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(1.5, u(3.2));
+    ctx.beginPath();
+    if (wide) {
+      ctx.moveTo(region.x, 0);
+      ctx.lineTo(region.x, h);
+    } else {
+      ctx.moveTo(0, region.y);
+      ctx.lineTo(w, region.y);
+      ctx.moveTo(0, region.y + region.h);
+      ctx.lineTo(w, region.y + region.h);
+    }
+    ctx.stroke();
     ctx.restore();
 
     /* ---------- the block ---------- */
@@ -370,12 +399,11 @@
     }
 
     /* ---------- furniture ---------- */
-    /* The rail sits on whichever surface its tier gives it: on a tall page
-       the picture reaches the top trim, on a wide one the type column is
-       paper all the way up. */
-    PO.rail(env, m.top + mic * 1.0, [initials, null, 'pairtone'], wide
-      ? { m: colM, size: mic * 0.76, alpha: 0.55 }
-      : { m: m, size: mic * 0.76, alpha: 0.72, color: onField });
+    /* The rail is on paper on both tiers now that the picture no longer
+       reaches the top trim. It used to be drawn in the colour that reads
+       on the photograph, which on a pale stock is invisible ink. */
+    PO.rail(env, m.top + mic * 1.0, [initials, null, 'pairtone'],
+      { m: wide ? colM : m, size: mic * 0.76, alpha: 0.55 });
 
     ctx.save();
     ctx.globalAlpha = 0.95;
@@ -405,7 +433,7 @@
   W.layoutRegistry.push({
     id: 'spine',
     label: 'Spine',
-    blurb: '페어명을 폭에 꽉 맞춘 한 덩어리로 짜고, 사진은 위쪽(가로에선 오른쪽) 한 면을 통째로 씁니다.',
+    blurb: '문구를 폭에 꽉 맞춘 한 덩어리로, 사진은 가로 띠로. 제일 정돈된 쪽.',
     defaults: {
       titleFont: 'didone', scriptFont: 'delafield', bodyFont: 'spacegrotesk',
       headlineStyle: 'stack',
