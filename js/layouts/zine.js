@@ -35,8 +35,12 @@
 
     /* ---- headline, struck through like a rubber stamp ---- */
     var hlBox = { x: m.left, y: m.top + mic * 0.6, w: m.inner * (wide ? 0.52 : 0.94) };
-    /* a sleeve is mostly artwork: the title takes a quarter, no more */
-    var hlMaxH = (h - m.top - m.bottom) * (wide ? 0.4 : 0.26);
+    /* A sleeve is mostly artwork: the title takes a quarter, no more. On a
+       wide page the title has a column to itself, so it takes what that
+       column has to give — and with no caption underneath it, the column
+       has all of it. Holding the title to a quarter regardless left the
+       left half of a 3:1 header empty below it. */
+    var hlMaxH = (h - m.top - m.bottom) * (wide ? (c.caption ? 0.42 : 0.74) : 0.26);
     var hl = PO.headline(env, hlBox, { align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH });
 
     if (st.strike && hl.h) {
