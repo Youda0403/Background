@@ -33,11 +33,6 @@
        be resolved against the card, not against the palette's page */
     var accent = PO.accentOn(pal, card.paper);
 
-    /* ---- silhouette motifs floating on the field ---- */
-    PO.accents(env, { x: 0, y: env.band.top, w: w * (env.micro ? 1 : 0.56), h: env.band.bottom - env.band.top }, {
-      rMin: 26, rMax: 74, colors: [onField], outline: false, speckle: false
-    });
-
     if (env.micro) {
       /* a watch face gets the title alone, centred on the field */
       PO.headline(env, { x: m.left, y: env.band.top + (env.band.bottom - env.band.top) * 0.34, w: m.inner },
@@ -83,6 +78,23 @@
       y: env.band.top + (bandH - colH) * 0.42,
       w: colW, h: colH
     };
+
+    /* ---- silhouettes floating on the field ----
+       Scattered across the open half with the card as a keep-out zone.
+       They used to be placed on the PERIMETER of an invisible box two
+       thirds of the page wide, which is a ring the eye can see even
+       though the box cannot be: the marks lined up along the trim and
+       again down an empty vertical near the card's edge, and read as
+       something aligned to nothing. */
+    W.deco.scatter(env, {
+      kinds: st.motifs,
+      colors: [onField],
+      hero: accent,
+      avoid: [{ x: col.x - u(26), y: col.y - u(26), w: col.w + u(52), h: col.h + u(52) }],
+      rMin: 18, rMax: 46, bigRatio: 0.24,
+      alphaMin: 0.3, alphaMax: 0.62,
+      pad: u(70)
+    });
 
     ctx.save();
     ctx.globalAlpha = 0.96;

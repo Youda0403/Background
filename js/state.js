@@ -116,8 +116,8 @@
 
   /* Ids that changed between releases, so old share links still open. */
   var LAYOUT_ALIASES = {
-    paper: 'spine', editorial: 'spine', ladder: 'spine', band: 'spine',
-    riso: 'zine', sticker: 'lyric'
+    paper: 'portal', editorial: 'portal', ladder: 'portal', band: 'portal',
+    spine: 'portal', riso: 'zine', sticker: 'lyric'
   };
 
   /* Palettes that were retuned so far that keeping the old name would be
@@ -229,7 +229,7 @@
 
   function randomize(st) {
     var r = U.rng(Date.now() ^ (Math.random() * 1e9));
-    var layouts = Object.keys(W.layouts || { spine: 1 });
+    var layouts = Object.keys(W.layouts || { portal: 1 });
     var next = create();
     /* keep what the user wrote and how they framed their photo */
     ['presetId', 'orientation', 'customW', 'customH', 'pairName',

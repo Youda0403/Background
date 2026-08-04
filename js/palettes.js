@@ -31,14 +31,20 @@
     },
     {
       id: 'greenwash',
-      label: 'Green Wash',
-      base: '#f7fdf8',
-      soft: ['#b6ddb9', '#f2d3da', '#eaf7ee'],
-      inks: ['#8cc79a', '#6fae85', '#cfe6cd', '#a3d0ae'],
-      duo: ['#2f5a41', '#f2fbf3'],
-      text: '#4c6b56',
-      accent: '#c4566a',
-      grain: 0.04
+      label: 'Clay Room',
+      /* Green Wash and Tide Pool were both a pale green page — the same
+         decision twice again. The gap this set had was not another hue,
+         it was a LIGHTNESS: every page in it is either nearly white or
+         nearly black, and nothing sits in the middle. This one does. A
+         mid page is only workable desaturated, because chroma plus half
+         luminance is the one combination no accent can contrast with. */
+      base: '#c2ab97',
+      soft: ['#a8907c', '#d6c4b2', '#8f7663'],
+      inks: ['#3a2f26', '#1d3350', '#e8ddd0', '#7a6350'],
+      duo: ['#2e241c', '#f0e7dc'],
+      text: '#3a2f26',
+      accent: '#1d3350',
+      grain: 0.13
     },
     {
       id: 'sage',

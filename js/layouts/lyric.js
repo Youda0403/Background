@@ -58,6 +58,75 @@
     ctx.restore();
   }
 
+
+  /* The headline as a two-plane lockup rather than two stacked lines.
+
+     `PO.headline` sets both lines flush left in the same ink at the same
+     alignment, which on a collage reads as a caption that happened to
+     grow: two blocks of type agreeing about everything except size. Here
+     the script line is filled and the line under it is drawn as an
+     OUTLINE, indented, and raised until its capitals rise into the
+     script's descenders. Two planes that interlock, in the same vocabulary
+     as the hairline circle and the corner brackets — the layout already
+     draws outlines at that weight, so the second line belongs to the
+     picture rather than to the caption. */
+  function lockup(env, box, maxH, measureOnly) {
+    var ctx = env.ctx, u = env.u, st = env.st, pal = env.pal;
+    var txt = PO.headlineText(env);
+    var lines = (txt.lines || []).filter(Boolean);
+    if (!lines.length) return { h: 0 };
+
+    var one = lines[0];
+    var rest = lines.slice(1).join(' ');
+
+    var s1 = T.fill(ctx, one, st.scriptFont, box.w * 0.96, 0, {}, u(300));
+    T.setFont(ctx, st.scriptFont, s1, {});
+    var i1 = T.inkBox(ctx, one);
+
+    var s2 = 0, i2 = { asc: 0, desc: 0 };
+    if (rest) {
+      s2 = T.fill(ctx, rest, st.titleFont, box.w * 0.82, -0.01, { weight: 700 }, u(220));
+      T.setFont(ctx, st.titleFont, s2, { weight: 700 });
+      i2 = T.inkBox(ctx, rest);
+    }
+
+    /* the second line climbs into the first's descenders */
+    var overlap = rest ? Math.min(i1.desc * 0.72, i2.asc * 0.2) : 0;
+    var total = i1.asc + i1.desc + (rest ? i2.asc + i2.desc - overlap : 0);
+    if (total > maxH) {
+      var k = maxH / total;
+      s1 *= k; s2 *= k; overlap *= k;
+      T.setFont(ctx, st.scriptFont, s1, {});
+      i1 = T.inkBox(ctx, one);
+      if (rest) {
+        T.setFont(ctx, st.titleFont, s2, { weight: 700 });
+        i2 = T.inkBox(ctx, rest);
+      }
+      total = i1.asc + i1.desc + (rest ? i2.asc + i2.desc - overlap : 0);
+    }
+    if (measureOnly) return { h: total };
+
+    ctx.save();
+    ctx.fillStyle = pal.text;
+    ctx.globalAlpha = 0.95;
+    T.setFont(ctx, st.scriptFont, s1, {});
+    T.draw(ctx, one, box.x, box.y + i1.asc, { align: 'left', tracking: 0 });
+    ctx.restore();
+
+    if (rest) {
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      T.setFont(ctx, st.titleFont, s2, { weight: 700 });
+      T.draw(ctx, rest, box.x + box.w * 0.14,
+        box.y + i1.asc + i1.desc - overlap + i2.asc, {
+          align: 'left', tracking: s2 * -0.01,
+          stroke: pal.text, strokeWidth: Math.max(1.5, u(3.4)), fill: false
+        });
+      ctx.restore();
+    }
+    return { h: total };
+  }
+
   function draw(env) {
     var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
     var st = env.st, pal = env.pal, c = env.content;
@@ -90,9 +159,7 @@
     /* ---------- the headline ---------- */
     var headBox = { x: m.left, y: bandTop, w: wide ? m.inner * 0.44 : m.inner };
     var headMax = wide ? (bandBottom - bandTop) * 0.8 : (bandBottom - bandTop) * 0.4;
-    var head = PO.headline(env, headBox, {
-      style: st.headlineStyle, align: 'left', maxH: headMax, measure: true
-    });
+    var head = lockup(env, headBox, headMax, true);
 
     /* ---------- the photograph plate ---------- */
     var plate;
@@ -175,7 +242,7 @@
     brackets(ctx, plate, cell * 0.42, onPlate, 0.8 * env.decoAlpha, u(2));
 
     /* ---------- the headline, drawn over the geometry ---------- */
-    PO.headline(env, headBox, { style: st.headlineStyle, align: 'left', maxH: headMax });
+    lockup(env, headBox, headMax, false);
 
     if (env.micro) {
       PO.microFoot(env, { m: m });

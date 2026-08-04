@@ -130,24 +130,36 @@
     var ax = m.left + (m.inner - aw) / 2;
     var ay = top;
 
-    var deep = U.mix(pal.duo[0], pal.duo[1], 0.3);
-    ctx.save();
-    var r = archPath(ctx, ax, ay, aw, ah);
-    ctx.clip();
-    if (env.hasPhoto) {
-      env.drawPhoto({ x: ax, y: ay, w: aw, h: ah });
-    } else {
-      /* The mid point of the duotone ramp — what a photograph toned into
-         this palette actually averages to, so the empty arch is the same
-         weight on the page as a full one. Tinting the page colour instead
-         left the arch a shade off its own background on any palette whose
-         page is already deep. */
+    /* ---------- the arch's surface ----------
+       The field is painted whether or not there is a photograph, and the
+       photograph is then laid over it and its COLOUR taken back off. A
+       picture toned straight into the palette came out the same two inks
+       as everything around it and the arch stopped being a thing on the
+       page — the empty arch, with its washes, was the better looking of
+       the two. So the picture supplies the light and the field supplies
+       the hue: `color` composites the field's hue and chroma over the
+       photograph's luminance, which keeps the gradient and keeps the
+       photograph. */
+    function field() {
       ctx.fillStyle = U.mix(pal.duo[0], pal.duo[1], 0.55);
       ctx.fillRect(ax, ay, aw, ah);
       P.wash(ctx, ax + aw * 0.3, ay + ah * 0.28, Math.max(aw, ah) * 0.95,
         pal.soft[0], 0.62 * st.washStrength);
       P.wash(ctx, ax + aw * 0.82, ay + ah * 0.74, Math.max(aw, ah) * 0.8,
         pal.soft[1] || pal.soft[0], 0.5 * st.washStrength);
+    }
+
+    ctx.save();
+    var r = archPath(ctx, ax, ay, aw, ah);
+    ctx.clip();
+    field();
+    if (env.hasPhoto) {
+      env.drawPhoto({ x: ax, y: ay, w: aw, h: ah });
+      ctx.save();
+      ctx.globalCompositeOperation = 'color';
+      ctx.globalAlpha = 0.88;
+      field();
+      ctx.restore();
     }
     ctx.restore();
 
@@ -159,10 +171,23 @@
     trimRule(env, ay + r, accent, 0.55);
     trimRule(env, ay + ah, accent, 0.55);
 
-    /* ---------- the name, across the arch's shoulder ---------- */
-    var size = T.fill(ctx, word, st.titleFont, m.inner, -0.03, { weight: 500 }, u(300));
+    /* ---------- the name, across the arch's shoulder ----------
+       It has to reach the measure, because the measure is wider than the
+       arch and that overhang IS the design. A flat cap on the point size
+       meant a short name — four letters — stopped well inside the arch's
+       own width, so every letter landed on the picture, none of them
+       changed colour, and what came out was one big black word sitting on
+       a coloured shape. The cap is the arch's shoulder instead: the line
+       may grow until it fills the measure or until its capitals reach the
+       curve, whichever comes first. */
+    var size = T.fill(ctx, word, st.titleFont, m.inner, -0.03, { weight: 500 }, r * 1.35);
     T.setFont(ctx, st.titleFont, size, { weight: 500 });
     var ink = T.inkBox(ctx, word);
+    if (ink.asc > r * 0.92) {
+      size *= (r * 0.92) / ink.asc;
+      T.setFont(ctx, st.titleFont, size, { weight: 500 });
+      ink = T.inkBox(ctx, word);
+    }
     /* seated so the line sits on the shoulder — high enough that the
        curve of the arch is still reading behind it */
     var base = ay + r * 0.62 + (ink.asc - ink.desc) / 2;

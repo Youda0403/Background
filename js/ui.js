@@ -183,7 +183,7 @@
   /* ---------- control spec ---------- */
 
   var HELP = {
-    layout: '사진과 글자를 어디에 놓을지 정하는 「짜임새」예요. 일곱 개가 각각 완전히 다른 성격이고, 어울리는 폰트도 같이 정해져요.',
+    layout: '사진과 글자를 어디에 놓을지 정하는 「짜임새」예요. 여섯 개가 각각 완전히 다른 성격이고, 어울리는 폰트도 같이 정해져요.',
     palette: '색 조합이에요. 배경, 장식, 사진 보정 색이 전부 여기서 나와요. 글꼴은 건드리지 않으니 마음껏 바꿔봐도 돼요.',
     pairName: '가장 큰 글자로 들어갈 문장이에요. 엔터를 치면 그 자리에서 줄이 바뀌고, 비워두면 큰 글자 없이 짜여요.',
     headlineStyle: '메인 문구가 두 줄이 될 때 각 줄을 어떤 글씨로 짤지 정해요. 폰트는 아래에서 따로 고르면 돼요.',
@@ -358,9 +358,9 @@
         items: [
           /* Spine sets its own two lines and Zine fixes its style, so
              neither reads this — the chips moved and nothing happened. */
-          { t: 'chips', key: 'headlineStyle', label: '메인 문구 짜임', help: HELP.headlineStyle, options: idLabel(S.headlineStyles), when: function (s) { return !/spine|zine/.test(s.layout); } },
+          { t: 'chips', key: 'headlineStyle', label: '메인 문구 짜임', help: HELP.headlineStyle, options: idLabel(S.headlineStyles), when: function (s) { return !/portal|zine/.test(s.layout); } },
           { t: 'select', key: 'titleFont', label: '페어명 폰트', help: HELP.titleFontHelp, options: fontOptions },
-          { t: 'select', key: 'scriptFont', label: '첫 줄 폰트', help: HELP.firstLineFont, options: fontOptions, when: function (s) { return s.headlineStyle === 'scriptSans' && !/spine/.test(s.layout); } },
+          { t: 'select', key: 'scriptFont', label: '첫 줄 폰트', help: HELP.firstLineFont, options: fontOptions, when: function (s) { return s.headlineStyle === 'scriptSans' && !/portal/.test(s.layout); } },
           { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', help: HELP.bodyFontHelp, options: fontOptions },
           { t: 'note', text: '「(반듯)」이 붙은 필기체는 기울지 않고 똑바로 서 있어서 제목으로 쓰기 좋아요.' },
           {
@@ -407,8 +407,7 @@
             },
             update: function (s, node) { node._v.textContent = 'seed ' + s.seed; }
           },
-          { t: 'note', text: '아래는 지금 고른 레이아웃에만 있는 옵션이에요.', when: function (s) { return /zine|aura|spine/.test(s.layout); } },
-          { t: 'slider', key: 'scrim', label: '사진 위 그늘', min: 0, max: 0.8, step: 0.01, help: HELP.scrim, when: function (s) { return s.layout === 'spine'; } },
+          { t: 'note', text: '아래는 지금 고른 레이아웃에만 있는 옵션이에요.', when: function (s) { return /zine|aura/.test(s.layout); } },
           { t: 'toggle', key: 'strike', label: '제목에 줄 긋기', help: HELP.strike, when: function (s) { return s.layout === 'zine'; } },
           { t: 'chips', key: 'auraShape', label: '아우라 모양', options: [{ v: 'heart', l: '하트' }, { v: 'puff', l: '별' }, { v: 'blob', l: '블롭' }, { v: 'circle', l: '원' }, { v: 'clover', l: '클로버' }, { v: 'none', l: '없음' }], when: function (s) { return s.layout === 'aura'; } }
         ]
