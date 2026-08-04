@@ -222,15 +222,17 @@
          both contrasts and keeps its hue. */
       base: '#7a2418',
       soft: ['#a83a28', '#5c1810', '#c9503a'],
-      inks: ['#ffe6da', '#7fae9c', '#ffc98f', '#e0614a'],
+      inks: ['#ffe6da', '#5fbf9e', '#ffc98f', '#e0614a'],
       duo: ['#3d0f08', '#ffe6da'],
       text: '#ffeae2',
       /* A soft sea green rather than a bright mint. On a page this deep a
          fully saturated green is a highlighter stripe — but taken all the
-         way down to a tint it stops being a colour at all and the palette
-         is back to one hue. Keep the hue far from the page and the chroma
-         only a little above it. */
-      accent: '#7fae9c',
+         way down to a tint it stops being a colour at all: measured, a
+         muted #7fae9c reached 0.015% of Aura's pixels, which is nothing
+         the eye can find. This one is still soft and lands at 0.11%. The
+         floor is not a matter of taste; a colour that does not reach the
+         page is not in the palette. */
+      accent: '#5fbf9e',
       grain: 0.11
     },
     {

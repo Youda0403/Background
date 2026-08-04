@@ -151,9 +151,13 @@
     }
     ctx.restore();
 
-    /* ---------- the two rules that cross the page ---------- */
-    trimRule(env, ay + r, pal.text, 0.3);
-    trimRule(env, ay + ah, pal.text, 0.3);
+    /* ---------- the two rules that cross the page ----------
+       In the accent, not the page ink. They are the only elements here
+       with any length to them — the rest of the palette's colour lands on
+       two sparkles, a rule at the foot and a set numeral, which on a deep
+       page adds up to nothing the eye can find. */
+    trimRule(env, ay + r, accent, 0.55);
+    trimRule(env, ay + ah, accent, 0.55);
 
     /* ---------- the name, across the arch's shoulder ---------- */
     var size = T.fill(ctx, word, st.titleFont, m.inner, -0.03, { weight: 500 }, u(300));
@@ -196,11 +200,11 @@
         pal.text, 0.6, mic * 0.7, true);
       [[m.left * 0.52, capTop - mic * 1.3], [w - m.left * 0.52, capTop - mic * 1.3],
         [m.left * 0.52, capBot + mic * 1.3], [w - m.left * 0.52, capBot + mic * 1.3]]
-        .forEach(function (pt) { diamond(ctx, pt[0], pt[1], u(6), pal.text, 0.45); });
+        .forEach(function (pt) { diamond(ctx, pt[0], pt[1], u(7), accent, 0.75); });
     }
 
     ctx.save();
-    [[ax - u(34), ay + ah * 0.24, 17], [ax + aw + u(30), ay + ah * 0.66, 13]]
+    [[ax - u(34), ay + ah * 0.24, 22], [ax + aw + u(30), ay + ah * 0.66, 17]]
       .forEach(function (s, i) {
         ctx.globalAlpha = (i ? 0.5 : 0.62) * env.decoAlpha;
         ctx.fillStyle = accent;
