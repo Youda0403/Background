@@ -45,109 +45,45 @@
   var TITLE_WEIGHT = 500;
 
 
-  /* Three candidates for the paper above the picture band. A tall page
-     leaves it open by construction — the lockup is seated at the foot and
-     the band is capped so the picture cannot take the page — and open is
-     not the same as empty. */
-  function drawHead(env, variant, o) {
-    var ctx = env.ctx, w = env.w, u = env.u;
-    var st = env.st, pal = env.pal, c = env.content;
+  /* What fills the paper above the picture band. A tall page leaves it
+     open by construction — the lockup is seated at the foot and the band
+     is capped so the picture cannot take the page — and open is not the
+     same as empty.
+
+     The monogram, set large in outline: the same two letters the accent
+     square carries at the foot, at the other end of the page and at the
+     other end of the scale. Justified to the measure like every other
+     line, because one element short of an edge the rest of the page holds
+     does not read as a different element, it reads as the page being out
+     of true. */
+  function drawHead(env, o) {
+    var ctx = env.ctx, u = env.u;
+    var st = env.st, pal = env.pal;
     var m = o.m, band = o.bottom - o.top;
     if (band < u(60)) return;
 
-    if (variant === 'a') {
-      /* A — the monogram, set huge in outline and cropped by the band.
-         The same two letters the accent square carries, at the other end
-         of the page and at the other end of the scale. */
-      /* Seated inside the band, not cropped by it. Letting the picture's
-         edge cut the letters looked better but put the glyph's box over
-         the rail below, and a clip only hides that — the two are the same
-         two letters, so where they overlap they are illegible rather than
-         layered.
+    /* Seated inside the band, not cropped by it. Letting the picture's
+       edge cut the letters looked better but put the glyph's box over the
+       rail below, and a clip only hides that — the two are the same two
+       letters, so where they overlap they are illegible rather than
+       layered. */
+    var size = band * 1.15;
+    T.setFont(ctx, st.titleFont, size, { weight: 500 });
+    var ink = T.inkBox(ctx, o.initials);
+    if (ink.asc + ink.desc > band) size *= band / (ink.asc + ink.desc);
+    /* never wider than the measure at zero tracking */
+    size = T.fit(ctx, o.initials, st.titleFont, size, m.inner, 0, { weight: 500 });
+    T.setFont(ctx, st.titleFont, size, { weight: 500 });
+    ink = T.inkBox(ctx, o.initials);
+    var gaps = o.initials.length - 1;
+    var track = gaps > 0 ? (m.inner - T.measure(ctx, o.initials, 0)) / gaps : 0;
 
-         And JUSTIFIED to the measure, like every other line on the page.
-         Fitted to a fraction of the measure instead, it stopped wherever
-         its own advance widths happened to end — 945 of 1092 on a phone —
-         while the title block, the rails and the foot cells all reached
-         the right margin. One element short of an edge everything else
-         holds does not read as a different element; it reads as the page
-         being out of true. */
-      var size = band * 1.15;
-      T.setFont(ctx, st.titleFont, size, { weight: 500 });
-      var ink = T.inkBox(ctx, o.initials);
-      if (ink.asc + ink.desc > band) {
-        size *= band / (ink.asc + ink.desc);
-      }
-      /* never wider than the measure at zero tracking */
-      size = T.fit(ctx, o.initials, st.titleFont, size, m.inner, 0, { weight: 500 });
-      T.setFont(ctx, st.titleFont, size, { weight: 500 });
-      ink = T.inkBox(ctx, o.initials);
-      var gaps = o.initials.length - 1;
-      var track = gaps > 0 ? (m.inner - T.measure(ctx, o.initials, 0)) / gaps : 0;
-      ctx.save();
-      ctx.globalAlpha = 0.5;
-      T.draw(ctx, o.initials, m.left, o.bottom - ink.desc, {
-        align: 'left', tracking: Math.max(0, track),
-        stroke: pal.text, strokeWidth: Math.max(1, u(2.2)), fill: false
-      });
-      ctx.restore();
-      return;
-    }
-
-    if (variant === 'b') {
-      /* B — a specification table. The same numbered grammar as the foot
-         cells, turned on its side: label left, value right, a hairline
-         under each row. */
-      var rows = [
-        ['pair', (st.showNames && c.names) ? c.names : o.initials],
-        ['date', c.footnote || ''],
-        ['tags', st.showTags && c.tags.length ? c.tags.join(' · ') : '']
-      ].filter(function (r) { return r[1]; });
-      if (!rows.length) return;
-      var rh = Math.min(band / rows.length, o.mic * 2.6);
-      var y0 = o.bottom - rh * rows.length;
-      rows.forEach(function (r, i) {
-        var y = y0 + rh * (i + 1);
-        ctx.save();
-        ctx.globalAlpha = 0.22;
-        ctx.strokeStyle = pal.text;
-        ctx.lineWidth = Math.max(1, u(1.2));
-        ctx.beginPath();
-        ctx.moveTo(m.left, y);
-        ctx.lineTo(w - m.right, y);
-        ctx.stroke();
-        ctx.restore();
-
-        ctx.save();
-        ctx.fillStyle = o.accent;
-        ctx.globalAlpha = 0.95;
-        T.setFont(ctx, 'dmmono', o.mic * 0.66, {});
-        T.draw(ctx, '0' + (i + 1), m.left, y - rh * 0.32, { align: 'left', tracking: o.mic * 0.08 });
-        ctx.restore();
-
-        ctx.save();
-        ctx.fillStyle = pal.text;
-        ctx.globalAlpha = 0.55;
-        T.setFont(ctx, st.bodyFont, o.mic * 0.72, { weight: 500 });
-        T.draw(ctx, r[0].toUpperCase(), m.left + o.mic * 2.6, y - rh * 0.32,
-          { align: 'left', tracking: o.mic * 0.14 });
-        ctx.globalAlpha = 0.85;
-        T.draw(ctx, String(r[1]).toUpperCase(), w - m.right, y - rh * 0.32,
-          { align: 'right', tracking: o.mic * 0.1 });
-        ctx.restore();
-      });
-      return;
-    }
-
-    /* C — a third stratum. The head becomes a flat field of its own, so
-       the page is colour / picture / paper rather than paper with a
-       picture in it. */
-    var fieldTop = 0, fieldBot = o.region.y;
     ctx.save();
-    ctx.fillStyle = U.mix(o.accent, pal.base, 0.55);
-    ctx.fillRect(0, fieldTop, w, fieldBot - fieldTop);
-    ctx.globalAlpha = 0.5 * st.washStrength;
-    P.wash(ctx, w * 0.72, fieldBot * 0.4, env.S * 0.7, pal.soft[0], 0.6);
+    ctx.globalAlpha = 0.5;
+    T.draw(ctx, o.initials, m.left, o.bottom - ink.desc, {
+      align: 'left', tracking: Math.max(0, track),
+      stroke: pal.text, strokeWidth: Math.max(1, u(2.2)), fill: false
+    });
     ctx.restore();
   }
 
@@ -422,9 +358,8 @@
          monogram and the rail's small one are the same two letters, and
          they were landing on each other */
       var headBot = region.y - mic * 2.0;
-      drawHead(env, W.spineHead || 'a', {
-        m: m, g: g, mic: mic, top: headTop, bottom: headBot,
-        accent: accent, initials: initials, region: region
+      drawHead(env, {
+        m: m, top: headTop, bottom: headBot, initials: initials
       });
     }
 
