@@ -61,12 +61,29 @@
        own — printed over the plate it vanished on any palette whose text
        colour matched the ink the photo was screened in */
     var dateW = (c.footnote && !env.micro) ? mic * 2.2 : 0;
-    var plateLeft = m.left + railW;
-    var top = hl.bottom + u(46);
     var footH = mic * 6.4;
-    var plate = { x: plateLeft, y: top, w: w - m.right - dateW - plateLeft, h: h - m.bottom - footH - top };
-    /* a sleeve plate is never taller than a 4:5 portrait */
-    if (plate.h > plate.w * 1.25) plate.h = plate.w * 1.25;
+    var plate;
+    if (wide) {
+      /* Two columns. Stacking the plate under the headline is right on a
+         page that is taller than it is wide; on a 3:1 header the headline
+         takes half the measure and everything to the right of it is empty
+         — a third of the page in one unbroken rectangle, which stops
+         reading as air and starts reading as something that failed to
+         draw. Putting the words in a column of their own leaves no hole to
+         fill, whether or not there is a caption to fill it with. */
+      var px = m.left + hlBox.w + u(60);
+      plate = {
+        x: px, y: m.top + mic * 0.6,
+        w: w - m.right - dateW - px,
+        h: h - m.bottom - footH - (m.top + mic * 0.6)
+      };
+    } else {
+      var plateLeft = m.left + railW;
+      var top = hl.bottom + u(46);
+      plate = { x: plateLeft, y: top, w: w - m.right - dateW - plateLeft, h: h - m.bottom - footH - top };
+      /* a sleeve plate is never taller than a 4:5 portrait */
+      if (plate.h > plate.w * 1.25) plate.h = plate.w * 1.25;
+    }
 
     /* the rail runs the plate's full height: barcode above, digits below,
        so the left edge is furniture rather than a gutter */
@@ -141,12 +158,12 @@
        something that failed to draw. ---- */
     var ruleY = h - m.bottom - mic * 1.7;
     if (c.caption && !env.micro) {
-      var capW = wide ? m.inner - hlBox.w - u(60) : m.inner * 0.72;
+      var capW = wide ? hlBox.w : m.inner * 0.72;
       var capH = PO.block(env, 0, 0, capW, [c.caption], {
         size: mic * 0.98, lead: 1.45, measure: true, font: st.bodyFont
       });
-      var capX = wide ? m.left + hlBox.w + u(60) : m.left;
-      var capY = wide ? hl.y + hl.h - capH : ruleY - mic * 0.9 - capH;
+      var capX = m.left;
+      var capY = wide ? hl.bottom + u(50) : ruleY - mic * 0.9 - capH;
       PO.block(env, capX, capY, capW, [c.caption], {
         size: mic * 0.98, lead: 1.45, alpha: 0.85, font: st.bodyFont, upper: false
       });
