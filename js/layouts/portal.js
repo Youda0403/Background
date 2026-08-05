@@ -21,11 +21,12 @@
    reads on the toned photograph. One line of type, two materials. There
    is no seam because there is no second element.
 
-   The rest is the boards' furniture: rules that run to both trims broken
-   by a diamond at each end, tracked capitals set vertically down the
-   margins outside the measure, and a few sparkles. All of it is drawn on
-   the page rather than in the picture, so a busy photograph never has to
-   carry small text.
+   The rest is the boards' furniture: tracked capitals set vertically down
+   the margins outside the measure, diamonds at their ends, and a page tab
+   at the foot. All of it is drawn on the page rather than in the picture,
+   so a busy photograph never has to carry small text — and none of it
+   crosses the page, because a hairline running the full width behind a
+   display line is the one thing that made this composition look untidy.
 
    With no photograph the arch fills with the palette's own duotone field
    and its washes — the same substitution every other layout makes, so the
@@ -60,22 +61,6 @@
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-  }
-
-  /* A rule to both trims, stopped by a diamond at each end. */
-  function trimRule(env, y, color, alpha) {
-    var ctx = env.ctx, u = env.u;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(1, u(1.4));
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(env.w, y);
-    ctx.stroke();
-    ctx.restore();
-    diamond(ctx, u(58), y, u(7), color, Math.min(1, alpha + 0.25));
-    diamond(ctx, env.w - u(58), y, u(7), color, Math.min(1, alpha + 0.25));
   }
 
   /* Capitals set one per step down a margin — the boards' side labels.
@@ -163,14 +148,6 @@
     }
     ctx.restore();
 
-    /* ---------- the two rules that cross the page ----------
-       In the accent, not the page ink. They are the only elements here
-       with any length to them — the rest of the palette's colour lands on
-       two sparkles, a rule at the foot and a set numeral, which on a deep
-       page adds up to nothing the eye can find. */
-    trimRule(env, ay + r, accent, 0.55);
-    trimRule(env, ay + ah, accent, 0.55);
-
     /* ---------- the name, across the arch's shoulder ----------
        It has to reach the measure, because the measure is wider than the
        arch and that overhang IS the design. A flat cap on the point size
@@ -252,15 +229,26 @@
     ctx.stroke();
     ctx.restore();
 
+    /* The set numeral as a solid tab hung on the foot rule.
+       With the two trim rules gone the palette's colour had nowhere left
+       to land but a few hairlines and two sparkles, and on a deep page
+       that adds up to nothing the eye can find. A small filled block is
+       worth more colour than a rule the width of the page, and it does
+       not cross anything. */
     ctx.save();
+    T.setFont(ctx, 'dmmono', mic * 0.7, {});
+    var tabW = T.measure(ctx, '01', mic * 0.09) + mic * 1.0;
+    var tabH = mic * 1.5;
     ctx.fillStyle = accent;
     ctx.globalAlpha = 0.95;
-    T.setFont(ctx, 'dmmono', mic * 0.66, {});
-    T.draw(ctx, '01', m.left, footTop + mic * 1.3, { align: 'left', tracking: mic * 0.08 });
+    ctx.fillRect(m.left, footTop, tabW, tabH);
+    ctx.fillStyle = U.onColor(accent);
+    T.draw(ctx, '01', m.left + tabW / 2, footTop + tabH * 0.68,
+      { align: 'center', tracking: mic * 0.09 });
     ctx.restore();
 
     if (c.caption) {
-      PO.block(env, m.left, footTop + mic * 1.8, m.inner * (wide ? 0.46 : 0.66), [c.caption], {
+      PO.block(env, m.left, footTop + mic * 2.0, m.inner * (wide ? 0.46 : 0.66), [c.caption], {
         size: mic * 0.78, lead: 1.55, upper: false, alpha: 0.78, font: st.bodyFont
       });
     }
