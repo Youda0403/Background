@@ -113,28 +113,36 @@
       base - size * 0.24, size, ink, dotAlpha);
   }
 
-  /* A paperclip, drawn as the two strokes of wire it is: a long U with a
-     shorter inverted U inside it. Small enough that only the silhouette
-     has to be right. */
+  /* A paperclip: ONE piece of wire, which is what the first attempt got
+     wrong. It was drawn as two separate strokes — a long U and a short
+     inverted U inside it — and two strokes read as a bracket and a staple
+     sitting on top of each other, not as a clip.
+
+     A gem clip is a single path: a free end near the top left, down the
+     outside, round the bottom, up the outside, over the top on a wider
+     turn that brings the wire back INSIDE, then down the inside to a
+     second free end short of the bottom. The two turns having different
+     radii is the whole silhouette. */
   function paperclip(ctx, cx, cy, w, hh, color, alpha, lw) {
-    var ro = w / 2, ri = ro * 0.46;
-    var yB = cy + hh / 2 - ro, yT = cy - hh / 2 + ri;
+    var ro = w / 2;              /* the outer legs */
+    var ri = ro * 0.34;          /* the inner leg */
+    var yB = cy + hh / 2 - ro;   /* centre of the bottom turn */
+    var rt = (ro + ri) / 2;      /* the top turn spans outer to inner */
+    var xt = (ro - ri) / 2;
+    var yT = cy - hh / 2 + rt;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = color;
     ctx.lineWidth = lw;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(cx - ro, cy - hh / 2);
+    ctx.moveTo(cx - ro, cy - hh / 2 + ro * 0.55);
     ctx.lineTo(cx - ro, yB);
-    ctx.arc(cx, yB, ro, Math.PI, 0, false);
-    ctx.lineTo(cx + ro, cy - hh / 2 + ro * 0.5);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx + ri, cy + hh / 2 - ro * 1.3);
-    ctx.lineTo(cx + ri, yT);
-    ctx.arc(cx, yT, ri, 0, Math.PI, true);
-    ctx.lineTo(cx - ri, cy + hh / 2 - ro * 0.5);
+    ctx.arc(cx, yB, ro, Math.PI, 0, true);          /* under the bottom */
+    ctx.lineTo(cx + ro, yT);
+    ctx.arc(cx + xt, yT, rt, 0, Math.PI, true);     /* over the top */
+    ctx.lineTo(cx - ri, yB + ro * 0.35);
     ctx.stroke();
     ctx.restore();
   }
@@ -188,16 +196,37 @@
       barcode(ctx, -w / 2 + pad, hh / 2 - pad * 1.4 - hh * 0.15,
         w - pad * 2, hh * 0.15, opts.bar, card.ink, 0.5);
     }
+    /* A ticket: a perforation with a stub beyond it, carrying the one
+       piece of colour on this side of the page. The sheet at the foot
+       used to be the sheet at the head with a line fewer, which is two of
+       the same object in one picture. */
+    if (opts.perf) {
+      var px = -w / 2 + w * opts.perf;
+      ctx.save();
+      ctx.strokeStyle = card.sub;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = Math.max(1, u(1.8));
+      ctx.setLineDash([u(6), u(5)]);
+      ctx.beginPath();
+      ctx.moveTo(px, -hh / 2 + hh * 0.08);
+      ctx.lineTo(px, hh / 2 - hh * 0.08);
+      ctx.stroke();
+      ctx.restore();
+      if (opts.tab) {
+        var tw = w * 0.14, th = hh * 0.42;
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = opts.tab;
+        ctx.fillRect((px + w / 2) / 2 - tw / 2, -th / 2, tw, th);
+        ctx.restore();
+      }
+    }
     /* clipped to the sheet's top edge — inside the same transform, so it
        stays on the paper whatever angle the paper is at */
-    /* the clip goes over the sheet's top edge, folded end uppermost, which
-       is how one actually sits on a pile */
+    /* the clip straddles the sheet's top edge, as one does on a pile */
     if (opts.clip) {
-      ctx.save();
-      ctx.translate(w * 0.28, -hh / 2 + w * 0.02);
-      ctx.scale(1, -1);
-      paperclip(ctx, 0, 0, w * 0.105, w * 0.3, card.ink, 0.7, Math.max(2, u(4.4)));
-      ctx.restore();
+      paperclip(ctx, w * 0.28, -hh / 2 + w * 0.05, w * 0.12, w * 0.32,
+        card.ink, 0.72, Math.max(2, u(4.4)));
     }
     ctx.restore();
   }
@@ -526,7 +555,8 @@
       { x: 0.34, y: 0.13, w: 0.56, h: 0.34, rot: -0.11, lines: [0.72, 0.46, 0.6] },
       { x: 0.60, y: 0.35, w: 0.70, h: 0.92, rot: 0.07, torn: true, clip: true,
         lines: [0.68, 0.5, 0.74], bar: bars.slice(0, 21) },
-      { x: 0.42, y: 0.83, w: 0.70, h: 0.30, rot: -0.05, lines: [0.64, 0.42] }
+      { x: 0.42, y: 0.83, w: 0.76, h: 0.32, rot: -0.05, lines: [0.58, 0.36],
+        perf: 0.72, tab: accent }
     ] : [];
     papers.forEach(function (pp) {
       pp.cx = fieldX + fieldW * pp.x;
@@ -576,7 +606,8 @@
 
     papers.forEach(function (pp) {
       paperSlip(env, pp.cx, pp.cy, pp.pw, pp.ph, pp.rot, card, {
-        torn: pp.torn, clip: pp.clip, lines: pp.lines, bar: pp.bar, tooth: tooth * 0.8
+        torn: pp.torn, clip: pp.clip, lines: pp.lines, bar: pp.bar,
+        perf: pp.perf, tab: pp.tab, tooth: tooth * 0.8
       });
     });
 

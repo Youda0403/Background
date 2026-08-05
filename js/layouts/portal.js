@@ -65,8 +65,13 @@
 
   /* Capitals set one per step down a margin — the boards' side labels.
      They live outside the measure, so they can never meet the display
-     line however long the name is. */
-  function sideCaps(env, text, x, yTop, yBot, color, alpha, size, up) {
+     line however long the name is.
+
+     Both margins read downwards. The right one used to run bottom to top,
+     which is the convention for type rotated on its side; these letters
+     are upright, and a column of upright capitals read from the bottom is
+     a column nobody reads. */
+  function sideCaps(env, text, x, yTop, yBot, color, alpha, size) {
     var ctx = env.ctx;
     var chars = String(text).toUpperCase().replace(/\s+/g, ' ').split('');
     if (!chars.length) return;
@@ -74,10 +79,9 @@
     ctx.save();
     ctx.fillStyle = color;
     ctx.globalAlpha = alpha;
-    T.setFont(ctx, 'dmmono', size, {});
+    T.setFont(ctx, 'dmmono', size, { weight: 500 });
     chars.forEach(function (ch, i) {
-      var y = up ? yBot - step * i : yTop + step * i;
-      T.draw(ctx, ch, x, y, { align: 'center', tracking: 0 });
+      T.draw(ctx, ch, x, yTop + step * i, { align: 'center', tracking: 0 });
     });
     ctx.restore();
   }
@@ -193,27 +197,48 @@
       return;
     }
 
-    /* ---------- the margins ---------- */
-    var capTop = ay + r + mic * 2.2;
-    var capBot = ay + ah - mic * 1.6;
-    if (capBot - capTop > mic * 4) {
-      sideCaps(env, namesLine, m.left * 0.52, capTop, capBot, pal.text, 0.6, mic * 0.7);
-      sideCaps(env, c.footnote || 'pairtone', w - m.left * 0.52, capTop, capBot,
-        pal.text, 0.6, mic * 0.7, true);
-      [[m.left * 0.52, capTop - mic * 1.3], [w - m.left * 0.52, capTop - mic * 1.3],
-        [m.left * 0.52, capBot + mic * 1.3], [w - m.left * 0.52, capBot + mic * 1.3]]
-        .forEach(function (pt) { diamond(ctx, pt[0], pt[1], u(7), accent, 0.75); });
-    }
+    /* ---------- the margins ----------
+       They start under the display line rather than under the arch's
+       shoulder. The shoulder is 62% of the way down a wide arch, which on
+       a square canvas left the columns a couple of hundred pixels to live
+       in — and the margins are outside the measure, so nothing up there
+       can reach them anyway. */
+    var capTop = base + mic * 1.6;
+    var capBot = ay + ah - mic * 1.2;
+    if (capBot - capTop > mic * 5) {
+      /* One size for both margins. They share a span but not a length, so
+         sizing each column to its own step made the shorter string
+         visibly larger than the other and the page stopped being
+         symmetrical — which is the whole point of setting them in pairs.
+         The size is set by the denser of the two.
 
-    ctx.save();
-    [[ax - u(34), ay + ah * 0.24, 22], [ax + aw + u(30), ay + ah * 0.66, 17]]
-      .forEach(function (s, i) {
-        ctx.globalAlpha = (i ? 0.5 : 0.62) * env.decoAlpha;
-        ctx.fillStyle = accent;
-        P.sparkle(ctx, s[0], s[1], u(s[2]), 0.12);
-        ctx.fill();
-      });
-    ctx.restore();
+         A string too long for the span steps down to a shorter form of
+         ITSELF — the names to their initials, a footnote to its last word
+         — rather than being cut mid-word, which is how "AKI × REN" came
+         out as "AKI × R". */
+      var minCap = mic * 0.72;
+      var maxN = Math.floor((capBot - capTop) / (minCap * 1.15)) + 1;
+      function shortest(alts) {
+        for (var i = 0; i < alts.length; i++) {
+          var s = String(alts[i] || '').trim();
+          if (s && s.length <= maxN) return s;
+        }
+        return String(alts[0] || '').slice(0, maxN);
+      }
+      var foot = c.footnote || 'pairtone';
+      var capL = shortest([namesLine, initials, initials.replace(/\s+/g, '')]);
+      var capR = shortest([foot, foot.replace(/\s+/g, ''),
+        foot.split(/\s+/).pop(), 'pairtone']);
+      var capN = Math.max(capL.length, capR.length, 2);
+      var capSize = Math.max(minCap,
+        Math.min(mic * 1.35, m.left * 0.62, (capBot - capTop) / (capN - 1) * 0.82));
+
+      sideCaps(env, capL, m.left * 0.5, capTop, capBot, pal.text, 0.85, capSize);
+      sideCaps(env, capR, w - m.left * 0.5, capTop, capBot, pal.text, 0.85, capSize);
+      [[m.left * 0.5, capTop - capSize * 1.6], [w - m.left * 0.5, capTop - capSize * 1.6],
+        [m.left * 0.5, capBot + capSize * 1.6], [w - m.left * 0.5, capBot + capSize * 1.6]]
+        .forEach(function (pt) { diamond(ctx, pt[0], pt[1], u(8), accent, 0.85); });
+    }
 
     /* ---------- head and foot ---------- */
     PO.rail(env, m.top + mic * 1.1, [namesLine, null, 'pairtone'],
