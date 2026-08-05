@@ -113,37 +113,91 @@
       base - size * 0.24, size, ink, dotAlpha);
   }
 
-  /* The rubber stamp on the open half of the page.
+  /* A paperclip, drawn as the two strokes of wire it is: a long U with a
+     shorter inverted U inside it. Small enough that only the silhouette
+     has to be right. */
+  function paperclip(ctx, cx, cy, w, hh, color, alpha, lw) {
+    var ro = w / 2, ri = ro * 0.46;
+    var yB = cy + hh / 2 - ro, yT = cy - hh / 2 + ri;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - ro, cy - hh / 2);
+    ctx.lineTo(cx - ro, yB);
+    ctx.arc(cx, yB, ro, Math.PI, 0, false);
+    ctx.lineTo(cx + ro, cy - hh / 2 + ro * 0.5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + ri, cy + hh / 2 - ro * 1.3);
+    ctx.lineTo(cx + ri, yT);
+    ctx.arc(cx, yT, ri, 0, Math.PI, true);
+    ctx.lineTo(cx - ri, cy + hh / 2 - ro * 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
 
-     The field beside the ticket used to be held by scattered motifs, and
-     with those turned off it went flat — on a 3:1 header, more than a
-     third of the page was one unbroken empty rectangle. Sparkles were
-     never the right answer to that anyway: the receipt has its own
-     grammar and a stamp belongs to it, so the open side gets one big
-     quiet mark instead of a dozen small loud ones. */
-  function stamp(env, cx, cy, r, color, text, sub, rot) {
+  /* The other paper on the desk.
+
+     The open half beside the ticket has to hold its side of the page, and
+     a single centred mark could not: a rubber stamp read as a novelty and
+     scattered sparkles read as litter. What balances a piece of paper is
+     more paper. These are slips seen from across the desk — the ruled
+     lines are lines, not text, because a second block of readable words
+     over there would compete with the ticket for the eye. */
+  function paperSlip(env, cx, cy, w, hh, rot, card, opts) {
     var ctx = env.ctx, u = env.u;
+    opts = opts || {};
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(rot);
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = 0.48 * env.decoAlpha;
-    ctx.lineWidth = Math.max(1.5, u(3.6));
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.lineWidth = Math.max(1, u(1.6));
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.87, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.62 * env.decoAlpha;
-    var s = T.fit(ctx, text, 'dmmono', r * 0.44, r * 1.3, 0.12, { weight: 500 });
-    T.draw(ctx, text, 0, s * 0.34, { align: 'center', tracking: s * 0.12 });
-    if (sub) {
-      var s2 = T.fit(ctx, sub, 'dmmono', r * 0.17, r * 1.24, 0.2, {});
-      ctx.globalAlpha = 0.5 * env.decoAlpha;
-      T.draw(ctx, sub, 0, r * 0.55, { align: 'center', tracking: s2 * 0.2 });
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur = u(20);
+    ctx.shadowOffsetY = u(7);
+    /* opaque: at 93% the sheet under this one showed through where they
+       overlapped, and two papers you can see through each other are not a
+       pile, they are a double exposure */
+    ctx.fillStyle = card.paper;
+    if (opts.torn) slipPath(ctx, -w / 2, -hh / 2, w, hh, opts.tooth || u(8));
+    else { ctx.beginPath(); ctx.rect(-w / 2, -hh / 2, w, hh); }
+    ctx.fill();
+    ctx.restore();
+
+    var pad = w * 0.11;
+    var top = -hh / 2 + pad * 1.5, bot = hh / 2 - pad * 1.5;
+    if (opts.bar) bot -= hh * 0.26;
+    var lines = opts.lines || [0.7, 0.5];
+    var step = (bot - top) / Math.max(1, lines.length - (lines.length > 1 ? 1 : 0));
+    ctx.save();
+    ctx.strokeStyle = card.sub;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = Math.max(1, u(2.4));
+    lines.forEach(function (fr, i) {
+      var yy = lines.length > 1 ? top + step * i : (top + bot) / 2;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2 + pad, yy);
+      ctx.lineTo(-w / 2 + pad + (w - pad * 2) * fr, yy);
+      ctx.stroke();
+    });
+    ctx.restore();
+    if (opts.bar) {
+      barcode(ctx, -w / 2 + pad, hh / 2 - pad * 1.4 - hh * 0.15,
+        w - pad * 2, hh * 0.15, opts.bar, card.ink, 0.5);
+    }
+    /* clipped to the sheet's top edge — inside the same transform, so it
+       stays on the paper whatever angle the paper is at */
+    /* the clip goes over the sheet's top edge, folded end uppermost, which
+       is how one actually sits on a pile */
+    if (opts.clip) {
+      ctx.save();
+      ctx.translate(w * 0.28, -hh / 2 + w * 0.02);
+      ctx.scale(1, -1);
+      paperclip(ctx, 0, 0, w * 0.105, w * 0.3, card.ink, 0.7, Math.max(2, u(4.4)));
+      ctx.restore();
     }
     ctx.restore();
   }
@@ -449,29 +503,37 @@
       w: colW, h: colH
     };
 
-    /* ---- the open half: a stamp, and the line you tear along ----
-       Two marks, both of them the ticket's own grammar rather than
-       decoration borrowed from elsewhere. The cut line does the work no
-       single centred mark can on an extreme canvas: it crosses the whole
-       open field, so a 3:1 header cannot leave one unbroken empty
-       rectangle beside the slip however small the slip has become. */
+    /* ---- the open half: the rest of the desk ----
+       The ticket sits against the right margin, so the left half has to
+       carry its own weight or the page tips. It is held by two more slips
+       of the same paper and a card under a clip, laid out at fixed
+       fractions of the open field rather than scattered — the eye reads
+       three pieces of paper at three angles as a desk, and the same three
+       at random as a mess. The tear line crosses the whole field between
+       them, which is also what stops a 3:1 header leaving one unbroken
+       empty rectangle beside the slip. */
     var fieldX = m.left, fieldW = col.x - u(34) - m.left;
-    var cutY = col.y + col.h * 0.62;
+    var fieldTop = slotTop, fieldH = (railBot - mic * 2.2) - slotTop;
+    /* below the pile, not under it — at 0.60 the clipped sheet covered the
+       line and left the words "cut here" sitting on their own */
+    var cutY = fieldTop + fieldH * 0.67;
     var hasCut = fieldW > u(220);
-    var stampBot = (hasCut ? cutY - mic * 1.8 : col.y + col.h);
-    var sideR = Math.min(fieldW * 0.3, (stampBot - slotTop) * 0.42, u(190));
-    /* On a canvas three times as tall as it is wide the open side is a
-       gutter, not a field: the stamp shrinks to a token and the whole span
-       above the ticket stays empty. There it goes over the ticket instead,
-       where the room actually is. */
-    var topGap = col.y - slotTop;
-    var topR = Math.min(m.inner * 0.26, topGap * 0.42, u(190));
-    var stampAbove = topR > sideR * 1.3;
-    var stampR = stampAbove ? topR : sideR;
-    var stampC = stampAbove
-      ? { x: m.left + m.inner / 2, y: slotTop + topGap * 0.5 }
-      : { x: fieldX + fieldW * 0.5, y: (slotTop + stampBot) / 2 };
-    var hasStamp = stampR > u(58) && (stampAbove || fieldW > u(240));
+
+    /* one module for all of it: the ticket's own width, shrunk if the open
+       field is too small to take the papers at full size */
+    var ps = Math.min(1, fieldW / (colW * 0.86), fieldH / (colW * 1.7));
+    var papers = ps > 0.52 ? [
+      { x: 0.34, y: 0.13, w: 0.56, h: 0.34, rot: -0.11, lines: [0.72, 0.46, 0.6] },
+      { x: 0.60, y: 0.35, w: 0.70, h: 0.92, rot: 0.07, torn: true, clip: true,
+        lines: [0.68, 0.5, 0.74], bar: bars.slice(0, 21) },
+      { x: 0.42, y: 0.83, w: 0.70, h: 0.30, rot: -0.05, lines: [0.64, 0.42] }
+    ] : [];
+    papers.forEach(function (pp) {
+      pp.cx = fieldX + fieldW * pp.x;
+      pp.cy = fieldTop + fieldH * pp.y;
+      pp.pw = colW * pp.w * ps;
+      pp.ph = colW * pp.h * ps;
+    });
 
     /* ---- optional silhouettes on the open half ----
        Off by default now. The ticket is the decoration; a field of
@@ -487,19 +549,18 @@
         { x: 0, y: 0, w: w, h: railTop + mic },
         { x: 0, y: railBot - mic * 1.4, w: w, h: h - railBot + mic * 1.4 },
         hasCut ? { x: fieldX - u(20), y: cutY - mic * 1.2, w: fieldW + u(40), h: mic * 2.4 }
-          : { x: 0, y: 0, w: 0, h: 0 },
-        hasStamp ? { x: stampC.x - stampR * 1.2, y: stampC.y - stampR * 1.2, w: stampR * 2.4, h: stampR * 2.4 }
           : { x: 0, y: 0, w: 0, h: 0 }
-      ],
+      ].concat(papers.map(function (pp) {
+        return { x: pp.cx - pp.pw * 0.62, y: pp.cy - pp.ph * 0.62,
+          w: pp.pw * 1.24, h: pp.ph * 1.24 };
+      })),
       rMin: 22, rMax: 52, bigRatio: 0.22, sep: 0.95,
       alphaMin: 0.28, alphaMax: 0.6,
       pad: u(80)
     });
 
-    if (hasStamp) {
-      stamp(env, stampC.x, stampC.y, stampR, onField, 'paid', 'no. ' + serial, -0.13);
-    }
-
+    /* the tear line first, then the paper on top of it — ink is under
+       paper everywhere else on this page and it should be here too */
     if (hasCut) {
       ctx.save();
       ctx.fillStyle = onField;
@@ -512,6 +573,12 @@
       hair(ctx, cb.x + cb.w + cutS * 1.1, fieldW - cb.w - cutS * 1.1, cutY,
         Math.max(1, u(1.4)), onField, 0.45, [u(9), u(7)]);
     }
+
+    papers.forEach(function (pp) {
+      paperSlip(env, pp.cx, pp.cy, pp.pw, pp.ph, pp.rot, card, {
+        torn: pp.torn, clip: pp.clip, lines: pp.lines, bar: pp.bar, tooth: tooth * 0.8
+      });
+    });
 
     /* ---- the paper ---- */
     ctx.save();
