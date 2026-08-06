@@ -215,10 +215,26 @@
        shoulder: the shoulder is 62% of the way down a wide arch, which on
        a square canvas left the columns a couple of hundred pixels to live
        in. */
-    var capTop = base + mic * 2.7;
-    var capBot = ay + ah - mic * 1.2;
+    /* ONE rhythm for the whole column: diamond, letters, diamond, evenly
+       spaced between two fixed points — just below the display line, and
+       the arch's foot.
+
+       It was the other way round. The letters were placed first and the
+       diamonds hung off them by a multiple of the letter size, which is
+       wrong twice over. `sideCaps` positions by BASELINE, so the ascent
+       sat inside the gap at the top and outside it at the bottom and the
+       two ends did not match; and a clearance tied to the letter size
+       ignores how far apart the letters themselves are, so on a tall page
+       the letters stood a hundred pixels apart while the diamond crowded
+       the first of them. Both ends are now one step of the same rhythm,
+       and the step is whatever the column's own spacing is. */
+    var dR = u(7);
+    var topMark = base + mic * 1.1;
+    var botMark = ay + ah - mic * 0.2;
     var gutter = (m.inner - aw) / 2;
-    if (capBot - capTop > mic * 5 && gutter > mic * 1.1) {
+    var probe = Math.min(mic * 1.15, gutter * 0.5);
+    var span = botMark - topMark;
+    if (span > mic * 7 && gutter > mic * 1.1) {
       /* One size for both margins. They share a span but not a length, so
          sizing each column to its own step made the shorter string
          visibly larger than the other and the page stopped being
@@ -230,7 +246,8 @@
          — rather than being cut mid-word, which is how "AKI × REN" came
          out as "AKI × R". */
       var minCap = mic * 0.72;
-      var maxN = Math.floor((capBot - capTop) / (minCap * 1.15)) + 1;
+      /* two of the positions belong to the diamonds */
+      var maxN = Math.max(2, Math.floor(span / (minCap * 1.15)) - 1);
       function shortest(alts) {
         for (var i = 0; i < alts.length; i++) {
           var s = String(alts[i] || '').trim();
@@ -247,19 +264,28 @@
          at this size printed as a stack of black blocks down each side —
          these are labels, and the display line is the only thing on the
          page allowed to be heavy. */
-      var capSize = Math.max(minCap,
-        Math.min(mic * 1.15, gutter * 0.5, (capBot - capTop) / (capN - 1) * 0.82));
+      /* capN letters, and a diamond a step and a fifth beyond each end —
+         the extra fifth is there because a diamond is a smaller mark than
+         a capital, so an identical step reads as slightly tighter than the
+         letters are to each other */
+      var capStep = span / (capN - 1 + 2.4);
+      var capSize = Math.max(minCap, Math.min(probe, capStep * 0.82));
+
+      /* Seated by the CENTRE of a capital, not by its baseline, so the
+         letters sit on the rhythm the diamonds set rather than half an
+         ascent below it. */
+      T.setFont(ctx, 'dmmono', capSize, {});
+      var capH = T.inkBox(ctx, 'H').asc;
+      var capTop = topMark + capStep * 1.2 + capH / 2;
+      var capBot = capTop + capStep * (capN - 1);
 
       var capIn = capSize * 0.32;
       var capX = [m.left + capIn, w - m.right - capIn];
       sideCaps(env, capL, capX[0], capTop, capBot, pal.text, 0.78, capSize);
       sideCaps(env, capR, capX[1], capTop, capBot, pal.text, 0.78, capSize);
-      /* the marks that top and tail each column, in the clear space
-         between the display line and the first letter — at a multiple of
-         the letter size they climbed back up onto the title's baseline */
       capX.forEach(function (x) {
-        diamond(ctx, x, capTop - mic * 1.35, u(7), accent, 0.85);
-        diamond(ctx, x, capBot + mic * 1.35, u(7), accent, 0.85);
+        diamond(ctx, x, topMark, dR, accent, 0.85);
+        diamond(ctx, x, botMark, dR, accent, 0.85);
       });
     }
 
