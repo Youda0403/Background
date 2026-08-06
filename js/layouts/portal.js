@@ -79,7 +79,7 @@
     ctx.save();
     ctx.fillStyle = color;
     ctx.globalAlpha = alpha;
-    T.setFont(ctx, 'dmmono', size, { weight: 500 });
+    T.setFont(ctx, 'dmmono', size, {});
     chars.forEach(function (ch, i) {
       T.draw(ctx, ch, x, yTop + step * i, { align: 'center', tracking: 0 });
     });
@@ -197,15 +197,28 @@
       return;
     }
 
-    /* ---------- the margins ----------
+    /* ---------- the vertical labels ----------
+       INSIDE the measure, flush with the two ends of the display line.
+
+       They used to sit half way into the margin, outside everything else
+       on the page: the title ran to the measure and the columns hung past
+       it on both sides, so the one element whose whole job is to be a
+       symmetrical pair was the one element that lined up with nothing.
+       The reference boards all put them inside — the display line sets the
+       width of the composition and every other mark starts or stops on it.
+
+       The gutter between the measure and the arch is at least 9% of the
+       measure, which is several times the width of a capital, so there is
+       always room for them there.
+
        They start under the display line rather than under the arch's
-       shoulder. The shoulder is 62% of the way down a wide arch, which on
+       shoulder: the shoulder is 62% of the way down a wide arch, which on
        a square canvas left the columns a couple of hundred pixels to live
-       in — and the margins are outside the measure, so nothing up there
-       can reach them anyway. */
-    var capTop = base + mic * 1.6;
+       in. */
+    var capTop = base + mic * 2.7;
     var capBot = ay + ah - mic * 1.2;
-    if (capBot - capTop > mic * 5) {
+    var gutter = (m.inner - aw) / 2;
+    if (capBot - capTop > mic * 5 && gutter > mic * 1.1) {
       /* One size for both margins. They share a span but not a length, so
          sizing each column to its own step made the shorter string
          visibly larger than the other and the page stopped being
@@ -230,14 +243,24 @@
       var capR = shortest([foot, foot.replace(/\s+/g, ''),
         foot.split(/\s+/).pop(), 'pairtone']);
       var capN = Math.max(capL.length, capR.length, 2);
+      /* Big enough to read, light enough not to shout. The medium weight
+         at this size printed as a stack of black blocks down each side —
+         these are labels, and the display line is the only thing on the
+         page allowed to be heavy. */
       var capSize = Math.max(minCap,
-        Math.min(mic * 1.35, m.left * 0.62, (capBot - capTop) / (capN - 1) * 0.82));
+        Math.min(mic * 1.15, gutter * 0.5, (capBot - capTop) / (capN - 1) * 0.82));
 
-      sideCaps(env, capL, m.left * 0.5, capTop, capBot, pal.text, 0.85, capSize);
-      sideCaps(env, capR, w - m.left * 0.5, capTop, capBot, pal.text, 0.85, capSize);
-      [[m.left * 0.5, capTop - capSize * 1.6], [w - m.left * 0.5, capTop - capSize * 1.6],
-        [m.left * 0.5, capBot + capSize * 1.6], [w - m.left * 0.5, capBot + capSize * 1.6]]
-        .forEach(function (pt) { diamond(ctx, pt[0], pt[1], u(8), accent, 0.85); });
+      var capIn = capSize * 0.32;
+      var capX = [m.left + capIn, w - m.right - capIn];
+      sideCaps(env, capL, capX[0], capTop, capBot, pal.text, 0.78, capSize);
+      sideCaps(env, capR, capX[1], capTop, capBot, pal.text, 0.78, capSize);
+      /* the marks that top and tail each column, in the clear space
+         between the display line and the first letter — at a multiple of
+         the letter size they climbed back up onto the title's baseline */
+      capX.forEach(function (x) {
+        diamond(ctx, x, capTop - mic * 1.35, u(7), accent, 0.85);
+        diamond(ctx, x, capBot + mic * 1.35, u(7), accent, 0.85);
+      });
     }
 
     /* ---------- head and foot ---------- */
