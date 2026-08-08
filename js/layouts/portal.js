@@ -21,12 +21,14 @@
    reads on the toned photograph. One line of type, two materials. There
    is no seam because there is no second element.
 
-   The rest is the boards' furniture: tracked capitals set vertically down
-   the margins outside the measure, diamonds at their ends, and a page tab
-   at the foot. All of it is drawn on the page rather than in the picture,
-   so a busy photograph never has to carry small text — and none of it
-   crosses the page, because a hairline running the full width behind a
-   display line is the one thing that made this composition look untidy.
+   Everything else is horizontal. There were two columns of capitals set
+   one letter per step down the sides, and however they were sized, spaced
+   or aligned they read as clutter around the one shape the page is about.
+   A column of single letters is also the slowest thing on a page to read,
+   which is a strange thing to make of a couple's names. So the furniture
+   is four rows now — a rail at the head, an index line under the arch, the
+   foot rule with its numeral tab, and the caption — each spanning the
+   measure and each aligned to the same two ends as the display line.
 
    With no photograph the arch fills with the palette's own duotone field
    and its washes — the same substitution every other layout makes, so the
@@ -63,29 +65,6 @@
     ctx.restore();
   }
 
-  /* Capitals set one per step down a margin — the boards' side labels.
-     They live outside the measure, so they can never meet the display
-     line however long the name is.
-
-     Both margins read downwards. The right one used to run bottom to top,
-     which is the convention for type rotated on its side; these letters
-     are upright, and a column of upright capitals read from the bottom is
-     a column nobody reads. */
-  function sideCaps(env, text, x, yTop, yBot, color, alpha, size) {
-    var ctx = env.ctx;
-    var chars = String(text).toUpperCase().replace(/\s+/g, ' ').split('');
-    if (!chars.length) return;
-    var step = (yBot - yTop) / Math.max(1, chars.length - 1);
-    ctx.save();
-    ctx.fillStyle = color;
-    ctx.globalAlpha = alpha;
-    T.setFont(ctx, 'dmmono', size, {});
-    chars.forEach(function (ch, i) {
-      T.draw(ctx, ch, x, yTop + step * i, { align: 'center', tracking: 0 });
-    });
-    ctx.restore();
-  }
-
   function draw(env) {
     var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
     var st = env.st, pal = env.pal, c = env.content;
@@ -103,19 +82,30 @@
     /* ---------- the foot, measured before the arch is given its band --- */
     var footBodyH = 0;
     if (c.caption && !env.micro) {
-      footBodyH = PO.block(env, 0, 0, m.inner * (wide ? 0.46 : 0.66), [c.caption], {
+      footBodyH = PO.block(env, 0, 0, m.inner * (wide ? 0.44 : 0.58), [c.caption], {
         size: mic * 0.78, lead: 1.55, upper: false, measure: true, font: st.bodyFont
       });
     }
-    var footH = env.micro ? 0 : footBodyH + mic * 3.2;
+    var footH = env.micro ? 0 : footBodyH + mic * 3.0;
     var footTop = h - m.bottom - footH;
 
-    /* ---------- the arch ---------- */
+    /* ---------- the arch ----------
+       The index row gets its own band between the arch's foot and the
+       rule, so the two never negotiate for the same pixels. */
     var headH = env.micro ? mic * 1.6 : mic * 3.0;
+    var indexH = env.micro ? 0 : mic * 2.6;
     var top = m.top + headH;
-    var bottom = footTop - (env.micro ? mic * 0.6 : mic * 1.6);
+    var bottom = footTop - indexH - (env.micro ? mic * 0.6 : mic * 0.9);
     var ah = Math.max(u(220), bottom - top);
-    var aw = Math.min(m.inner * (wide ? 0.46 : 0.82), ah * 1.15);
+    /* A little wider than it was, now that nothing lives beside it — but
+       never so wide that the display line stops overhanging it, because
+       that overhang is where the two inks meet and it IS the design. */
+    /* An arch is a portrait shape and the height cap keeps it one — except
+       on a 3:1 header, where the band is 300px tall and holding the arch to
+       1.15 of that left a keyhole in the middle of a very wide page. There
+       it may spread into a tunnel. */
+    var aw = Math.min(m.inner * (wide ? 0.46 : 0.86),
+      ah * (wide && w / h > 2.2 ? 1.95 : 1.15));
     var ax = m.left + (m.inner - aw) / 2;
     var ay = top;
 
@@ -161,7 +151,12 @@
        a coloured shape. The cap is the arch's shoulder instead: the line
        may grow until it fills the measure or until its capitals reach the
        curve, whichever comes first. */
-    var size = T.fill(ctx, word, st.titleFont, m.inner, -0.03, { weight: 500 }, r * 1.35);
+    /* The height cap is the arch's shoulder OR a third of the page,
+       whichever is smaller. On a 3:1 header the shoulder alone let the
+       display line grow until its capitals were half the height of the
+       canvas and the arch behind it read as a keyhole. */
+    var size = T.fill(ctx, word, st.titleFont, m.inner, -0.03, { weight: 500 },
+      Math.min(r * 1.35, h * 0.32));
     T.setFont(ctx, st.titleFont, size, { weight: 500 });
     var ink = T.inkBox(ctx, word);
     if (ink.asc > r * 0.92) {
@@ -197,97 +192,17 @@
       return;
     }
 
-    /* ---------- the vertical labels ----------
-       INSIDE the measure, flush with the two ends of the display line.
-
-       They used to sit half way into the margin, outside everything else
-       on the page: the title ran to the measure and the columns hung past
-       it on both sides, so the one element whose whole job is to be a
-       symmetrical pair was the one element that lined up with nothing.
-       The reference boards all put them inside — the display line sets the
-       width of the composition and every other mark starts or stops on it.
-
-       The gutter between the measure and the arch is at least 9% of the
-       measure, which is several times the width of a capital, so there is
-       always room for them there.
-
-       They start under the display line rather than under the arch's
-       shoulder: the shoulder is 62% of the way down a wide arch, which on
-       a square canvas left the columns a couple of hundred pixels to live
-       in. */
-    /* ONE rhythm for the whole column: diamond, letters, diamond, evenly
-       spaced between two fixed points — just below the display line, and
-       the arch's foot.
-
-       It was the other way round. The letters were placed first and the
-       diamonds hung off them by a multiple of the letter size, which is
-       wrong twice over. `sideCaps` positions by BASELINE, so the ascent
-       sat inside the gap at the top and outside it at the bottom and the
-       two ends did not match; and a clearance tied to the letter size
-       ignores how far apart the letters themselves are, so on a tall page
-       the letters stood a hundred pixels apart while the diamond crowded
-       the first of them. Both ends are now one step of the same rhythm,
-       and the step is whatever the column's own spacing is. */
-    var dR = u(7);
-    var topMark = base + mic * 1.1;
-    var botMark = ay + ah - mic * 0.2;
-    var gutter = (m.inner - aw) / 2;
-    var probe = Math.min(mic * 1.15, gutter * 0.5);
-    var span = botMark - topMark;
-    if (span > mic * 7 && gutter > mic * 1.1) {
-      /* One size for both margins. They share a span but not a length, so
-         sizing each column to its own step made the shorter string
-         visibly larger than the other and the page stopped being
-         symmetrical — which is the whole point of setting them in pairs.
-         The size is set by the denser of the two.
-
-         A string too long for the span steps down to a shorter form of
-         ITSELF — the names to their initials, a footnote to its last word
-         — rather than being cut mid-word, which is how "AKI × REN" came
-         out as "AKI × R". */
-      var minCap = mic * 0.72;
-      /* two of the positions belong to the diamonds */
-      var maxN = Math.max(2, Math.floor(span / (minCap * 1.15)) - 1);
-      function shortest(alts) {
-        for (var i = 0; i < alts.length; i++) {
-          var s = String(alts[i] || '').trim();
-          if (s && s.length <= maxN) return s;
-        }
-        return String(alts[0] || '').slice(0, maxN);
-      }
-      var foot = c.footnote || 'pairtone';
-      var capL = shortest([namesLine, initials, initials.replace(/\s+/g, '')]);
-      var capR = shortest([foot, foot.replace(/\s+/g, ''),
-        foot.split(/\s+/).pop(), 'pairtone']);
-      var capN = Math.max(capL.length, capR.length, 2);
-      /* Big enough to read, light enough not to shout. The medium weight
-         at this size printed as a stack of black blocks down each side —
-         these are labels, and the display line is the only thing on the
-         page allowed to be heavy. */
-      /* capN letters, and a diamond a step and a fifth beyond each end —
-         the extra fifth is there because a diamond is a smaller mark than
-         a capital, so an identical step reads as slightly tighter than the
-         letters are to each other */
-      var capStep = span / (capN - 1 + 2.4);
-      var capSize = Math.max(minCap, Math.min(probe, capStep * 0.82));
-
-      /* Seated by the CENTRE of a capital, not by its baseline, so the
-         letters sit on the rhythm the diamonds set rather than half an
-         ascent below it. */
-      T.setFont(ctx, 'dmmono', capSize, {});
-      var capH = T.inkBox(ctx, 'H').asc;
-      var capTop = topMark + capStep * 1.2 + capH / 2;
-      var capBot = capTop + capStep * (capN - 1);
-
-      var capIn = capSize * 0.32;
-      var capX = [m.left + capIn, w - m.right - capIn];
-      sideCaps(env, capL, capX[0], capTop, capBot, pal.text, 0.78, capSize);
-      sideCaps(env, capR, capX[1], capTop, capBot, pal.text, 0.78, capSize);
-      capX.forEach(function (x) {
-        diamond(ctx, x, topMark, dR, accent, 0.85);
-        diamond(ctx, x, botMark, dR, accent, 0.85);
-      });
-    }
+    /* ---------- the index row, under the arch ----------
+       The two vertical columns said the date on one side and the names on
+       the other, one letter per step. This says the same things on one
+       line, at a size somebody can read, aligned to the same two ends as
+       everything else on the page. */
+    var idxY = ay + ah + mic * 1.85;
+    var tagLine = (st.showTags && c.tags.length)
+      ? c.tags.map(function (t) { return '(' + t.toLowerCase() + ')'; }).join('  ')
+      : '';
+    PO.rail(env, idxY, [c.footnote || '', null, initials],
+      { m: m, size: mic * 0.9, alpha: 0.82 });
 
     /* ---------- head and foot ---------- */
     PO.rail(env, m.top + mic * 1.1, [namesLine, null, 'pairtone'],
@@ -321,22 +236,24 @@
       { align: 'center', tracking: mic * 0.09 });
     ctx.restore();
 
+    /* The caption and the tags share one baseline under the rule. They
+       used to be on two, a fifth of a line apart, which is close enough to
+       look like a mistake and far enough not to look like a row. */
+    var footBase = footTop + mic * 2.0;
     if (c.caption) {
-      PO.block(env, m.left, footTop + mic * 2.0, m.inner * (wide ? 0.46 : 0.66), [c.caption], {
+      PO.block(env, m.left, footBase, m.inner * (wide ? 0.44 : 0.58), [c.caption], {
         size: mic * 0.78, lead: 1.55, upper: false, alpha: 0.78, font: st.bodyFont
       });
     }
-    if (st.showTags && c.tags.length) {
+    if (tagLine) {
       ctx.save();
       ctx.fillStyle = pal.text;
       ctx.globalAlpha = 0.62;
-      T.setFont(ctx, st.bodyFont, mic * 0.74, { weight: 500 });
-      T.draw(ctx, c.tags.map(function (t) { return '(' + t.toLowerCase() + ')'; }).join('  '),
-        w - m.right, footTop + mic * 1.5, { align: 'right', tracking: mic * 0.1 });
+      T.setFont(ctx, st.bodyFont, mic * 0.78, { weight: 500 });
+      T.draw(ctx, tagLine, w - m.right, footBase + mic * 0.78,
+        { align: 'right', tracking: mic * 0.1 });
       ctx.restore();
     }
-    PO.rail(env, h - m.bottom - mic * 0.2, [initials, null, c.footnote || 'pairtone'],
-      { m: m, size: mic * 0.66, alpha: 0.5 });
   }
 
   W.layoutRegistry = W.layoutRegistry || [];

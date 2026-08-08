@@ -353,7 +353,13 @@
       minX = Math.min(minX, lx);
       maxX = Math.max(maxX, lx + ln.w);
     });
-    var bounds = { x: minX, y: yTop, w: maxX - minX, h: total, bottom: yTop + total };
+    /* the first line's baseline, so a caller can hang a rule on it rather
+       than guess a fraction of the lockup's height — available in the
+       measure pass too, which is the pass that needs it */
+    var bounds = {
+      x: minX, y: yTop, w: maxX - minX, h: total, bottom: yTop + total,
+      firstBaseline: yTop + lines[0].ink.asc, firstWidth: lines[0].w
+    };
     if (opts.measure) return bounds;
 
     /* Baselines first, then draw the plain lines and the script lines in

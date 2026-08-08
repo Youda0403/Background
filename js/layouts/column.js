@@ -312,9 +312,13 @@
     /* A receipt is narrow — that is most of what makes it read as one. The
        per-mille cap is what holds that on a desktop canvas, where a third
        of the width is a poster panel rather than a till roll. */
-    var colW = Math.min(w * (wide ? 0.34 : env.tier === 'tablet' || env.tier === 'square' ? 0.42 : 0.5),
-      u(430));
     var bandH = env.band.bottom - env.band.top;
+    /* On a 3:1 header the per-mille unit comes off a 500px height, so the
+       cap makes the ticket 14% of the width and the hero of the page turns
+       into a stamp. There the band's own height sets it instead. */
+    var extreme = wide && w / h > 2.2;
+    var colW = Math.min(w * (wide ? 0.34 : env.tier === 'tablet' || env.tier === 'square' ? 0.42 : 0.5),
+      Math.max(u(430), extreme ? bandH * 0.62 : 0));
     var tooth = u(10);
 
     /* Build the whole ticket as a list of drawing operations keyed to a
@@ -558,6 +562,14 @@
       { x: 0.42, y: 0.83, w: 0.76, h: 0.32, rot: -0.05, lines: [0.58, 0.36],
         perf: 0.72, tab: accent }
     ] : [];
+    /* A desk three times wider than the ticket has room for more on it.
+       Three sheets spread across a 3:1 header read as three things adrift;
+       five read as a desk. */
+    if (papers.length && fieldW > colW * 2.8) {
+      papers.push({ x: 0.09, y: 0.60, w: 0.52, h: 0.3, rot: 0.09, lines: [0.66, 0.42] });
+      papers.push({ x: 0.86, y: 0.17, w: 0.44, h: 0.5, rot: -0.08, torn: true,
+        lines: [0.6, 0.44] });
+    }
     papers.forEach(function (pp) {
       pp.cx = fieldX + fieldW * pp.x;
       pp.cy = fieldTop + fieldH * pp.y;

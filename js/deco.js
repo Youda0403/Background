@@ -46,11 +46,32 @@
     return Math.max(1, n);
   }
 
-  function points(env, count, avoid, minDist, pad, radii, sep) {
+  /* `strat` divides the page into as many horizontal bands as there are
+     marks and fills them in order, so the field cannot pile into one half
+     of the page. Uniform random over a tall canvas is uniform on average
+     and lumpy in any single draw — on Aura, six marks all landed in the
+     top half and the bottom third of the page had nothing on it at all.
+     The bands overlap by half a band, so a mark whose own band is entirely
+     under a keep-out zone still has somewhere to go. */
+  function points(env, count, avoid, minDist, pad, radii, sep, strat) {
     var rand = env.rand, w = env.w, h = env.h;
     var out = [];
     pad = pad == null ? env.u(24) : pad;
     sep = sep || 0.85;
+
+    /* The bands are handed out in a shuffled order. Filling them top to
+       bottom would be a different bias for the same price: the first mark
+       is the hero and the first mark is the biggest, so every page would
+       have its largest mark at the top. */
+    var band = null;
+    if (strat && count > 1) {
+      band = [];
+      for (var b = 0; b < count; b++) band.push(b);
+      for (var s2 = count - 1; s2 > 0; s2--) {
+        var j2 = Math.floor(rand() * (s2 + 1));
+        var tmp = band[s2]; band[s2] = band[j2]; band[j2] = tmp;
+      }
+    }
 
     /* How far apart mark i and mark j have to be. With radii known this is
        a property of the PAIR — one flat distance cannot serve a field
@@ -67,7 +88,14 @@
       var tries = count * 60;
       while (out.length < count && tries-- > 0) {
         var x = U.lerp(pad, w - pad, rand());
-        var y = U.lerp(pad, h - pad, rand());
+        var t = rand();
+        if (band) {
+          var k = band[out.length % count];
+          var lo = Math.max(0, k / count - 0.5 / count);
+          var hi = Math.min(1, (k + 1) / count + 0.5 / count);
+          t = U.lerp(lo, hi, t);
+        }
+        var y = U.lerp(pad, h - pad, t);
         if (pass < 4 && inAny(avoid, x, y, pad * 0.5)) continue;
         var ok = true;
         for (var i = 0; i < out.length; i++) {
@@ -102,7 +130,7 @@
       radii.push(u(U.lerp(opts.rMin, opts.rMax, rand())) * (q < big ? U.range(rand, 1.9, 3.1) : 1));
     }
     var pts = points(env, n, opts.avoid || [],
-      u(opts.minDist || 70), opts.pad, radii, opts.sep);
+      u(opts.minDist || 70), opts.pad, radii, opts.sep, opts.stratify);
 
     ctx.save();
     pts.forEach(function (p, i) {
@@ -147,7 +175,7 @@
   function twinkles(env, opts) {
     var ctx = env.ctx, rand = env.rand, u = env.u;
     var n = Math.round(opts.count == null ? env.decoBudget * 3 : opts.count);
-    var pts = points(env, n, opts.avoid || [], u(30), u(10));
+    var pts = points(env, n, opts.avoid || [], u(30), u(10), null, null, opts.stratify);
     ctx.save();
     pts.forEach(function (p, i) {
       var r = u(U.range(rand, opts.rMin || 5, opts.rMax || 13));

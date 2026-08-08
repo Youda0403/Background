@@ -41,23 +41,32 @@
        has all of it. Holding the title to a quarter regardless left the
        left half of a 3:1 header empty below it. */
     var hlMaxH = (h - m.top - m.bottom) * (wide ? (c.caption ? 0.42 : 0.74) : 0.26);
-    var hl = PO.headline(env, hlBox, { align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH });
+    var hlOpts = { align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH };
+    var hl = PO.headline(env, hlBox, {
+      align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH, measure: true
+    });
 
+    /* The rule sits ON the first line's baseline and is drawn BEFORE the
+       words, so the type prints over it and the script's descenders sweep
+       through it. It used to be struck across the lockup at 24% of its
+       height, over the top of the letters, which is the position and the
+       order that make a rule read as a line through a mistake. The riso
+       second plate is still the point of it — the strike, the bracket
+       corners and the release line all run in the accent, which is the one
+       colour a halftone photograph cannot supply. */
     if (st.strike && hl.h) {
       ctx.save();
-      /* the second plate of a two-colour riso print: the strike, the
-         bracket corners and the release line all run in the accent, which
-         is the only colour a halftone photo cannot supply */
       ctx.globalAlpha = 0.95;
       ctx.strokeStyle = pal.accent || pal.text;
       ctx.lineWidth = Math.max(1, u(2.6));
-      var sy = hl.y + hl.h * 0.24;
+      var sy = hl.firstBaseline;
       ctx.beginPath();
       ctx.moveTo(m.left, sy);
-      ctx.lineTo(m.left + hl.w * 0.98, sy);
+      ctx.lineTo(m.left + Math.max(hl.firstWidth, hlBox.w * 0.5) + u(30), sy);
       ctx.stroke();
       ctx.restore();
     }
+    PO.headline(env, hlBox, hlOpts);
 
     /* ---- halftone plate, with a spine rail on its left ---- */
     var railW = wide || env.micro ? 0 : mic * 3.4;

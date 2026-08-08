@@ -17,13 +17,18 @@
     var wide = env.tier === 'wide';
 
     /* ---- blooms ---- */
+    /* Wider and lower than they were. The hero glow and the photo window
+       both sit in the upper half, so blooms that peaked at a quarter of
+       the way down piled the colour where there was already plenty and
+       left the foot of the page flat — which is most of what made this
+       layout look empty rather than soft. */
     var spots = wide
-      ? [[0.22, 0.32], [0.74, 0.3], [0.5, 0.86]]
-      : [[0.3, 0.24], [0.76, 0.46], [0.38, 0.8], [0.66, 0.94]];
+      ? [[0.2, 0.34], [0.76, 0.28], [0.44, 0.84], [0.9, 0.72]]
+      : [[0.28, 0.22], [0.8, 0.48], [0.22, 0.72], [0.72, 0.95]];
     pal.soft.concat([pal.inks[3] || pal.soft[0]]).slice(0, 4).forEach(function (col, i) {
       var s = spots[i % spots.length];
-      P.wash(ctx, w * s[0], h * s[1], env.S * U.range(rand, 0.66, 1.05), col,
-        0.5 * st.washStrength);
+      P.wash(ctx, w * s[0], h * s[1], env.S * U.range(rand, 0.85, 1.35), col,
+        0.58 * st.washStrength);
     });
 
     /* ---- geometry ---- */
@@ -169,14 +174,18 @@
        which is deliberately pale, so without this the loudest colour in
        the palette never appears on the softest layout */
     var inks = [PO.accentOn(pal, pal.base)].concat(pal.inks).filter(Boolean);
+    /* Stratified, and bigger. Uniform random put every one of six marks in
+       the top half of a phone page — uniform on average is lumpy in any
+       single draw — and at 14–30 per mille they were small enough that
+       nobody would have noticed if they had been better spread. */
     D.twinkles(env, {
       count: twinkleN, avoid: avoid, colors: inks.concat(pal.soft),
-      hero: PO.accentOn(pal, pal.base), rMin: 5, rMax: 15
+      hero: PO.accentOn(pal, pal.base), rMin: 8, rMax: 21, stratify: true
     });
     D.scatter(env, {
       count: env.decoBudget - twinkleN,
       avoid: avoid, kinds: st.motifs, colors: inks, hero: PO.accentOn(pal, pal.base),
-      rMin: 14, rMax: 30, bigRatio: 0.24, minDist: 100,
+      rMin: 22, rMax: 44, bigRatio: 0.24, minDist: 100, stratify: true, pad: u(66),
       alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
       speckle: st.glitter
     });
@@ -201,7 +210,7 @@
       titleFont: 'instrument', scriptFont: 'gwendolyn', bodyFont: 'dmmono',
       headlineStyle: 'stack',
       photoShape: 'circle', tone: 'wash', toneAmount: 0.3,
-      feather: 0.12, auraShape: 'heart',
+      feather: 0.12, auraShape: 'heart', decoCount: 9,
       motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
     },
     draw: draw
