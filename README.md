@@ -303,6 +303,13 @@ js/
   ui.js           wiring: state ↔ controls ↔ canvas, photo input, export
 ```
 
+**Bump `?v=` when you ship.** Every local stylesheet and script in
+`index.html` carries a `?v=<date>` stamp. Without it a browser that has the
+site open keeps serving the copy of `js/layouts/portal.js` it already has —
+`index.html` is revalidated, the scripts are not — so a push lands, the page
+reloads, and the change does not appear. Change the stamp (all of them, they
+are the same string) in the same commit as any edit to `js/` or `css/`.
+
 ### Twenty things worth knowing before you edit
 
 **Per-mille units.** Layouts call `env.u(v)`, which is `v × min(w,h) / 1000`.
