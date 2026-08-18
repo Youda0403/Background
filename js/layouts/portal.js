@@ -261,6 +261,8 @@
     id: 'portal',
     label: 'Portal',
     blurb: '사진을 아치로 오리고 그 어깨를 글자가 가로질러요. 사진이 주인공인 쪽.',
+    /* which type controls actually reach this layout's drawing code */
+    type: ['titleFont', 'bodyFont', 'microScale'],
     defaults: {
       titleFont: 'didone', scriptFont: 'delafield', bodyFont: 'dmmono',
       headlineStyle: 'stack',

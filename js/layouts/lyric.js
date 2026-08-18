@@ -79,13 +79,17 @@
     var one = lines[0];
     var rest = lines.slice(1).join(' ');
 
-    var s1 = T.fill(ctx, one, st.scriptFont, box.w * 0.96, 0, {}, u(300));
+    /* This lockup is set by hand rather than through `PO.headline`, so the
+       size dial has to be applied here or the control advertised in the
+       panel would move and nothing would happen. */
+    var em = st.headlineScale || 1;
+    var s1 = T.fill(ctx, one, st.scriptFont, box.w * 0.96 * em, 0, {}, u(300));
     T.setFont(ctx, st.scriptFont, s1, {});
     var i1 = T.inkBox(ctx, one);
 
     var s2 = 0, i2 = { asc: 0, desc: 0 };
     if (rest) {
-      s2 = T.fill(ctx, rest, st.titleFont, box.w * 0.82, -0.01, { weight: 700 }, u(220));
+      s2 = T.fill(ctx, rest, st.titleFont, box.w * 0.82 * em, -0.01, { weight: 700 }, u(220));
       T.setFont(ctx, st.titleFont, s2, { weight: 700 });
       i2 = T.inkBox(ctx, rest);
     }
@@ -306,6 +310,7 @@
     id: 'lyric',
     label: 'Lyric',
     blurb: '사진판 위로 큰 원과 별을 겹쳐 그은 콜라주. 제일 대담한 쪽.',
+    type: ['titleFont', 'scriptFont', 'bodyFont', 'headlineScale', 'microScale'],
     defaults: {
       titleFont: 'bricolage', scriptFont: 'playball', bodyFont: 'dmmono',
       headlineStyle: 'scriptSans',

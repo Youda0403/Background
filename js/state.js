@@ -35,7 +35,6 @@
     headlineScale: 1,
     microScale: 1,
     scrim: 0.4,
-    strike: true,
 
     /* words */
     pairName: 'Spirit\nof Nature',
@@ -158,6 +157,39 @@
     st.layout = layoutId;
   }
 
+  /* Everything the user AUTHORED, as opposed to everything they nudged.
+     The reset puts every dial back where the layout and the palette left
+     it and does not touch this list — a design is not undone by wanting
+     the sliders back at the start. */
+  var AUTHORED = [
+    'presetId', 'orientation', 'customW', 'customH', 'layout', 'palette',
+    'pairName', 'nameA', 'nameB', 'sep', 'showNames',
+    'caption', 'footnote', 'tags', 'showTags',
+    'zoom', 'ox', 'oy', 'safeShift', 'showGuides'
+  ];
+
+  function resetTuning(st) {
+    var next = create();
+    AUTHORED.forEach(function (k) {
+      next[k] = Array.isArray(st[k]) ? st[k].slice() : st[k];
+    });
+    applyLayoutDefaults(next, next.layout);
+    applyPalette(next, next.palette);
+    return next;
+  }
+
+  /* Has anything been nudged away from where the layout left it? The
+     button says so rather than being a control that may or may not do
+     something. */
+  function isTuned(st) {
+    var base = resetTuning(st);
+    return Object.keys(DEFAULTS).some(function (k) {
+      return Array.isArray(base[k])
+        ? JSON.stringify(base[k]) !== JSON.stringify(st[k])
+        : base[k] !== st[k];
+    });
+  }
+
   function migrate(st) {
     if (LAYOUT_ALIASES[st.layout]) st.layout = LAYOUT_ALIASES[st.layout];
     if (PRESET_ALIASES[st.presetId]) {
@@ -185,6 +217,7 @@
     delete st.burst;
     delete st.sideLabel;
     delete st.bleed;
+    delete st.strike;
 
     st.motifs = (st.motifs || []).filter(function (m) { return !!W.prim.motifs[m]; });
     if (!st.motifs.length) st.motifs = DEFAULTS.motifs.slice();
@@ -248,6 +281,7 @@
     motifKinds: MOTIF_KINDS, headlineStyles: HEADLINE_STYLES,
     create: create, migrate: migrate, applyPalette: applyPalette,
     applyLayoutDefaults: applyLayoutDefaults, serialize: serialize,
-    deserialize: deserialize, randomize: randomize
+    deserialize: deserialize, randomize: randomize,
+    resetTuning: resetTuning, isTuned: isTuned
   };
 })(window.PT = window.PT || {});

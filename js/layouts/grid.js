@@ -185,6 +185,9 @@
     id: 'grid',
     label: 'Grid',
     blurb: '글자를 격자 칸에 채운 타이포 포스터. 일코 최강.',
+    /* the crossword letters and every rail are set in the body face; the
+       display fonts and the headline dials never reach this layout */
+    type: ['bodyFont', 'microScale'],
     defaults: {
       titleFont: 'spacegrotesk', scriptFont: 'playball', bodyFont: 'spacegrotesk',
       headlineStyle: 'stack',

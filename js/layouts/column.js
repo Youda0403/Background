@@ -661,6 +661,7 @@
     id: 'column',
     label: 'Column',
     blurb: '사진 위에 올린 영수증 한 장. 촘촘한 작은 글씨와 바코드까지.',
+    type: ['titleFont', 'bodyFont', 'microScale'],
     deco: true,
     defaults: {
       titleFont: 'dmserif', scriptFont: 'petitformal', bodyFont: 'spacemono',

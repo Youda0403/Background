@@ -41,32 +41,16 @@
        has all of it. Holding the title to a quarter regardless left the
        left half of a 3:1 header empty below it. */
     var hlMaxH = (h - m.top - m.bottom) * (wide ? (c.caption ? 0.42 : 0.74) : 0.26);
-    var hlOpts = { align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH };
+    /* No rule at the title. It was struck across the lockup, then moved to
+       the first line's baseline and drawn underneath the words — and even
+       there, a line at a script's baseline is a line at a script's
+       baseline. The riso second plate does not need it: the accent still
+       carries the bracket corners and the release line up the right edge,
+       which is plenty of the one colour a halftone photograph cannot
+       supply. */
     var hl = PO.headline(env, hlBox, {
-      align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH, measure: true
+      align: 'left', style: 'scriptSans', l2Weight: 600, maxH: hlMaxH
     });
-
-    /* The rule sits ON the first line's baseline and is drawn BEFORE the
-       words, so the type prints over it and the script's descenders sweep
-       through it. It used to be struck across the lockup at 24% of its
-       height, over the top of the letters, which is the position and the
-       order that make a rule read as a line through a mistake. The riso
-       second plate is still the point of it — the strike, the bracket
-       corners and the release line all run in the accent, which is the one
-       colour a halftone photograph cannot supply. */
-    if (st.strike && hl.h) {
-      ctx.save();
-      ctx.globalAlpha = 0.95;
-      ctx.strokeStyle = pal.accent || pal.text;
-      ctx.lineWidth = Math.max(1, u(2.6));
-      var sy = hl.firstBaseline;
-      ctx.beginPath();
-      ctx.moveTo(m.left, sy);
-      ctx.lineTo(m.left + Math.max(hl.firstWidth, hlBox.w * 0.5) + u(30), sy);
-      ctx.stroke();
-      ctx.restore();
-    }
-    PO.headline(env, hlBox, hlOpts);
 
     /* ---- halftone plate, with a spine rail on its left ---- */
     var railW = wide || env.micro ? 0 : mic * 3.4;
@@ -209,13 +193,14 @@
     id: 'zine',
     label: 'Zine',
     blurb: '복사기 감성 레코드 슬리브. 망점 + 바코드.',
+    type: ['titleFont', 'scriptFont', 'bodyFont', 'headlineScale', 'microScale'],
     deco: true,
     defaults: {
       titleFont: 'bricolage', scriptFont: 'parisienne', bodyFont: 'dmmono',
       headlineStyle: 'scriptSans',
       photoShape: 'rect', tone: 'halftone',
       halftoneCells: 58, feather: 0,
-      strike: true, grain: 1.7, motifs: ['burst', 'burst4'], vignette: 0.08
+      grain: 1.7, motifs: ['burst', 'burst4'], vignette: 0.08
     },
     draw: draw
   });

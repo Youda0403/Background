@@ -105,20 +105,31 @@
       var hx = wide ? left.x + left.w / 2 : (plate ? plate.x + plate.w / 2 : w / 2);
       var hy = wide ? midY
         : (plate ? plate.y + plate.h / 2 : env.band.top + (env.band.bottom - env.band.top) * 0.32);
-      /* A bloom behind the window, not a halo around a memory. The old
-         spread put a wide soft aureole around a faded photograph, which
-         is the visual language of a memorial, not of a couple. */
-      var hr = wide ? Math.min(photoW, photoH) * 0.52
-        : (plate ? Math.min(plate.w, plate.h) * 0.52 : env.S * 0.3);
+      /* The aura is the layout. It was sized at half the photo window —
+         a bloom tucked behind a circle, which on a phone page is a small
+         warm patch in a large field of flat colour, and the scattered
+         marks were doing the work of filling the rest. They are off by
+         default now, so this has to carry the page: it reaches past the
+         window on every side and, with no photograph, spans the better
+         part of the short edge. */
+      var hr = wide ? Math.min(photoW, photoH) * 0.86
+        : (plate ? Math.min(plate.w, plate.h) * 0.9 : env.S * 0.46);
       P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
-        pal.soft[0], { layers: 18, spread: 0.34, alpha: 0.5 * st.washStrength });
-      /* The inner core carries the accent, so the softest layout still
-         shows the palette's loudest colour somewhere. Resolved against the
-         page, not taken raw: a glow is a soft blend, and an accent within
-         a hair of the page's own luminance blends into nothing at all. */
-      P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr * 0.66,
+        pal.soft[0], { layers: 34, spread: 0.4, alpha: 0.62 * st.washStrength });
+      /* The accent is a RING hugging the window, not a core behind it. A
+         core is covered by the photograph, and what escapes past the edge
+         is the tail of a soft blend — measured at four thousandths of one
+         per cent of the page on the muted palettes, which is another way
+         of saying the swatch on the palette card showed a colour the
+         wallpaper did not contain. Drawn tight, with the layers stacked in
+         a narrow band instead of fanned out, the same glow lands as a band
+         of real colour around the picture. Resolved against the page, not
+         taken raw: an accent within a hair of the page's own luminance
+         blends into nothing at all. */
+      var coreR = plate ? Math.min(plate.w, plate.h) * 0.74 : hr * 0.6;
+      P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, coreR,
         PO.accentOn(pal, pal.base) || pal.inks[1] || pal.soft[1],
-        { layers: 12, spread: 0.42, alpha: 0.42 * st.washStrength });
+        { layers: 20, spread: 0.3, alpha: 0.72 * st.washStrength });
     }
 
     if (plate) {
@@ -145,7 +156,7 @@
       if (tagH) {
         PO.tagRail(env, hlBox.y + hl.h + capH + tagH * 0.7, {
           m: { left: right.x, right: w - right.x - right.w, inner: right.w },
-          size: mic * 0.9, alpha: 0.5
+          size: mic * 1.05, alpha: 1, color: PO.accentOn(pal, pal.base)
         });
       }
     } else {
@@ -190,13 +201,25 @@
       speckle: st.glitter
     });
 
-    /* ---- rails ---- */
+    /* ---- rails ----
+       In the accent. The palette's loudest colour used to reach this page
+       on the scattered marks, and with those off by default it reached it
+       nowhere: the glow's accent core sits behind the photo window, and
+       what escapes past the edge is a soft blend too desaturated to count
+       as colour at all — measured at under 0.02% of the page on seven
+       palettes. The smallest type on the softest layout is the right place
+       for it: two quiet rows of colour instead of a mark dropped on the
+       page to carry a hue. */
     if (env.micro) {
       PO.microFoot(env, { m: m });
     } else {
+      var railInk = PO.accentOn(pal, pal.base);
       PO.rail(env, h - m.bottom + mic * 0.1, [c.footnote, null, W.textstack.monogram(st)],
-        { m: m, size: mic * 0.9, alpha: 0.6 });
-      if (!wide) PO.tagRail(env, h - m.bottom - mic * 1.4, { m: m, size: mic * 0.9, alpha: 0.5 });
+        { m: m, size: mic * 1.05, alpha: 1, color: railInk });
+      if (!wide) {
+        PO.tagRail(env, h - m.bottom - mic * 1.4,
+          { m: m, size: mic * 1.05, alpha: 1, color: railInk });
+      }
     }
   }
 
@@ -205,12 +228,13 @@
     id: 'aura',
     label: 'Aura',
     blurb: '뿌연 빛무리 + 부드러운 사진창. 제일 은은해요.',
+    type: ['headlineStyle', 'titleFont', 'scriptFont', 'bodyFont', 'headlineScale', 'microScale'],
     deco: true,
     defaults: {
       titleFont: 'instrument', scriptFont: 'gwendolyn', bodyFont: 'dmmono',
       headlineStyle: 'stack',
       photoShape: 'circle', tone: 'wash', toneAmount: 0.3,
-      feather: 0.12, auraShape: 'heart', decoCount: 9,
+      feather: 0.12, auraShape: 'heart', decoCount: 0,
       motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
     },
     draw: draw
