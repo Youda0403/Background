@@ -1,225 +1,528 @@
-/* AURA — the soft one. Wide colour blooms, a feathered photo window and
-   a centred headline. Gentler than the poster layouts but built from the
-   same type system, so the headline still carries the page. */
+/* AURA — the poster-zine page: a big Didone title top left, three
+   numbered photo windows stepping down alternate sides, a gradient ribbon
+   curling through them, and spiky stars.
+
+   The layout it replaces was a circle parked above a centred stack, and
+   the photograph was the last thing it thought about: a small window with
+   a glow behind it, the same on every page. Here the picture appears three
+   times, in three shapes, at three crops, and the composition is built
+   round those windows.
+
+   What carries over from the old Aura is the air: a warm paper ground with
+   two wide blooms, soft grain, and nothing hard-edged except the frames.
+
+   Rules that keep it standing on 33 device shapes:
+
+     · Everything is placed in fractions of the STAGE — the measure by the
+       keep-out band — so the whole composition scales with the page rather
+       than drifting apart on a tablet.
+     · The boxes are laid out so no two of them share a rectangle. The
+       frames alternate sides and the small type lives in the gaps beside
+       them; nothing is positioned relative to how long a string happens
+       to be.
+     · A wide canvas gets its own table: the title takes the left half and
+       the windows stand in the right, because a stepped column of frames
+       on a 16:9 page is three stamps in a very long field.
+
+   With no photograph every window fills with the palette's own duotone
+   field and its washes, so the page is identical either way. */
 (function (W) {
   'use strict';
   var U = W.util, P = W.prim, D = W.deco, PO = W.poster, T = W.type;
 
+  /* ---------- shapes ---------- */
+
+  function octagon(ctx, w, h, k) {
+    k = k == null ? 1 : k;
+    var cx = w / 2, cy = h / 2, sw = w * k, sh = h * k;
+    var cut = Math.min(sw, sh) * 0.22;
+    var x0 = cx - sw / 2, y0 = cy - sh / 2, x1 = cx + sw / 2, y1 = cy + sh / 2;
+    ctx.beginPath();
+    ctx.moveTo(x0 + cut, y0);
+    ctx.lineTo(x1 - cut, y0);
+    ctx.lineTo(x1, y0 + cut);
+    ctx.lineTo(x1, y1 - cut);
+    ctx.lineTo(x1 - cut, y1);
+    ctx.lineTo(x0 + cut, y1);
+    ctx.lineTo(x0, y1 - cut);
+    ctx.lineTo(x0, y0 + cut);
+    ctx.closePath();
+  }
+
+  function shapeOf(kind) {
+    return kind === 'oct' ? octagon : W.frames.make(kind, 3);
+  }
+
+  /* Lay the frame's outline down in PAGE coordinates. Canvas bakes the
+     transform into the path as the segments are added, so building it
+     under a translate and restoring immediately leaves the path where it
+     was drawn — which is how one shape function can serve both the photo
+     mask and the outline. */
+  function framePath(ctx, kind, fr, k) {
+    ctx.save();
+    ctx.translate(fr.x, fr.y);
+    shapeOf(kind)(ctx, fr.w, fr.h, k == null ? 1 : k);
+    ctx.restore();
+  }
+
+  /* ---------- the ribbon ---------- */
+
+  /* A twisted paper streamer.
+
+     The first cut of this was one smooth polygon whose width breathed
+     along its length, and what that draws is a worm: a tube with no
+     surface. Ribbon reads through two things a tube does not have —
+     CREASES, where the band pinches to a hairline, and a BACK FACE, the
+     duller side you see between one crease and the next. So the spine is
+     sampled, the half-width is a full sine that really does close at every
+     half turn, and each run between two creases is filled as its own
+     quad, alternating front and back. */
+  function ribbon(ctx, pts, wid, front, back, alpha) {
+    var N = 160, i, t;
+    function at(t2) {
+      /* Catmull-Rom through the control points, so the curve passes
+         through each one instead of being pulled short of it */
+      var n = pts.length - 1;
+      var f = U.clamp(t2, 0, 1) * n;
+      var i0 = Math.min(n, Math.floor(f)), u2 = f - i0;
+      var p0 = pts[Math.max(0, i0 - 1)], p1 = pts[i0];
+      var p2 = pts[Math.min(n, i0 + 1)], p3 = pts[Math.min(n, i0 + 2)];
+      var uu = u2 * u2, uuu = uu * u2;
+      return {
+        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * u2 +
+          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * uu +
+          (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * uuu),
+        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * u2 +
+          (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * uu +
+          (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * uuu)
+      };
+    }
+    var TURNS = 2.6, PH = 0.55;
+    var sp = [];
+    for (i = 0; i <= N; i++) {
+      t = i / N;
+      var a = at(t), b = at(Math.min(1, t + 0.003));
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var len = Math.hypot(dx, dy) || 1;
+      var ph = t * Math.PI * TURNS + PH;
+      /* the ends taper shut as well, so the streamer is a length of ribbon
+         rather than a band cut square at both ends */
+      var taper = Math.min(1, Math.sin(Math.min(1, t * 5)) * 1.25) *
+        Math.min(1, Math.sin(Math.min(1, (1 - t) * 5)) * 1.25);
+      sp.push({
+        x: a.x, y: a.y, nx: -dy / len, ny: dx / len,
+        hw: wid * 0.5 * Math.max(0.05, Math.abs(Math.sin(ph))) * Math.max(0.1, taper),
+        face: Math.floor(ph / Math.PI) % 2
+      });
+    }
+    function grad(c) {
+      var g = ctx.createLinearGradient(pts[0].x, pts[0].y,
+        pts[pts.length - 1].x, pts[pts.length - 1].y);
+      g.addColorStop(0, c[0]);
+      g.addColorStop(1, c[1]);
+      return g;
+    }
+    var faces = [grad(front), grad(back)];
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    var run = [sp[0]];
+    for (i = 1; i <= sp.length; i++) {
+      var q = sp[i];
+      if (q && q.face === run[0].face) { run.push(q); continue; }
+      if (run.length > 1) {
+        ctx.fillStyle = faces[run[0].face];
+        ctx.beginPath();
+        run.forEach(function (r, k) {
+          var x = r.x + r.nx * r.hw, y = r.y + r.ny * r.hw;
+          k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        for (var k2 = run.length - 1; k2 >= 0; k2--) {
+          ctx.lineTo(run[k2].x - run[k2].nx * run[k2].hw, run[k2].y - run[k2].ny * run[k2].hw);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (q) run = [sp[i - 1], q];
+    }
+    ctx.restore();
+  }
+
+  /* ---------- small marks ---------- */
+
+  function gradStar(ctx, x, y, r, c1, c2, alpha, spikes) {
+    var g = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    P.motifs[spikes === 4 ? 'burst4' : 'burst'](ctx, x, y, r);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function crosshair(ctx, x, y, r, color, alpha, lw) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.5, 0, Math.PI * 2);
+    ctx.moveTo(x - r, y); ctx.lineTo(x - r * 0.72, y);
+    ctx.moveTo(x + r * 0.72, y); ctx.lineTo(x + r, y);
+    ctx.moveTo(x, y - r); ctx.lineTo(x, y - r * 0.72);
+    ctx.moveTo(x, y + r * 0.72); ctx.lineTo(x, y + r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function crossMark(ctx, x, y, r, color, alpha, lw) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r);
+    ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function barcode(ctx, x, y, w, h, seed, color, alpha) {
+    var rand = U.rng('aura' + seed);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    var cx = x;
+    while (cx < x + w - 1) {
+      var bw = Math.max(1, (0.18 + rand() * 0.55) * (w / 34));
+      ctx.fillRect(cx, y, bw, h);
+      cx += bw + Math.max(1, (0.22 + rand() * 0.5) * (w / 34));
+    }
+    ctx.restore();
+  }
+
+  /* ---------- the layout tables ---------- */
+
+  /* every box is x, y, w, h in fractions of the stage */
+  var TALL = {
+    badge: { x: 0, y: 0, w: 0.115, h: 0.075 },
+    head: { x: 0.2, y: 0.03 },
+    title: { x: 0.015, y: 0.095, w: 0.7, h: 0.25 },
+    script: { x: 0.015, y: 0.375, w: 0.42 },
+    f1: { x: 0.54, y: 0.355, w: 0.46, h: 0.245, kind: 'oval' },
+    f2: { x: 0, y: 0.585, w: 0.5, h: 0.235, kind: 'card' },
+    f3: { x: 0.62, y: 0.795, w: 0.32, h: 0.185, kind: 'oct' },
+    note: { x: 0.6, y: 0.645, w: 0.4 },
+    foot: { x: 0, y: 0.87, w: 0.54 },
+    bars: { x: 0, y: 0.955, w: 0.26, h: 0.035 },
+    marks: { x: -0.045, y: 0.6, n: 5, step: 0.038 },
+    ribbon: [[0.66, 0.3], [0.53, 0.45], [0.6, 0.6], [0.5, 0.76], [0.57, 0.91], [0.52, 1.07]],
+    stars: [[0.6, 0.375, 0.085, 1], [0.04, 0.815, 0.055, 0], [0.95, 0.63, 0.028, 1]]
+  };
+
+  var WIDE = {
+    badge: { x: 0, y: 0, w: 0.07, h: 0.115 },
+    head: { x: 0.12, y: 0.045 },
+    title: { x: 0.01, y: 0.14, w: 0.42, h: 0.4 },
+    script: { x: 0.01, y: 0.6, w: 0.3 },
+    f1: { x: 0.46, y: 0.02, w: 0.24, h: 0.56, kind: 'oval' },
+    f2: { x: 0.73, y: 0.12, w: 0.27, h: 0.5, kind: 'card' },
+    f3: { x: 0.48, y: 0.64, w: 0.2, h: 0.34, kind: 'oct' },
+    note: { x: 0.72, y: 0.68, w: 0.28 },
+    foot: { x: 0.01, y: 0.86, w: 0.4 },
+    bars: { x: 0.2, y: 0.9, w: 0.1, h: 0.05 },
+    marks: { x: -0.03, y: 0.5, n: 4, step: 0.07 },
+    ribbon: [[0.43, -0.05], [0.37, 0.3], [0.44, 0.58], [0.36, 0.84], [0.42, 1.08]],
+    stars: [[0.45, 0.06, 0.06, 1], [0.7, 0.86, 0.045, 0], [0.98, 0.06, 0.022, 1]]
+  };
+
   function draw(env) {
     var ctx = env.ctx, w = env.w, h = env.h, u = env.u;
-    var st = env.st, pal = env.pal, c = env.content, rand = env.rand;
-
-    ctx.fillStyle = pal.base;
-    ctx.fillRect(0, 0, w, h);
-
-    var m = PO.margins(env);
-    var mic = PO.micro(env);
+    var st = env.st, pal = env.pal, c = env.content;
+    var m = PO.margins(env), mic = PO.micro(env);
     var wide = env.tier === 'wide';
 
-    /* ---- blooms ---- */
-    /* Wider and lower than they were. The hero glow and the photo window
-       both sit in the upper half, so blooms that peaked at a quarter of
-       the way down piled the colour where there was already plenty and
-       left the foot of the page flat — which is most of what made this
-       layout look empty rather than soft. */
-    var spots = wide
-      ? [[0.2, 0.34], [0.76, 0.28], [0.44, 0.84], [0.9, 0.72]]
-      : [[0.28, 0.22], [0.8, 0.48], [0.22, 0.72], [0.72, 0.95]];
-    pal.soft.concat([pal.inks[3] || pal.soft[0]]).slice(0, 4).forEach(function (col, i) {
-      var s = spots[i % spots.length];
-      P.wash(ctx, w * s[0], h * s[1], env.S * U.range(rand, 0.85, 1.35), col,
-        0.58 * st.washStrength);
-    });
+    /* two inks, as on a two-colour print: the page's own ink and the
+       palette's accent, resolved so both read on the paper */
+    var ink = pal.text;
+    var accent = PO.accentOn(pal, pal.base);
 
-    /* ---- geometry ---- */
-    /* Non-rectangular frames (heart, blob, star) ink far less of their
-       plate than a circle does, so they get a larger plate to compensate —
-       otherwise the photo looks lost inside its own glow. */
-    var shapeBoost = /heart|star|blob/.test(st.photoShape) ? 1.22 : 1;
-    var photoW = Math.min(m.inner, w * (wide ? 0.34
-      : env.tier === 'tall' ? 0.6 : env.tier === 'phone' ? 0.62 : 0.5) * shapeBoost);
-    var photoH = photoW;   /* the soft layout always frames a square */
-    var hasPhoto = env.hasPhoto;
+    /* ---------- ground ---------- */
+    ctx.fillStyle = pal.base;
+    ctx.fillRect(0, 0, w, h);
+    P.wash(ctx, w * 0.92, h * 0.08, env.S * 1.15, pal.soft[0], 0.8 * st.washStrength);
+    P.wash(ctx, w * 0.06, h * 0.72, env.S * 1.1, pal.soft[1] || pal.soft[0], 0.7 * st.washStrength);
+    P.wash(ctx, w * 0.62, h * 1.0, env.S * 0.95, pal.soft[0], 0.55 * st.washStrength);
 
-    /* Measured, not assumed. A fixed two-line allowance let a caption that
-       wrapped to three print straight through the tag rail on every
-       landscape tablet. */
-    var capW = m.inner * (wide ? 0.46 : 0.9);
-    var capH = (c.caption && !env.micro)
-      ? PO.block(env, 0, 0, capW, [c.caption], {
-        size: mic, lead: 1.5, measure: true, font: st.bodyFont
-      }) + mic * 1.1
-      : 0;
-    /* The rails own the strip at the foot and the stack must not reach it.
-       Two lines of rail plus the tag rail is 4.6 micro-units, not 3.2 —
-       under-reserving it let a wrapped caption print through the tags on
-       every landscape tablet. */
-    var railBand = env.micro ? 0 : mic * 4.8;
-    var bandBottom = env.band.bottom - railBand;
-    var avail = bandBottom - env.band.top;
-
-    /* headline and photo share the band: the lockup may take at most a
-       third of it, and whatever the stack still overflows comes out of
-       the photo — type is never pushed into the rails */
-    var hlBox = { x: m.left, y: 0, w: capW };
-    var hlMaxH = avail * (wide ? 0.5 : 0.34);
-    var hl = PO.headline(env, hlBox, { align: 'center', measure: true, style: st.headlineStyle, maxH: hlMaxH });
-
-    if (hasPhoto && !wide) {
-      var maxPhotoH = avail - hl.h - capH - u(90);
-      if (photoH > maxPhotoH) {
-        photoH = Math.max(u(220), maxPhotoH);
-        photoW = photoH;
-      }
-    }
-
-    var total = (hasPhoto ? photoH + u(90) : 0) + hl.h + capH;
-    var free = Math.max(0, avail - total);
-    var y = env.band.top + free * 0.42;
-
-    /* On a wide canvas the halves get a shared centreline: the photograph
-       centred in the left column, the whole type group centred in the
-       right one, at the same height. Placed independently they drifted,
-       which is what made the desktop version look like three things
-       floating on a page rather than one composition. */
-    var midY = env.band.top + (bandBottom - env.band.top) / 2;
-    var left = { x: m.left, w: m.inner * 0.46 };
-    var right = { x: w - m.right - m.inner * 0.46, w: m.inner * 0.46 };
-
-    var plate = null;
-    if (hasPhoto) {
-      plate = wide
-        ? { x: left.x + (left.w - photoW) / 2, y: midY - photoH / 2, w: photoW, h: photoH }
-        : { x: (w - photoW) / 2, y: y, w: photoW, h: photoH };
-    }
-
-    /* ---- hero aura behind the window ---- */
-    if (st.auraShape !== 'none') {
-      var fn = P.motifs[st.auraShape] || P.motifs.heart;
-      /* Anchored to where the picture belongs, not to whether one happens
-         to be loaded. On a wide canvas that is the left column's centre —
-         falling back to the full canvas centre with no photo pulled the
-         glow out from under the left column into the gutter between the
-         two halves, so it lined up with neither the empty photo slot nor
-         the text sitting in the right column. */
-      var hx = wide ? left.x + left.w / 2 : (plate ? plate.x + plate.w / 2 : w / 2);
-      var hy = wide ? midY
-        : (plate ? plate.y + plate.h / 2 : env.band.top + (env.band.bottom - env.band.top) * 0.32);
-      /* The aura is the layout. It was sized at half the photo window —
-         a bloom tucked behind a circle, which on a phone page is a small
-         warm patch in a large field of flat colour, and the scattered
-         marks were doing the work of filling the rest. They are off by
-         default now, so this has to carry the page: it reaches past the
-         window on every side and, with no photograph, spans the better
-         part of the short edge. */
-      var hr = wide ? Math.min(photoW, photoH) * 0.86
-        : (plate ? Math.min(plate.w, plate.h) * 0.9 : env.S * 0.46);
-      P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, hr,
-        pal.soft[0], { layers: 34, spread: 0.4, alpha: 0.62 * st.washStrength });
-      /* The accent is a RING hugging the window, not a core behind it. A
-         core is covered by the photograph, and what escapes past the edge
-         is the tail of a soft blend — measured at four thousandths of one
-         per cent of the page on the muted palettes, which is another way
-         of saying the swatch on the palette card showed a colour the
-         wallpaper did not contain. Drawn tight, with the layers stacked in
-         a narrow band instead of fanned out, the same glow lands as a band
-         of real colour around the picture. Resolved against the page, not
-         taken raw: an accent within a hair of the page's own luminance
-         blends into nothing at all. */
-      var coreR = plate ? Math.min(plate.w, plate.h) * 0.74 : hr * 0.6;
-      P.glow(ctx, function (g2, x2, y2, r2) { fn(g2, x2, y2, r2, rand); }, hx, hy, coreR,
-        PO.accentOn(pal, pal.base) || pal.inks[1] || pal.soft[1],
-        { layers: 20, spread: 0.3, alpha: 0.72 * st.washStrength });
-    }
-
-    if (plate) {
-      env.drawPhoto(plate);
-      /* No outline. An edge was there to stop the photograph dissolving
-         into the page, but a ring drawn round a feathered window is the
-         one hard line in the softest layout in the set, and it read as a
-         sticker rather than as a window. The feather itself is the edge
-         now that it ramps smoothly. */
-    }
-
-    /* ---- type ---- */
-    if (wide) {
-      var tagH = (!env.micro && c.tags.length && st.showTags) ? mic * 2.2 : 0;
-      hlBox.x = right.x;
-      hlBox.w = right.w;
-      hlBox.y = midY - (hl.h + capH + tagH) / 2;
-      PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle, maxH: hlMaxH });
-      if (capH) {
-        PO.block(env, hlBox.x, hlBox.y + hl.h + mic * 0.8, hlBox.w, [c.caption], {
-          size: mic, lead: 1.5, align: 'center', alpha: 0.8, upper: false, font: st.bodyFont
-        });
-      }
-      if (tagH) {
-        PO.tagRail(env, hlBox.y + hl.h + capH + tagH * 0.7, {
-          m: { left: right.x, right: w - right.x - right.w, inner: right.w },
-          size: mic * 1.05, alpha: 1, color: PO.accentOn(pal, pal.base)
-        });
-      }
-    } else {
-      hlBox.x = (w - hlBox.w) / 2;
-      hlBox.y = (plate ? plate.y + plate.h + u(90) : y);
-      PO.headline(env, hlBox, { align: 'center', style: st.headlineStyle, maxH: hlMaxH });
-      if (capH) {
-        PO.block(env, hlBox.x, hlBox.y + hl.h + mic * 0.9, hlBox.w, [c.caption], {
-          size: mic, lead: 1.5, align: 'center', alpha: 0.8, upper: false, font: st.bodyFont
-        });
-      }
-    }
-
-    /* ---- twinkles, kept clear of the type and the foot rails ---- */
-    var avoid = [
-      { x: hlBox.x, y: hlBox.y - u(20), w: hlBox.w, h: hl.h + capH + u(40) },
-      { x: 0, y: bandBottom - u(10), w: w, h: h - bandBottom + u(10) }
-    ];
-    if (plate) avoid.push(plate);
-    /* the gutter between the two columns is structure, not empty space —
-       a big motif parked in it reads as something dropped on the page */
-    if (wide) avoid.push({ x: left.x + left.w, y: 0, w: right.x - (left.x + left.w), h: h });
-    /* one budget, split — so "8개" really puts eight things on the page */
-    var twinkleN = Math.round(env.decoBudget * 0.6);
-    /* the accent rides along with the inks — the blooms are made of `soft`,
-       which is deliberately pale, so without this the loudest colour in
-       the palette never appears on the softest layout */
-    var inks = [PO.accentOn(pal, pal.base)].concat(pal.inks).filter(Boolean);
-    /* Stratified, and bigger. Uniform random put every one of six marks in
-       the top half of a phone page — uniform on average is lumpy in any
-       single draw — and at 14–30 per mille they were small enough that
-       nobody would have noticed if they had been better spread. */
-    D.twinkles(env, {
-      count: twinkleN, avoid: avoid, colors: inks.concat(pal.soft),
-      hero: PO.accentOn(pal, pal.base), rMin: 8, rMax: 21, stratify: true
-    });
-    D.scatter(env, {
-      count: env.decoBudget - twinkleN,
-      avoid: avoid, kinds: st.motifs, colors: inks, hero: PO.accentOn(pal, pal.base),
-      rMin: 22, rMax: 44, bigRatio: 0.24, minDist: 100, stratify: true, pad: u(66),
-      alphaMin: 0.4, alphaMax: 0.95, outlineRatio: 0.4, lineW: 2.6,
-      speckle: st.glitter
-    });
-
-    /* ---- rails ----
-       In the accent. The palette's loudest colour used to reach this page
-       on the scattered marks, and with those off by default it reached it
-       nowhere: the glow's accent core sits behind the photo window, and
-       what escapes past the edge is a soft blend too desaturated to count
-       as colour at all — measured at under 0.02% of the page on seven
-       palettes. The smallest type on the softest layout is the right place
-       for it: two quiet rows of colour instead of a mark dropped on the
-       page to carry a hue. */
     if (env.micro) {
+      PO.headline(env, { x: m.left, y: env.band.top + (env.band.bottom - env.band.top) * 0.3, w: m.inner },
+        { align: 'center', maxH: h * 0.34 });
       PO.microFoot(env, { m: m });
-    } else {
-      var railInk = PO.accentOn(pal, pal.base);
-      PO.rail(env, h - m.bottom + mic * 0.1, [c.footnote, null, W.textstack.monogram(st)],
-        { m: m, size: mic * 1.05, alpha: 1, color: railInk });
-      if (!wide) {
-        PO.tagRail(env, h - m.bottom - mic * 1.4,
-          { m: m, size: mic * 1.05, alpha: 1, color: railInk });
+      return;
+    }
+
+    var L = wide ? WIDE : TALL;
+    var S = {
+      x: m.left, y: env.band.top,
+      w: m.inner, h: env.band.bottom - env.band.top
+    };
+    function bx(f) { return S.x + S.w * f; }
+    function by(f) { return S.y + S.h * f; }
+    function box(b) {
+      return { x: bx(b.x), y: by(b.y), w: S.w * b.w, h: S.h * (b.h || 0) };
+    }
+
+    var hair = Math.max(1, u(1.6));
+
+    /* ---------- the three windows ---------- */
+    var frames = [L.f1, L.f2, L.f3];
+    /* three crops of the one photograph, so the same picture reads as
+       three moments rather than one repeated three times */
+    var crops = [
+      { zoom: 1.12, ox: 0.38, oy: 0.34 },
+      { zoom: 1.55, ox: 0.6, oy: 0.5 },
+      { zoom: 1.3, ox: 0.44, oy: 0.68 }
+    ];
+    frames.forEach(function (b, i) {
+      var fr = box(b);
+      var kind = b.kind;
+      if (env.hasPhoto) {
+        W.photo.place(ctx, fr, shapeOf(kind), {
+          tone: st.tone, toneAmount: U.clamp(st.toneAmount, 0, 1),
+          brightness: st.brightness, contrast: st.contrast, saturation: st.saturation,
+          blur: st.blur, duoDark: pal.duo[0], duoLight: pal.duo[1],
+          inkColor: pal.duo[0], halftoneInvert: false,
+          feather: st.feather, opacity: 1, blend: 'normal', overprint: 0,
+          halftoneCells: st.halftoneCells,
+          ox: crops[i].ox, oy: crops[i].oy, zoom: crops[i].zoom * st.zoom, rotate: 0
+        }, pal);
+      } else {
+        ctx.save();
+        framePath(ctx, kind, fr);
+        ctx.clip();
+        ctx.fillStyle = U.mix(pal.duo[0], pal.duo[1], 0.5);
+        ctx.fillRect(fr.x, fr.y, fr.w, fr.h);
+        P.wash(ctx, fr.x + fr.w * 0.3, fr.y + fr.h * 0.28, Math.max(fr.w, fr.h) * 0.95,
+          pal.soft[0], 0.75 * st.washStrength);
+        P.wash(ctx, fr.x + fr.w * 0.78, fr.y + fr.h * 0.8, Math.max(fr.w, fr.h) * 0.8,
+          pal.soft[1] || pal.soft[0], 0.6 * st.washStrength);
+        ctx.restore();
       }
+
+      /* the double outline: a hairline on the shape and a second one just
+         outside it, which is what makes a window read as a plate */
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = hair;
+      framePath(ctx, kind, fr);
+      ctx.stroke();
+      ctx.globalAlpha = 0.55;
+      framePath(ctx, kind, { x: fr.x - u(9), y: fr.y - u(9), w: fr.w + u(18), h: fr.h + u(18) });
+      ctx.stroke();
+      ctx.restore();
+
+      /* the plate number, inside the window's shoulder */
+      ctx.save();
+      ctx.fillStyle = ink;
+      ctx.globalAlpha = 0.9;
+      T.setFont(ctx, st.bodyFont, mic * 0.92, { weight: 500 });
+      T.draw(ctx, '0' + (i + 1), fr.x + fr.w * (kind === 'oval' ? 0.18 : 0.09),
+        fr.y + fr.h * (kind === 'oval' ? 0.2 : 0.16), { align: 'left', tracking: mic * 0.06 });
+      ctx.restore();
+      crosshair(ctx, fr.x + fr.w / 2, fr.y + fr.h / 2, mic * 0.62, ink, 0.6, Math.max(1, u(1.4)));
+    });
+
+    /* ---------- the ribbon, over the windows ----------
+       Pastel, not the raw inks: an accent-to-ink gradient goes through mud
+       on any warm palette, and the streamer has to stay luminous or it
+       reads as a stain. It crosses the windows rather than passing behind
+       them, which is the one thing that makes a page of separate plates
+       read as one picture. */
+    /* mixHex, not mix: the streamer's own gradient mixes these two again
+       inside, and `mix` returns an rgb() string that the next mix cannot
+       parse — which is why the first cut of this came out mud */
+    ribbon(ctx, L.ribbon.map(function (q) { return { x: bx(q[0]), y: by(q[1]) }; }),
+      Math.min(S.w, S.h) * 0.072,
+      [U.mixHex(accent, '#ffffff', 0.2), U.mixHex(pal.duo[0], '#ffffff', 0.42)],
+      [U.mixHex(accent, ink, 0.42), U.mixHex(pal.duo[0], ink, 0.34)], 0.88);
+
+    /* ---------- the stars ---------- */
+    L.stars.forEach(function (s) {
+      gradStar(ctx, bx(s[0]), by(s[1]), S.w * s[2],
+        s[3] ? accent : U.mix(ink, accent, 0.2),
+        s[3] ? U.mix(accent, ink, 0.45) : ink, 0.92, s[2] < 0.03 ? 4 : 8);
+    });
+
+    /* ---------- the badge ---------- */
+    var bd = box(L.badge);
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = hair;
+    ctx.beginPath();
+    ctx.ellipse(bd.x + bd.w / 2, bd.y + bd.h / 2, bd.w / 2, bd.h / 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    /* the year off the footnote if there is one in it, the pair's initials
+       if there is not — the badge always says something true */
+    var year = (c.footnote || '').match(/(\d{2})(\d{2})/);
+    var mono = W.textstack.monogram(st) || 'PT';
+    var b1 = year ? year[1] : (mono.replace(/[^A-Za-z]/g, '').charAt(0) || 'P');
+    var b2 = year ? year[2] : (mono.replace(/[^A-Za-z]/g, '').charAt(1) || 'T');
+    ctx.fillStyle = accent;
+    ctx.globalAlpha = 1;
+    var bs = Math.min(bd.h * 0.34, bd.w * 0.44);
+    T.setFont(ctx, st.bodyFont, bs, { weight: 500 });
+    T.draw(ctx, b1, bd.x + bd.w / 2, bd.y + bd.h * 0.46, { align: 'center', tracking: bs * 0.06 });
+    T.draw(ctx, b2, bd.x + bd.w / 2, bd.y + bd.h * 0.84, { align: 'center', tracking: bs * 0.06 });
+    ctx.restore();
+
+    /* ---------- the head rule ---------- */
+    var hy = by(L.head.y);
+    var hx0 = bx(L.head.x);
+    ctx.save();
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = 0.85;
+    T.setFont(ctx, st.bodyFont, mic * 0.86, { weight: 500 });
+    var hw = T.measure(ctx, 'pairtone', mic * 0.18);
+    T.draw(ctx, 'pairtone', S.x + S.w, hy + mic * 0.3, { align: 'right', tracking: mic * 0.18 });
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = Math.max(1, u(1.3));
+    ctx.beginPath();
+    ctx.moveTo(hx0 + mic * 1.2, hy);
+    ctx.lineTo(S.x + S.w - hw - mic * 0.8, hy);
+    ctx.stroke();
+    ctx.restore();
+    gradStar(ctx, hx0, hy, mic * 0.62, accent, U.mix(accent, ink, 0.4), 0.95, 8);
+
+    /* ---------- the title ---------- */
+    var tb = box(L.title);
+    var raw = (c.title || c.names || 'pairtone').replace(/\s+/g, ' ').trim().toUpperCase();
+    var words = raw.split(' ').filter(Boolean);
+    var rows = words.length >= 3 ? 3 : words.length;
+    var lines = [];
+    var per = Math.ceil(words.length / Math.max(1, rows));
+    for (var wi = 0; wi < words.length; wi += per) lines.push(words.slice(wi, wi + per).join(' '));
+
+    /* one size for every line, chosen against the widest of them and
+       against the height the table gives the block — flush left, ragged
+       right, the way the reference sets it */
+    var em = st.headlineScale || 1;
+    var tsize = u(600);
+    lines.forEach(function (ln) {
+      tsize = Math.min(tsize, T.fill(ctx, ln, st.titleFont, tb.w * em, -0.01, { weight: 500 }, u(600)));
+    });
+    var lead = tsize * 0.86;
+    if (lines.length * lead > tb.h) {
+      tsize *= tb.h / (lines.length * lead);
+      lead = tsize * 0.86;
+    }
+    T.setFont(ctx, st.titleFont, tsize, { weight: 500 });
+    var tink = T.inkBox(ctx, 'H');
+    ctx.save();
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = 0.95;
+    lines.forEach(function (ln, i) {
+      T.setFont(ctx, st.titleFont, tsize, { weight: 500 });
+      T.draw(ctx, ln, tb.x, tb.y + tink.asc + i * lead, { align: 'left', tracking: tsize * -0.01 });
+    });
+    ctx.restore();
+
+    /* ---------- the script line ---------- */
+    if (c.caption) {
+      var sb = box(L.script);
+      var ssize = mic * 1.55;
+      var srows;
+      for (var si = 0; si < 26; si++) {
+        T.setFont(ctx, st.scriptFont, ssize, {});
+        srows = T.wrap(ctx, c.caption, sb.w, 0);
+        if (srows.length <= 4) break;
+        ssize *= 0.94;
+      }
+      srows = srows.slice(0, 4);
+      ctx.save();
+      ctx.fillStyle = accent;
+      ctx.globalAlpha = 0.95;
+      srows.forEach(function (r, i) {
+        T.setFont(ctx, st.scriptFont, ssize, {});
+        T.draw(ctx, r, sb.x, sb.y + ssize * (0.9 + i * 1.12), { align: 'left', tracking: 0 });
+      });
+      ctx.restore();
+    }
+
+    /* ---------- the note beside the second window ---------- */
+    var nb = box(L.note);
+    var ny = nb.y;
+    if (st.showNames && c.names) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = Math.max(1, u(1.4));
+      ctx.beginPath();
+      ctx.moveTo(nb.x, ny);
+      ctx.lineTo(nb.x, ny + mic * 2.6);
+      ctx.stroke();
+      ctx.restore();
+      ny += PO.block(env, nb.x + mic * 0.7, ny, nb.w - mic * 0.7, [c.names], {
+        size: mic * 1.05, lead: 1.35, upper: false, alpha: 0.92, color: ink,
+        font: st.bodyFont, weight: 500, tracking: 0.01
+      }) + mic * 0.9;
+    }
+    if (st.showTags && c.tags.length) {
+      PO.block(env, nb.x + mic * 0.7, ny, nb.w - mic * 0.7,
+        [c.tags.map(function (t) { return t.toLowerCase(); }).join(', ')], {
+          size: mic * 0.92, lead: 1.4, upper: false, alpha: 0.95, color: accent,
+          font: st.bodyFont, tracking: 0.01
+        });
+    }
+
+    /* ---------- the foot ---------- */
+    var fb = box(L.foot);
+    if (c.footnote) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = Math.max(1, u(1.4));
+      ctx.beginPath();
+      ctx.moveTo(fb.x, fb.y);
+      ctx.lineTo(fb.x, fb.y + mic * 1.5);
+      ctx.stroke();
+      ctx.restore();
+      PO.block(env, fb.x + mic * 0.7, fb.y, fb.w - mic * 0.7, [c.footnote], {
+        size: mic * 0.95, lead: 1.4, upper: false, alpha: 0.9, color: ink,
+        font: st.bodyFont, tracking: 0.02
+      });
+    }
+    var bb = box(L.bars);
+    barcode(ctx, bb.x, bb.y, bb.w, bb.h, st.seed, ink, 0.8);
+
+    /* ---------- the row of crosses in the margin ---------- */
+    for (var k = 0; k < L.marks.n; k++) {
+      crossMark(ctx, bx(L.marks.x), by(L.marks.y + k * L.marks.step), mic * 0.34,
+        accent, 0.8, Math.max(1, u(1.6)));
+    }
+
+    /* ---------- optional scatter, clear of everything ---------- */
+    if (env.decoBudget) {
+      var avoid = [box(L.title), box(L.note), box(L.foot)];
+      frames.forEach(function (b) {
+        var fr = box(b);
+        avoid.push({ x: fr.x - u(14), y: fr.y - u(14), w: fr.w + u(28), h: fr.h + u(28) });
+      });
+      D.scatter(env, {
+        avoid: avoid, kinds: st.motifs, colors: [ink, accent],
+        hero: accent, rMin: 16, rMax: 34, bigRatio: 0.2, stratify: true,
+        /* This page has six keep-out zones, so a stratified field runs out
+           of room and the sampler relaxes its way down to the floor —
+           measured at 0.53 of the summed radii on a 16-inch canvas. Asking
+           for 1.3x the radii means even the last relaxed pass still leaves
+           0.8x, which is clear of anything the eye reads as touching. */
+        sep: 1.3,
+        alphaMin: 0.45, alphaMax: 0.9, pad: u(50)
+      });
     }
   }
 
@@ -227,15 +530,15 @@
   W.layoutRegistry.push({
     id: 'aura',
     label: 'Aura',
-    blurb: '뿌연 빛무리 + 부드러운 사진창. 제일 은은해요.',
-    type: ['headlineStyle', 'titleFont', 'scriptFont', 'bodyFont', 'headlineScale', 'microScale'],
+    blurb: '커다란 제목 + 번호 붙은 사진창 3개 + 리본과 별. 포스터처럼.',
     deco: true,
+    type: ['titleFont', 'scriptFont', 'bodyFont', 'headlineScale', 'microScale'],
     defaults: {
-      titleFont: 'instrument', scriptFont: 'gwendolyn', bodyFont: 'dmmono',
+      titleFont: 'didone', scriptFont: 'petitformal', bodyFont: 'familjen',
       headlineStyle: 'stack',
-      photoShape: 'circle', tone: 'wash', toneAmount: 0.3,
-      feather: 0.12, auraShape: 'heart', decoCount: 0,
-      motifs: ['puff', 'sparkle', 'star'], vignette: 0.08, grain: 1
+      photoShape: 'rect', tone: 'wash', toneAmount: 0.42,
+      feather: 0, decoCount: 0, motifs: ['sparkle'],
+      grain: 1.1, vignette: 0.04
     },
     draw: draw
   });

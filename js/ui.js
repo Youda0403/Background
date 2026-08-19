@@ -211,7 +211,7 @@
     footnote: '날짜나 기념일처럼 아주 작게 들어가는 한 줄.',
     batch: '고른 기기들 해상도로 각각 다시 배치해서 한꺼번에 저장해요.',
     titleFontHelp: '가장 큰 글자에 쓰는 폰트.',
-    firstLineFont: '첫 줄에만 따로 쓰는 폰트.',
+    firstLineFont: '필기체로 들어가는 줄에 쓰는 폰트.',
     bodyFontHelp: '작은 글자 전부에 쓰는 폰트.',
     fonts: '레이아웃마다 어울리는 폰트가 기본으로 정해져 있어요. 바꾸고 싶을 때만 건드리면 돼요.'
   };
@@ -371,12 +371,7 @@
           { t: 'note', text: '지금 고른 레이아웃이 실제로 쓰는 항목만 보여요.' },
           { t: 'chips', key: 'headlineStyle', label: '두 줄 짜는 방식', help: HELP.headlineStyle, options: idLabel(S.headlineStyles), when: typeHas('headlineStyle') },
           { t: 'select', key: 'titleFont', label: '메인 문구 폰트', help: HELP.titleFontHelp, options: fontOptions, when: typeHas('titleFont') },
-          {
-            t: 'select', key: 'scriptFont', label: '첫 줄 폰트', help: HELP.firstLineFont, options: fontOptions,
-            when: function (s) {
-              return typeHas('scriptFont')(s) && (s.layout !== 'aura' || s.headlineStyle === 'scriptSans');
-            }
-          },
+          { t: 'select', key: 'scriptFont', label: '필기체 폰트', help: HELP.firstLineFont, options: fontOptions, when: typeHas('scriptFont') },
           { t: 'select', key: 'bodyFont', label: '작은 글자 폰트', help: HELP.bodyFontHelp, options: fontOptions, when: typeHas('bodyFont') },
           { t: 'note', text: '「(반듯)」이 붙은 필기체는 똑바로 서 있어서 제목에 쓰기 좋아요.', when: typeHas('titleFont') },
           { t: 'slider', key: 'headlineScale', label: '메인 문구 크기', min: 0.6, max: 1.35, step: 0.01, help: HELP.headlineScale, when: typeHas('headlineScale') },
