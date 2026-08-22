@@ -97,7 +97,7 @@
           (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * uuu)
       };
     }
-    var TURNS = 2.6, PH = 0.55;
+    var TURNS = 3.6, PH = 0.5;
     var sp = [];
     for (i = 0; i <= N; i++) {
       t = i / N;
@@ -209,33 +209,43 @@
   var TALL = {
     badge: { x: 0, y: 0, w: 0.115, h: 0.075 },
     head: { x: 0.2, y: 0.03 },
-    title: { x: 0.015, y: 0.095, w: 0.7, h: 0.25 },
-    script: { x: 0.015, y: 0.375, w: 0.42 },
-    f1: { x: 0.54, y: 0.355, w: 0.46, h: 0.245, kind: 'oval' },
-    f2: { x: 0, y: 0.585, w: 0.5, h: 0.235, kind: 'card' },
-    f3: { x: 0.62, y: 0.795, w: 0.32, h: 0.185, kind: 'oct' },
-    note: { x: 0.6, y: 0.645, w: 0.4 },
-    foot: { x: 0, y: 0.87, w: 0.54 },
+    /* the title starts well clear of the badge — at 0.095 the first line's
+       capitals sat against the ring and read as one crowded object */
+    title: { x: 0.015, y: 0.155, w: 0.64, h: 0.185 },
+    script: { x: 0.015, y: 0.385, w: 0.4 },
+    /* three windows, three sizes: the biggest is three and a half times
+       the smallest. At 0.14 / 0.13 / 0.04 of the stage they were near
+       enough the same area to read as a set of stamps */
+    f1: { x: 0.52, y: 0.37, w: 0.48, h: 0.28, kind: 'oval' },
+    f2: { x: 0, y: 0.615, w: 0.54, h: 0.225, kind: 'card' },
+    f3: { x: 0.68, y: 0.825, w: 0.28, h: 0.145, kind: 'oct' },
+    note: { x: 0.6, y: 0.685, w: 0.4 },
+    foot: { x: 0, y: 0.885, w: 0.54 },
     bars: { x: 0, y: 0.955, w: 0.26, h: 0.035 },
-    marks: { x: -0.045, y: 0.6, n: 5, step: 0.038 },
-    ribbon: [[0.66, 0.3], [0.53, 0.45], [0.6, 0.6], [0.5, 0.76], [0.57, 0.91], [0.52, 1.07]],
-    stars: [[0.6, 0.375, 0.085, 1], [0.04, 0.815, 0.055, 0], [0.95, 0.63, 0.028, 1]]
+    marks: { x: -0.045, y: 0.62, n: 5, step: 0.038 },
+    /* the streamer starts off the top of the page, sweeps left over the
+       head rule and comes down behind the display line — the type is drawn
+       after it, so it passes behind the words rather than through them */
+    ribbon: [[0.94, -0.3], [0.6, -0.19], [0.29, -0.01], [0.44, 0.2],
+      [0.69, 0.4], [0.52, 0.62], [0.58, 0.85], [0.48, 1.1]],
+    stars: [[0.51, 0.385, 0.085, 1], [0.03, 0.835, 0.055, 0], [0.96, 0.61, 0.028, 1]]
   };
 
   var WIDE = {
     badge: { x: 0, y: 0, w: 0.07, h: 0.115 },
     head: { x: 0.12, y: 0.045 },
-    title: { x: 0.01, y: 0.14, w: 0.42, h: 0.4 },
-    script: { x: 0.01, y: 0.6, w: 0.3 },
-    f1: { x: 0.46, y: 0.02, w: 0.24, h: 0.56, kind: 'oval' },
-    f2: { x: 0.73, y: 0.12, w: 0.27, h: 0.5, kind: 'card' },
-    f3: { x: 0.48, y: 0.64, w: 0.2, h: 0.34, kind: 'oct' },
-    note: { x: 0.72, y: 0.68, w: 0.28 },
-    foot: { x: 0.01, y: 0.86, w: 0.4 },
+    title: { x: 0.01, y: 0.19, w: 0.4, h: 0.34 },
+    script: { x: 0.01, y: 0.6, w: 0.28 },
+    f1: { x: 0.45, y: 0.0, w: 0.27, h: 0.62, kind: 'oval' },
+    f2: { x: 0.75, y: 0.14, w: 0.25, h: 0.42, kind: 'card' },
+    f3: { x: 0.5, y: 0.7, w: 0.17, h: 0.28, kind: 'oct' },
+    note: { x: 0.74, y: 0.66, w: 0.26 },
+    foot: { x: 0.01, y: 0.86, w: 0.38 },
     bars: { x: 0.2, y: 0.9, w: 0.1, h: 0.05 },
     marks: { x: -0.03, y: 0.5, n: 4, step: 0.07 },
-    ribbon: [[0.43, -0.05], [0.37, 0.3], [0.44, 0.58], [0.36, 0.84], [0.42, 1.08]],
-    stars: [[0.45, 0.06, 0.06, 1], [0.7, 0.86, 0.045, 0], [0.98, 0.06, 0.022, 1]]
+    ribbon: [[0.82, -0.36], [0.63, -0.16], [0.45, 0.05], [0.36, 0.3],
+      [0.45, 0.56], [0.36, 0.82], [0.42, 1.14]],
+    stars: [[0.44, 0.06, 0.06, 1], [0.7, 0.86, 0.045, 0], [0.98, 0.06, 0.022, 1]]
   };
 
   function draw(env) {
@@ -344,10 +354,20 @@
     /* mixHex, not mix: the streamer's own gradient mixes these two again
        inside, and `mix` returns an rgb() string that the next mix cannot
        parse — which is why the first cut of this came out mud */
+    /* On a deep page the same pastel mix lands as grey twice over: the
+       duotone is already dark so white only takes it to slate, and the
+       shaded face mixes toward a near-white ink, which flattens the crease
+       away. So a deep page pulls the second stop toward the accent to hold
+       a hue, and shades toward the ground rather than toward the ink. */
+    var deep = U.luma(pal.base) < 0.42;
+    var warm = U.mixHex(pal.duo[0], accent, deep ? 0.55 : 0.2);
+    var shade = deep ? pal.base : ink;
     ribbon(ctx, L.ribbon.map(function (q) { return { x: bx(q[0]), y: by(q[1]) }; }),
-      Math.min(S.w, S.h) * 0.072,
-      [U.mixHex(accent, '#ffffff', 0.2), U.mixHex(pal.duo[0], '#ffffff', 0.42)],
-      [U.mixHex(accent, ink, 0.42), U.mixHex(pal.duo[0], ink, 0.34)], 0.88);
+      Math.min(S.w, S.h) * 0.062,
+      [U.mixHex(accent, '#ffffff', deep ? 0.28 : 0.2),
+        U.mixHex(warm, '#ffffff', deep ? 0.5 : 0.42)],
+      [U.mixHex(accent, shade, deep ? 0.46 : 0.42),
+        U.mixHex(warm, shade, deep ? 0.4 : 0.34)], 0.88);
 
     /* ---------- the stars ---------- */
     L.stars.forEach(function (s) {
@@ -434,15 +454,15 @@
     /* ---------- the script line ---------- */
     if (c.caption) {
       var sb = box(L.script);
-      var ssize = mic * 1.55;
+      var ssize = mic * 1.32;
       var srows;
       for (var si = 0; si < 26; si++) {
         T.setFont(ctx, st.scriptFont, ssize, {});
         srows = T.wrap(ctx, c.caption, sb.w, 0);
-        if (srows.length <= 4) break;
+        if (srows.length <= 3) break;
         ssize *= 0.94;
       }
-      srows = srows.slice(0, 4);
+      srows = srows.slice(0, 3);
       ctx.save();
       ctx.fillStyle = accent;
       ctx.globalAlpha = 0.95;
